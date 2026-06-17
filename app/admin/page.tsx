@@ -121,28 +121,28 @@ export default function AdminPage() {
     );
   }
 
-  const handleView = (type: FilterType, id: number) => {
+  const handleView = (type: FilterType, id: string | number) => {
     router.push(`/admin/${type}/${id}`);
   };
 
-  const handleEdit = (type: FilterType, id: number) => {
+  const handleEdit = (type: FilterType, id: string | number) => {
     // For now, navigate to the respective order page
     router.push(type === 'purchase' ? '/purchases' : '/sales');
   };
 
-  const handleConfirm = async (type: FilterType, id: number) => {
+  const handleConfirm = async (type: FilterType, id: string | number) => {
     if (!window.confirm(`Confirm ${type} order #${id}?`)) return;
     // In a real app, this would call a confirm endpoint
     alert(`Order #${id} confirmed!`);
   };
 
-  const handleDelete = async (type: FilterType, id: number) => {
+  const handleDelete = async (type: FilterType, id: string | number) => {
     if (!window.confirm(`Delete ${type} order #${id}?`)) return;
     try {
       if (type === 'purchase') {
-        await deletePunch(id);
+        await deletePunch(Number(id));
       } else {
-        await deleteSale(id);
+        await deleteSale(Number(id));
       }
       await loadOrders();
     } catch (error) {
@@ -282,13 +282,13 @@ export default function AdminPage() {
                 >
                   <td style={{ padding: '16px', fontSize: '14px' }}>#{order.id}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>
-                    {new Date(order.ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {new Date(filter === 'purchase' ? (order as PunchEntry).ts : (order as SaleEntry).date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </td>
                   <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{order.product}</td>
                   <td style={{ padding: '16px', fontSize: '14px' }}>
                     {filter === 'purchase' 
                       ? (order as PunchEntry).company_from 
-                      : (order as SaleEntry).company_to}
+                      : (order as SaleEntry).companyTo}
                   </td>
                   <td style={{ padding: '16px', fontSize: '14px' }}>
                     {order.quantity.toLocaleString('en-IN')} MT

@@ -42,12 +42,12 @@ export default function TodaySales({ entries, onDelete, page, totalPages, total,
             </div>
           ) : (
             entries.map((r) => {
-              const t = new Date(r.ts).toLocaleTimeString('en-IN', {
+              const t = new Date(r.date).toLocaleTimeString('en-IN', {
                 hour: '2-digit', minute: '2-digit', hour12: false,
               });
               const qty = Number(r.quantity);
               const priceVal = Number(r.price);
-              const cls = marketStatusClass(r.market_status);
+              const cls = marketStatusClass(r.marketStatus ?? '');
 
               return (
                 <div key={r.id} className="punch-row">
@@ -56,8 +56,8 @@ export default function TodaySales({ entries, onDelete, page, totalPages, total,
 
                   {/* Company To / From */}
                   <div className="punch-company">
-                    <div>{r.company_to}</div>
-                    <div className="punch-sub">← {r.company_from}</div>
+                    <div>{r.companyTo}</div>
+                    <div className="punch-sub">← {r.companyFrom}</div>
                   </div>
 
                   {/* Product + Port */}
@@ -80,7 +80,7 @@ export default function TodaySales({ entries, onDelete, page, totalPages, total,
                   {/* Market Status */}
                   <div>
                     {cls && (
-                      <span className={`punch-avail ${cls}`}>{r.market_status}</span>
+                      <span className={`punch-avail ${cls}`}>{r.marketStatus}</span>
                     )}
                     {r.origin && <div className="punch-sub" style={{ marginTop: '4px' }}>{r.origin}</div>}
                   </div>
@@ -90,7 +90,7 @@ export default function TodaySales({ entries, onDelete, page, totalPages, total,
                     className="punch-del"
                     title="Delete"
                     onClick={() => {
-                      if (window.confirm(`Delete sale #${r.id}?`)) onDelete(r.id);
+                      if (window.confirm(`Delete sale #${r.id}?`)) onDelete(Number(r.id));
                     }}
                   >
                     ×

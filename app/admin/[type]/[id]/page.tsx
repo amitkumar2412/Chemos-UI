@@ -26,7 +26,7 @@ export default function AdminDetailPage() {
           setOrder(found || null);
         } else {
           const data = await fetchTodaySales(today, 1, 1000);
-          const found = data.rows.find((o) => o.id === id);
+          const found = data.rows.find((o) => o.id === String(id));
           setOrder(found || null);
         }
       } catch (error) {
@@ -110,7 +110,7 @@ export default function AdminDetailPage() {
           {isPurchase ? 'Purchase' : 'Sale'} Order #{order.id}
         </h1>
         <p style={{ color: 'var(--gray)', fontSize: '14px' }}>
-          Created: {new Date(order.ts).toLocaleString('en-IN', { 
+          Created: {new Date(isPurchase ? (order as PunchEntry).ts : (order as SaleEntry).date).toLocaleString('en-IN', {
             day: '2-digit', 
             month: 'short', 
             year: 'numeric',
@@ -144,7 +144,7 @@ export default function AdminDetailPage() {
               {isPurchase ? 'Seller' : 'Buyer'}
             </div>
             <div style={{ fontSize: '16px', fontWeight: '600' }}>
-              {isPurchase ? purchaseOrder?.company_from : saleOrder?.company_to}
+              {isPurchase ? purchaseOrder?.company_from : saleOrder?.companyTo}
             </div>
           </div>
 
@@ -246,7 +246,7 @@ export default function AdminDetailPage() {
             <>
               <div>
                 <div style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '4px' }}>Sale Type</div>
-                <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.sale_type}</div>
+                <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.salesType}</div>
               </div>
 
               <div>
@@ -263,7 +263,7 @@ export default function AdminDetailPage() {
 
               <div>
                 <div style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '4px' }}>Storage Days</div>
-                <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.storage_days} days</div>
+                <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.storageDays} days</div>
               </div>
 
               <div>
@@ -271,17 +271,17 @@ export default function AdminDetailPage() {
                 <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.payment}</div>
               </div>
 
-              {saleOrder.sales_person && (
+              {saleOrder.salesPerson && (
                 <div>
                   <div style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '4px' }}>Sales Person</div>
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.sales_person}</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.salesPerson}</div>
                 </div>
               )}
 
-              {saleOrder.broker_name && (
+              {saleOrder.brokerName && (
                 <div>
                   <div style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '4px' }}>Broker</div>
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.broker_name}</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.brokerName}</div>
                 </div>
               )}
             </>

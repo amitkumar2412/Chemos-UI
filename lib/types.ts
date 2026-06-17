@@ -114,6 +114,8 @@ export interface SaleEntry {
   message: string | null;
   vesselName: string | null;
   remarks: string | null;
+  salesPerson?: string | null;
+  brokerName?: string | null;
 }
 
 export interface SaleFormPayload {
