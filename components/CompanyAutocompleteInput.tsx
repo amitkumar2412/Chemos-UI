@@ -10,6 +10,8 @@ interface CompanyAutocompleteInputProps {
   placeholder?: string;
 }
 
+const PRESET_COMPANIES = ['KLJ Resources', 'Sidhe Petrochemical', 'Sidhgun Technologies'];
+
 type SearchResult = { displayName?: string; companyName?: string };
 
 function normaliseResults(raw: unknown): string[] {
@@ -41,8 +43,8 @@ export default function CompanyAutocompleteInput({
 
   const search = useCallback(async (query: string) => {
     if (!query.trim()) {
-      setSuggestions([]);
-      setShowList(false);
+      setSuggestions(PRESET_COMPANIES);
+      setShowList(true);
       return;
     }
     setLoading(true);
@@ -75,7 +77,12 @@ export default function CompanyAutocompleteInput({
   };
 
   const handleFocus = () => {
-    if (suggestions.length > 0 || value.trim()) setShowList(true);
+    if (!value.trim()) {
+      setSuggestions(PRESET_COMPANIES);
+      setShowList(true);
+    } else if (suggestions.length > 0) {
+      setShowList(true);
+    }
   };
 
   const handleBlur = () => {

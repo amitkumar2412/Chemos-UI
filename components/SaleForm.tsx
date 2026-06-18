@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AutocompleteInput from './AutocompleteInput';
+import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
 import type {
@@ -156,13 +157,17 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
           {/* Row 2: Company From, Company To */}
           <div className="fg">
             <label className="fl">Company From <span className="req">*</span></label>
-            <AutocompleteInput id="sf-company-from" value={companyFrom} onChange={setCompanyFrom}
-              options={feedOptions.companies} placeholder="Seller / supplier name" />
+            <select className="fi" value={companyFrom} onChange={e => setCompanyFrom(e.target.value)}>
+              <option value="">Select company…</option>
+              <option value="KLJ Resources">KLJ Resources</option>
+              <option value="Sidhe Petrochemical">Sidhe Petrochemical</option>
+              <option value="Sidhgun Technologies">Sidhgun Technologies</option>
+            </select>
           </div>
           <div className="fg">
             <label className="fl">Company To <span className="req">*</span></label>
-            <AutocompleteInput id="sf-company-to" value={companyTo} onChange={setCompanyTo}
-              options={feedOptions.companies} placeholder="Buyer / customer name" />
+            <CompanyAutocompleteInput id="sf-company-to" value={companyTo} onChange={setCompanyTo}
+              placeholder="Buyer / customer name" />
           </div>
 
           {/* Row 3: Product, Origin, Make */}
