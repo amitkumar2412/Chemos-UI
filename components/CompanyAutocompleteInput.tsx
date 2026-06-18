@@ -10,7 +10,6 @@ interface CompanyAutocompleteInputProps {
   placeholder?: string;
 }
 
-const PRESET_COMPANIES = ['KLJ Resources', 'Sidhe Petrochemical', 'Sidhgun Technologies'];
 
 type SearchResult = { displayName?: string; companyName?: string };
 
@@ -41,10 +40,12 @@ export default function CompanyAutocompleteInput({
   const [error, setError] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const justSelectedRef = useRef(false);
+
   const search = useCallback(async (query: string) => {
     if (!query.trim()) {
-      setSuggestions(PRESET_COMPANIES);
-      setShowList(true);
+      setSuggestions([]);
+      setShowList(false);
       return;
     }
     setLoading(true);
@@ -64,6 +65,10 @@ export default function CompanyAutocompleteInput({
   }, []);
 
   useEffect(() => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => search(value), 300);
     return () => {
@@ -77,12 +82,7 @@ export default function CompanyAutocompleteInput({
   };
 
   const handleFocus = () => {
-    if (!value.trim()) {
-      setSuggestions(PRESET_COMPANIES);
-      setShowList(true);
-    } else if (suggestions.length > 0) {
-      setShowList(true);
-    }
+    if (value.trim() && suggestions.length > 0) setShowList(true);
   };
 
   const handleBlur = () => {
@@ -90,6 +90,7 @@ export default function CompanyAutocompleteInput({
   };
 
   const handlePick = (val: string) => {
+    justSelectedRef.current = true;
     onChange(val);
     setShowList(false);
     setHighlight(-1);

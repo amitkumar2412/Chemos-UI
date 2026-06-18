@@ -34,6 +34,7 @@ export default function CountryAutocompleteInput({
   const [highlight, setHighlight] = useState(-1);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justSelectedRef = useRef(false);
 
   const search = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -59,6 +60,10 @@ export default function CountryAutocompleteInput({
   }, []);
 
   useEffect(() => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => search(value), 300);
     return () => {
@@ -67,7 +72,7 @@ export default function CountryAutocompleteInput({
   }, [value, search]);
 
   const handleFocus = () => {
-    if (suggestions.length > 0 || value.trim()) setShowList(true);
+    if (value.trim() && suggestions.length > 0) setShowList(true);
   };
 
   const handleBlur = () => {
@@ -75,6 +80,7 @@ export default function CountryAutocompleteInput({
   };
 
   const handlePick = (val: string) => {
+    justSelectedRef.current = true;
     onChange(val);
     setShowList(false);
     setHighlight(-1);

@@ -43,6 +43,7 @@ export default function AutocompleteInput({
   };
 
   const handleFocus = () => {
+    if (!value.trim()) return;
     const opts = getFiltered(value.trim());
     setFiltered(opts);
     setShowList(opts.length > 0);

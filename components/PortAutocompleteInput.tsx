@@ -38,6 +38,7 @@ export default function PortAutocompleteInput({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justSelectedRef = useRef(false);
 
   const search = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -64,6 +65,10 @@ export default function PortAutocompleteInput({
   }, []);
 
   useEffect(() => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => search(value), 300);
     return () => {
@@ -72,7 +77,7 @@ export default function PortAutocompleteInput({
   }, [value, search]);
 
   const handleFocus = () => {
-    if (suggestions.length > 0 || value.trim()) setShowList(true);
+    if (value.trim() && suggestions.length > 0) setShowList(true);
   };
 
   const handleBlur = () => {
@@ -80,6 +85,7 @@ export default function PortAutocompleteInput({
   };
 
   const handlePick = (val: string) => {
+    justSelectedRef.current = true;
     onChange(val);
     setShowList(false);
     setHighlight(-1);
