@@ -90,7 +90,7 @@ export interface CreatePunchResponse {
 
 // ── Sale Form ──────────────────────────────────────────────────────────────
 
-export type SaleType = 'GST Sale' | 'Bond Sale';
+export type SaleType = 'Export' | 'Local' | 'HSS' | 'TOW';
 
 export interface SaleEntry {
   id: string;

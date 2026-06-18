@@ -23,7 +23,7 @@ type ResultState = { msg: string; ok: boolean; detail?: string } | null;
 const DELIVERY_TERMS = ['CIF', 'CFR', 'FOB'];
 
 export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFormProps) {
-  const [saleType, setSaleType] = useState(initialData?.salesType || 'GST Sale');
+  const [saleType, setSaleType] = useState(initialData?.salesType || 'Export');
   // Form state
   const [companyFrom, setCompanyFrom] = useState('');
   const [companyTo, setCompanyTo] = useState(initialData?.companyTo || '');
@@ -66,7 +66,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
   }, []);
 
   const clearForm = () => {
-    setSaleType('GST Sale');
+    setSaleType('Export');
     setCompanyFrom(''); setCompanyTo(''); setProduct(''); setOrigin(''); setMake(''); setPackaging(''); setPort('');
     setQuantity(''); setPrice(''); setPayment(''); setDeliveryTerm(''); setStorageDays(''); setTransitTolerance(''); setMarketPrice(''); setMarketStatus(''); setMessage('');
     setVesselName(''); setRemarks(''); setSalesPerson(''); setBrokerName('');
@@ -140,11 +140,11 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
           {/* Row 0: Sale Type */}
           <div className="fg wide">
             <label className="fl">Sale Type</label>
-            <select className="fi" value={saleType} onChange={e => setSaleType(e.target.value as 'GST Sale' | 'Bond Sale')}>
-              <option value="GST Sale">Export</option>
-              <option value="Bond Sale">Local</option>
-              <option value="GST Sale">HSS</option>
-              <option value="Bond Sale">TOW</option>
+            <select className="fi" value={saleType} onChange={e => setSaleType(e.target.value as 'Export' | 'Local' | 'HSS' | 'TOW')}>
+              <option value="Export">Export</option>
+              <option value="Local">Local</option>
+              <option value="HSS">HSS</option>
+              <option value="TOW">TOW</option>
             </select>
           </div>
 
