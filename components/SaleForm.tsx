@@ -20,7 +20,7 @@ interface SaleFormProps {
 
 type ResultState = { msg: string; ok: boolean; detail?: string } | null;
 
-const DELIVERY_TERMS = ['CIF', 'CFR', 'FOB-DELIVERED' ,'FOR','EX-WORKS'];
+const DELIVERY_TERMS = ['CIF', 'CFR', 'FOB' ,'FOR-DELIVERED','EX-WORKS'];
 
 export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFormProps) {
   const [saleType, setSaleType] = useState(initialData?.salesType || 'Export');
