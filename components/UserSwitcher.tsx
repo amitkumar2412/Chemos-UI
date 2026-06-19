@@ -26,9 +26,9 @@ export default function UserSwitcher() {
         onClick={() => setIsOpen(!isOpen)}
         style={{
           padding: '8px 16px',
-          background: isAuthenticated ? 'var(--green)' : 'var(--orange)',
-          color: 'white',
-          border: 'none',
+          background: isAuthenticated ? 'var(--green)' : 'transparent',
+          color: isAuthenticated ? 'white' : '#0070FF',
+          border: isAuthenticated ? 'none' : '1.5px solid #0070FF',
           borderRadius: '6px',
           fontSize: '13px',
           fontWeight: '600',

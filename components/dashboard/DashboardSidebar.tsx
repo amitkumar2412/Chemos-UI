@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 export type DashboardModule = 'overview' | 'procurement' | 'scm' | 'finance' | 'research';
@@ -111,13 +111,25 @@ const ICON_SMALL_FORM = (
 export default function DashboardSidebar({ activeModule, onModuleChange, mobileOpen, onMobileClose }: DashboardSidebarProps) {
   const [activeMain, setActiveMain] = useState<MainCategory>(null);
   const pathname = usePathname();
+  const sidebarRef = useRef<HTMLElement>(null);
 
   const toggleMain = (id: MainCategory) => setActiveMain((s) => (s === id ? null : id));
+
+  useEffect(() => {
+    if (!activeMain) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+        setActiveMain(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeMain]);
 
   return (
     <>
       {mobileOpen && <div className="db-sidebar-overlay show" onClick={onMobileClose} />}
-      <aside className={`db-sidebar-wrapper${mobileOpen ? ' mobile-open' : ''}`}>
+      <aside ref={sidebarRef} className={`db-sidebar-wrapper${mobileOpen ? ' mobile-open' : ''}`}>
       {/* Icon-only main column */}
       <div className="db-sb-icon-col">
         <button 
@@ -223,16 +235,16 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
           {activeMain === 'intelligence' && (
             <div className="db-sb-secondary-content">
               <div className="db-sb-secondary-header">Intelligence</div>
-              <button 
-                className={`db-sb-secondary-item${activeModule === 'finance' ? ' active' : ''}`} 
-                onClick={() => onModuleChange('finance')}
+              <button
+                className={`db-sb-secondary-item${activeModule === 'finance' ? ' active' : ''}`}
+                onClick={() => { onModuleChange('finance'); setActiveMain(null); }}
               >
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FINANCE}</span>
                 Finance
               </button>
-              <button 
-                className={`db-sb-secondary-item${activeModule === 'research' ? ' active' : ''}`} 
-                onClick={() => onModuleChange('research')}
+              <button
+                className={`db-sb-secondary-item${activeModule === 'research' ? ' active' : ''}`}
+                onClick={() => { onModuleChange('research'); setActiveMain(null); }}
               >
                 <span className="db-sb-secondary-icon">{ICON_SMALL_RESEARCH}</span>
                 Research & Analysis
@@ -247,7 +259,7 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FORM}</span>
                 Purchase Enquiries
               </Link> */}
-              <Link href="/purchases" className="db-sb-secondary-item">
+              <Link href="/purchases" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
                 <span className="db-sb-secondary-icon">{ICON_SMALL_PROCUREMENT}</span>
                 Purchase Orders
               </Link>
@@ -261,7 +273,7 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FORM}</span>
                 Sale Enquiries
               </Link> */}
-              <Link href="/sales" className="db-sb-secondary-item">
+              <Link href="/sales" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
                 <span className="db-sb-secondary-icon">{ICON_SMALL_PROCUREMENT}</span>
                 Sale Orders
               </Link>
@@ -271,7 +283,7 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
           {activeMain === 'admin' && (
             <div className="db-sb-secondary-content">
               <div className="db-sb-secondary-header">Admin</div>
-              <Link href="/admin" className="db-sb-secondary-item">
+              <Link href="/admin" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FORM}</span>
                 Orders Management
               </Link>

@@ -93,47 +93,6 @@ export default function DashboardTopbar({
         </div>
       </div>
 
-      {/* Center — Period / Date / Currency */}
-      <div className="db-tb-center">
-        <div className="db-period-bar">
-          {(['today','mtd','qtd','ytd'] as Period[]).map((p) => (
-            <button
-              key={p}
-              className={period === p ? 'active' : ''}
-              onClick={() => onPeriodChange(p)}
-            >
-              {p.toUpperCase()}
-            </button>
-          ))}
-        </div>
-
-        <div className={`db-asof${asOf ? ' historical' : ''}`}>
-          <span className="db-asof-label">{asOf ? 'AS OF' : 'LIVE'}</span>
-          <input
-            type="date"
-            value={asOf ?? ''}
-            max={todayISO()}
-            onChange={(e) => onAsOfChange(e.target.value || null)}
-          />
-          {asOf && (
-            <button className="db-asof-clear" onClick={() => onAsOfChange(null)} title="Back to live">
-              ×
-            </button>
-          )}
-        </div>
-
-        <div className="db-currency">
-          {([['inr','₹'],['usd','$'],['eur','€']] as [Currency, string][]).map(([c, sym]) => (
-            <button
-              key={c}
-              className={currency === c ? 'active' : ''}
-              onClick={() => onCurrencyChange(c)}
-            >
-              {sym}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Right — Actions */}
       <div className="db-tb-right">

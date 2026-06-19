@@ -26,18 +26,25 @@ const TH: React.CSSProperties = {
   color: 'var(--gray)',
 };
 
+const PAGE_SIZE = 10;
+
 export default function SalesPage() {
   const [feedOptions, setFeedOptions] = useState<FeedOptions>(EMPTY_OPTIONS);
   const [entries, setEntries] = useState<SaleEntry[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  const loadSales = useCallback(async () => {
+  const loadSales = useCallback(async (page: number) => {
     setLoading(true);
     try {
-      const data = await fetchAllSales();
-      setEntries(data);
+      const data = await fetchAllSales(page, PAGE_SIZE);
+      setEntries(data.content);
+      setTotalPages(data.totalPages);
+      setTotalElements(data.totalElements);
     } catch (error) {
       console.error('Failed to load sales:', error);
     } finally {
@@ -47,15 +54,23 @@ export default function SalesPage() {
 
   useEffect(() => {
     fetchFeedOptions().then(setFeedOptions).catch(() => {});
-    loadSales();
+    loadSales(0);
   }, [loadSales]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    loadSales(page);
+  };
 
   const handleSubmitSale = async (payload: SaleFormPayload) => {
     const data = await createSale(payload);
     setIsCreateModalOpen(false);
-    await loadSales();
+    await loadSales(currentPage);
     return data;
   };
+
+  const startEntry = currentPage * PAGE_SIZE + 1;
+  const endEntry = Math.min(currentPage * PAGE_SIZE + entries.length, totalElements);
 
   return (
     <div style={{ padding: '0', height: '100%' }}>
@@ -137,65 +152,123 @@ export default function SalesPage() {
             </button>
           </div>
         ) : (
-          <div className="table-scroll" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
-              <thead>
-                <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={TH}>Date</th>
-                  <th style={TH}>Company To</th>
-                  <th style={TH}>Company From</th>
-                  <th style={TH}>Product</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>Quantity (MT)</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>Price (₹)</th>
-                  <th style={TH}>Delivery Term</th>
-                  <th style={TH}>Port</th>
-                  <th style={{ ...TH, textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((sale) => (
-                  <tr
-                    key={sale.id}
-                    style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>
-                      {sale.date}
-                    </td>
-                    <td style={{ padding: '16px', fontSize: '14px' }}>{sale.companyTo}</td>
-                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{sale.companyFrom}</td>
-                    <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{sale.product}</td>
-                    <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>
-                      {sale.quantity.toLocaleString('en-IN')}
-                    </td>
-                    <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right', fontWeight: '600' }}>
-                      ₹{sale.price.toLocaleString('en-IN')}
-                    </td>
-                    <td style={{ padding: '16px', fontSize: '14px' }}>{sale.deliveryTerm ?? '—'}</td>
-                    <td style={{ padding: '16px', fontSize: '14px' }}>{sale.port ?? '—'}</td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <button
-                        onClick={() => setViewingId(sale.id)}
-                        style={{
-                          padding: '6px 12px',
-                          background: 'var(--blue)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        View
-                      </button>
-                    </td>
+          <>
+            <div className="table-scroll" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={TH}>Date</th>
+                    <th style={TH}>Company To</th>
+                    <th style={TH}>Company From</th>
+                    <th style={TH}>Product</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>Quantity (MT)</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>Price (₹)</th>
+                    <th style={TH}>Delivery Term</th>
+                    <th style={TH}>Port</th>
+                    <th style={{ ...TH, textAlign: 'center' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {entries.map((sale) => (
+                    <tr
+                      key={sale.id}
+                      style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>
+                        {sale.date}
+                      </td>
+                      <td style={{ padding: '16px', fontSize: '14px' }}>{sale.companyTo}</td>
+                      <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{sale.companyFrom}</td>
+                      <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{sale.product}</td>
+                      <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>
+                        {sale.quantity.toLocaleString('en-IN')}
+                      </td>
+                      <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right', fontWeight: '600' }}>
+                        ₹{sale.price.toLocaleString('en-IN')}
+                      </td>
+                      <td style={{ padding: '16px', fontSize: '14px' }}>{sale.deliveryTerm ?? '—'}</td>
+                      <td style={{ padding: '16px', fontSize: '14px' }}>{sale.port ?? '—'}</td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => setViewingId(sale.id)}
+                          style={{
+                            padding: '6px 12px',
+                            background: 'var(--blue)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '16px',
+                padding: '0 4px',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <span style={{ fontSize: '13px', color: 'var(--gray)' }}>
+                Showing {startEntry}–{endEntry} of {totalElements} orders
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <PaginationButton
+                  label="«"
+                  onClick={() => handlePageChange(0)}
+                  disabled={currentPage === 0}
+                />
+                <PaginationButton
+                  label="‹"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 0}
+                />
+
+                {buildPageRange(currentPage, totalPages).map((item, i) =>
+                  item === '...' ? (
+                    <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--gray)', fontSize: '14px' }}>
+                      …
+                    </span>
+                  ) : (
+                    <PaginationButton
+                      key={item}
+                      label={String((item as number) + 1)}
+                      onClick={() => handlePageChange(item as number)}
+                      active={item === currentPage}
+                    />
+                  )
+                )}
+
+                <PaginationButton
+                  label="›"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                />
+                <PaginationButton
+                  label="»"
+                  onClick={() => handlePageChange(totalPages - 1)}
+                  disabled={currentPage >= totalPages - 1}
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -219,4 +292,61 @@ export default function SalesPage() {
       </Modal>
     </div>
   );
+}
+
+function PaginationButton({
+  label,
+  onClick,
+  disabled = false,
+  active = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: '34px',
+        height: '34px',
+        padding: '0 8px',
+        border: `1px solid ${active ? 'var(--blue)' : 'var(--border)'}`,
+        borderRadius: '6px',
+        background: active ? 'var(--blue)' : 'var(--card)',
+        color: active ? 'white' : disabled ? 'var(--gray)' : 'var(--text)',
+        fontSize: '13px',
+        fontWeight: active ? '600' : '400',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        transition: 'all 0.15s',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function buildPageRange(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+
+  const pages: (number | '...')[] = [];
+  const addPage = (p: number) => pages.push(p);
+  const addEllipsis = () => {
+    if (pages[pages.length - 1] !== '...') pages.push('...');
+  };
+
+  addPage(0);
+  if (current > 3) addEllipsis();
+
+  const start = Math.max(1, current - 1);
+  const end = Math.min(total - 2, current + 1);
+  for (let i = start; i <= end; i++) addPage(i);
+
+  if (current < total - 4) addEllipsis();
+  addPage(total - 1);
+
+  return pages;
 }

@@ -65,8 +65,8 @@ export async function createSale(
   return apiClient.post<CreateSaleResponse>('/sales/create/sales_order', payload);
 }
 
-export async function fetchAllSales(): Promise<SaleEntry[]> {
-  return apiClient.get<SaleEntry[]>('/sales/allSales');
+export async function fetchAllSales(page = 0, size = 10): Promise<SaleListResponse> {
+  return apiClient.get<SaleListResponse>('/sales/allSales', { params: { page, size } });
 }
 
 export async function fetchSaleById(id: string): Promise<SaleEntry> {

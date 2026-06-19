@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 
-type OfferFilter = 'All' | 'Purchase' | 'Sale';
+
 type RiskLevel = 'Low' | 'Medium' | 'High';
 
 interface ComparableOffer {
@@ -23,6 +23,12 @@ interface ComparableOffer {
   paymentTerms: string;
   deliveryTerm: string;
   currency: string;
+  exchangeRate: number;
+  expense: number;
+  customDuty: number;
+  sws: number;
+  add: number;
+  otherExpense: number;
 }
 
 const PRODUCTS = [
@@ -36,50 +42,45 @@ const PRODUCTS = [
 
 const ALL_OFFERS: ComparableOffer[] = [
   // Methanol – Purchase
-  { id: 'm1', type: 'Purchase', offerId: 'PUR-4587', supplierCustomer: 'Global Chemicals Ltd',   price: 245, quantity: 1000, deliveryDays:  5, location: 'Nhava Sheva, India', validTill: '2026-06-15', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: '45 Days',     deliveryTerm: 'CIF',      currency: 'USD' },
-  { id: 'm2', type: 'Purchase', offerId: 'PUR-4589', supplierCustomer: 'Euro Chem Industries',   price: 248, quantity:  500, deliveryDays:  7, location: 'Kandla, India',      validTill: '2026-06-14', risk: 'Medium', product: 'Methanol', origin: 'Iran',         make: 'NPC',    packaging: 'ISO Tank',    paymentTerms: '30 Days',     deliveryTerm: 'CFR',      currency: 'USD' },
-  { id: 'm3', type: 'Purchase', offerId: 'PUR-4591', supplierCustomer: 'Middle East Traders',    price: 252, quantity:  750, deliveryDays: 10, location: 'Mundra, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Methanol', origin: 'UAE',          make: 'Ruwais', packaging: 'ISO Tank',    paymentTerms: '60 Days',     deliveryTerm: 'CIF',      currency: 'USD' },
-  { id: 'm4', type: 'Purchase', offerId: 'PUR-4593', supplierCustomer: 'Gulf Chem LLC',          price: 250, quantity:  600, deliveryDays: 12, location: 'Hazira, India',      validTill: '2026-06-18', risk: 'High',   product: 'Methanol', origin: 'Qatar',        make: 'Qafco',  packaging: 'Bulk',        paymentTerms: '45 Days',     deliveryTerm: 'FOB',      currency: 'USD' },
+  { id: 'm1', type: 'Purchase', offerId: 'PUR-4587', supplierCustomer: 'Global Chemicals Ltd',   price: 245, quantity: 1000, deliveryDays:  5, location: 'Nhava Sheva, India', validTill: '2026-06-15', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: '45 Days',     deliveryTerm: 'CIF',      currency: 'USD', exchangeRate: 83.50, expense: 1200, customDuty: 5,   sws: 10, add: 500,  otherExpense: 300 },
+  { id: 'm2', type: 'Purchase', offerId: 'PUR-4589', supplierCustomer: 'Euro Chem Industries',   price: 248, quantity:  500, deliveryDays:  7, location: 'Kandla, India',      validTill: '2026-06-14', risk: 'Medium', product: 'Methanol', origin: 'Iran',         make: 'NPC',    packaging: 'ISO Tank',    paymentTerms: '30 Days',     deliveryTerm: 'CFR',      currency: 'USD', exchangeRate: 83.25, expense: 1500, customDuty: 5,   sws: 10, add: 650,  otherExpense: 400 },
+  { id: 'm3', type: 'Purchase', offerId: 'PUR-4591', supplierCustomer: 'Middle East Traders',    price: 252, quantity:  750, deliveryDays: 10, location: 'Mundra, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Methanol', origin: 'UAE',          make: 'Ruwais', packaging: 'ISO Tank',    paymentTerms: '60 Days',     deliveryTerm: 'CIF',      currency: 'USD', exchangeRate: 83.75, expense: 1100, customDuty: 5,   sws: 10, add: 450,  otherExpense: 250 },
+  { id: 'm4', type: 'Purchase', offerId: 'PUR-4593', supplierCustomer: 'Gulf Chem LLC',          price: 250, quantity:  600, deliveryDays: 12, location: 'Hazira, India',      validTill: '2026-06-18', risk: 'High',   product: 'Methanol', origin: 'Qatar',        make: 'Qafco',  packaging: 'Bulk',        paymentTerms: '45 Days',     deliveryTerm: 'FOB',      currency: 'USD', exchangeRate: 83.60, expense: 1800, customDuty: 5,   sws: 10, add: 600,  otherExpense: 500 },
   // Methanol – Sale
-  { id: 'm5', type: 'Sale',     offerId: 'SAL-7712', supplierCustomer: 'ABC Petrochem Ltd',      price: 298, quantity:  800, deliveryDays:  6, location: 'Nhava Sheva, India', validTill: '2026-06-15', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: 'Net 30',      deliveryTerm: 'Ex-Works', currency: 'USD' },
-  { id: 'm6', type: 'Sale',     offerId: 'SAL-7714', supplierCustomer: 'Oceanic Solvents Co.',   price: 295, quantity: 1200, deliveryDays:  8, location: 'Kandla, India',      validTill: '2026-06-17', risk: 'Medium', product: 'Methanol', origin: 'Iran',         make: 'NPC',    packaging: 'ISO Tank',    paymentTerms: 'Net 45',      deliveryTerm: 'FOR',      currency: 'USD' },
-  { id: 'm7', type: 'Sale',     offerId: 'SAL-7716', supplierCustomer: 'Greenfield Industries',  price: 300, quantity:  500, deliveryDays:  5, location: 'Mundra, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Methanol', origin: 'UAE',          make: 'Ruwais', packaging: 'Drum',        paymentTerms: 'Net 30',      deliveryTerm: 'CIF',      currency: 'USD' },
-  { id: 'm8', type: 'Sale',     offerId: 'SAL-7718', supplierCustomer: 'Future Polymers',        price: 292, quantity:  700, deliveryDays:  7, location: 'Nhava Sheva, India', validTill: '2026-06-19', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: 'LC at Sight', deliveryTerm: 'CFR',      currency: 'USD' },
+  { id: 'm5', type: 'Sale',     offerId: 'SAL-7712', supplierCustomer: 'ABC Petrochem Ltd',      price: 298, quantity:  800, deliveryDays:  6, location: 'Nhava Sheva, India', validTill: '2026-06-15', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: 'Net 30',      deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.50, expense: 900,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 200 },
+  { id: 'm6', type: 'Sale',     offerId: 'SAL-7714', supplierCustomer: 'Oceanic Solvents Co.',   price: 295, quantity: 1200, deliveryDays:  8, location: 'Kandla, India',      validTill: '2026-06-17', risk: 'Medium', product: 'Methanol', origin: 'Iran',         make: 'NPC',    packaging: 'ISO Tank',    paymentTerms: 'Net 45',      deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.25, expense: 750,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 150 },
+  { id: 'm7', type: 'Sale',     offerId: 'SAL-7716', supplierCustomer: 'Greenfield Industries',  price: 300, quantity:  500, deliveryDays:  5, location: 'Mundra, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Methanol', origin: 'UAE',          make: 'Ruwais', packaging: 'Drum',        paymentTerms: 'Net 30',      deliveryTerm: 'CIF',      currency: 'USD', exchangeRate: 83.75, expense: 600,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 100 },
+  { id: 'm8', type: 'Sale',     offerId: 'SAL-7718', supplierCustomer: 'Future Polymers',        price: 292, quantity:  700, deliveryDays:  7, location: 'Nhava Sheva, India', validTill: '2026-06-19', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: 'LC at Sight', deliveryTerm: 'CFR',      currency: 'USD', exchangeRate: 83.50, expense: 800,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 180 },
   // Sodium Bicarbonate – Purchase
-  { id: 's1', type: 'Purchase', offerId: 'PUR-4601', supplierCustomer: 'Solvay Chemicals',       price: 850, quantity:  100, deliveryDays: 14, location: 'Mumbai, India',      validTill: '2026-06-20', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey', make: 'Solvay',   packaging: '25 KG Bags',  paymentTerms: '45 Days', deliveryTerm: 'CIF', currency: 'USD' },
-  { id: 's2', type: 'Purchase', offerId: 'PUR-4603', supplierCustomer: 'Asian Suppliers Co',     price: 820, quantity:  200, deliveryDays: 18, location: 'Nhava Sheva, India', validTill: '2026-06-21', risk: 'Medium', product: 'Sodium Bicarbonate', origin: 'China',  make: 'Tianjin',  packaging: '25 KG Bags',  paymentTerms: '30 Days', deliveryTerm: 'FOB', currency: 'USD' },
-  { id: 's3', type: 'Purchase', offerId: 'PUR-4605', supplierCustomer: 'Euro Chemicals GmbH',   price: 870, quantity:  150, deliveryDays: 22, location: 'Chennai, India',     validTill: '2026-06-23', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Germany',make: 'Solvay',   packaging: '25 KG Bags',  paymentTerms: '60 Days', deliveryTerm: 'CIF', currency: 'USD' },
+  { id: 's1', type: 'Purchase', offerId: 'PUR-4601', supplierCustomer: 'Solvay Chemicals',       price: 850, quantity:  100, deliveryDays: 14, location: 'Mumbai, India',      validTill: '2026-06-20', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey',  make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: '45 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.50, expense: 2000, customDuty: 7.5, sws: 10, add: 800,  otherExpense: 500 },
+  { id: 's2', type: 'Purchase', offerId: 'PUR-4603', supplierCustomer: 'Asian Suppliers Co',     price: 820, quantity:  200, deliveryDays: 18, location: 'Nhava Sheva, India', validTill: '2026-06-21', risk: 'Medium', product: 'Sodium Bicarbonate', origin: 'China',   make: 'Tianjin', packaging: '25 KG Bags', paymentTerms: '30 Days', deliveryTerm: 'FOB', currency: 'USD', exchangeRate: 83.25, expense: 1800, customDuty: 7.5, sws: 10, add: 700,  otherExpense: 450 },
+  { id: 's3', type: 'Purchase', offerId: 'PUR-4605', supplierCustomer: 'Euro Chemicals GmbH',   price: 870, quantity:  150, deliveryDays: 22, location: 'Chennai, India',     validTill: '2026-06-23', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Germany', make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: '60 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.75, expense: 2200, customDuty: 7.5, sws: 10, add: 900,  otherExpense: 600 },
   // Sodium Bicarbonate – Sale
-  { id: 's4', type: 'Sale',     offerId: 'SAL-7720', supplierCustomer: 'Pharma Industries Ltd',  price: 920, quantity:   50, deliveryDays:  3, location: 'Mumbai, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey', make: 'Solvay',   packaging: '25 KG Bags',  paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD' },
-  { id: 's5', type: 'Sale',     offerId: 'SAL-7722', supplierCustomer: 'Food Processing Co',     price: 910, quantity:  100, deliveryDays:  5, location: 'Delhi, India',       validTill: '2026-06-17', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey', make: 'Solvay',   packaging: '25 KG Bags',  paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD' },
+  { id: 's4', type: 'Sale',     offerId: 'SAL-7720', supplierCustomer: 'Pharma Industries Ltd',  price: 920, quantity:   50, deliveryDays:  3, location: 'Mumbai, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey',  make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.50, expense: 500,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 150 },
+  { id: 's5', type: 'Sale',     offerId: 'SAL-7722', supplierCustomer: 'Food Processing Co',     price: 910, quantity:  100, deliveryDays:  5, location: 'Delhi, India',       validTill: '2026-06-17', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey',  make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.25, expense: 600,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 200 },
   // Citric Acid
-  { id: 'c1', type: 'Purchase', offerId: 'PUR-4610', supplierCustomer: 'Weifang Trading Co',     price: 1150, quantity: 200, deliveryDays: 21, location: 'Chennai, India',   validTill: '2026-06-22', risk: 'Medium', product: 'Citric Acid', origin: 'China',  make: 'Weifang', packaging: '25 KG Bags', paymentTerms: '30 Days',  deliveryTerm: 'FOB',      currency: 'USD' },
-  { id: 'c2', type: 'Purchase', offerId: 'PUR-4612', supplierCustomer: 'RZBC Group',             price: 1120, quantity: 500, deliveryDays: 25, location: 'Nhava Sheva, India', validTill: '2026-06-24', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'RZBC',    packaging: '25 KG Bags', paymentTerms: '45 Days',  deliveryTerm: 'CIF',      currency: 'USD' },
-  { id: 'c3', type: 'Sale',     offerId: 'SAL-7730', supplierCustomer: 'Food Corp India',        price: 1250, quantity: 100, deliveryDays:  4, location: 'Chennai, India',   validTill: '2026-06-18', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'Weifang', packaging: '25 KG Bags', paymentTerms: 'Net 30',   deliveryTerm: 'Ex-Works', currency: 'USD' },
-  { id: 'c4', type: 'Sale',     offerId: 'SAL-7732', supplierCustomer: 'Beverage Industries',    price: 1230, quantity: 200, deliveryDays:  6, location: 'Mumbai, India',    validTill: '2026-06-20', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'RZBC',    packaging: '25 KG Bags', paymentTerms: 'Net 45',   deliveryTerm: 'FOR',      currency: 'USD' },
+  { id: 'c1', type: 'Purchase', offerId: 'PUR-4610', supplierCustomer: 'Weifang Trading Co',     price: 1150, quantity: 200, deliveryDays: 21, location: 'Chennai, India',    validTill: '2026-06-22', risk: 'Medium', product: 'Citric Acid', origin: 'China',  make: 'Weifang', packaging: '25 KG Bags', paymentTerms: '30 Days', deliveryTerm: 'FOB', currency: 'USD', exchangeRate: 83.25, expense: 1600, customDuty: 10, sws: 10, add: 1200, otherExpense: 700 },
+  { id: 'c2', type: 'Purchase', offerId: 'PUR-4612', supplierCustomer: 'RZBC Group',             price: 1120, quantity: 500, deliveryDays: 25, location: 'Nhava Sheva, India', validTill: '2026-06-24', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'RZBC',    packaging: '25 KG Bags', paymentTerms: '45 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.50, expense: 1400, customDuty: 10, sws: 10, add: 1100, otherExpense: 600 },
+  { id: 'c3', type: 'Sale',     offerId: 'SAL-7730', supplierCustomer: 'Food Corp India',        price: 1250, quantity: 100, deliveryDays:  4, location: 'Chennai, India',    validTill: '2026-06-18', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'Weifang', packaging: '25 KG Bags', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.25, expense: 700,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 250 },
+  { id: 'c4', type: 'Sale',     offerId: 'SAL-7732', supplierCustomer: 'Beverage Industries',    price: 1230, quantity: 200, deliveryDays:  6, location: 'Mumbai, India',     validTill: '2026-06-20', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'RZBC',    packaging: '25 KG Bags', paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.50, expense: 800,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 300 },
   // Phosphoric Acid
-  { id: 'p1', type: 'Purchase', offerId: 'PUR-4620', supplierCustomer: 'OCP Morocco',            price: 780, quantity:  300, deliveryDays: 25, location: 'Kandla, India',    validTill: '2026-06-25', risk: 'Low',    product: 'Phosphoric Acid', origin: 'Morocco', make: 'OCP',        packaging: 'Bulk Liquid', paymentTerms: '45 Days', deliveryTerm: 'CFR',      currency: 'USD' },
-  { id: 'p2', type: 'Purchase', offerId: 'PUR-4622', supplierCustomer: 'Mosaic Chemicals',       price: 800, quantity:  200, deliveryDays: 30, location: 'Mumbai, India',    validTill: '2026-06-27', risk: 'Medium', product: 'Phosphoric Acid', origin: 'USA',     make: 'Mosaic',     packaging: 'Bulk Liquid', paymentTerms: '60 Days', deliveryTerm: 'CIF',      currency: 'USD' },
-  { id: 'p3', type: 'Sale',     offerId: 'SAL-7740', supplierCustomer: 'Fertilizer Corp India',  price: 840, quantity:  150, deliveryDays:  6, location: 'Kandla, India',    validTill: '2026-06-20', risk: 'Low',    product: 'Phosphoric Acid', origin: 'Morocco', make: 'OCP',        packaging: 'Bulk Liquid', paymentTerms: 'Net 60',  deliveryTerm: 'CFR',      currency: 'USD' },
+  { id: 'p1', type: 'Purchase', offerId: 'PUR-4620', supplierCustomer: 'OCP Morocco',            price: 780, quantity:  300, deliveryDays: 25, location: 'Kandla, India',     validTill: '2026-06-25', risk: 'Low',    product: 'Phosphoric Acid', origin: 'Morocco', make: 'OCP',    packaging: 'Bulk Liquid', paymentTerms: '45 Days', deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.50, expense: 2500, customDuty: 12, sws: 10, add: 1500, otherExpense: 800 },
+  { id: 'p2', type: 'Purchase', offerId: 'PUR-4622', supplierCustomer: 'Mosaic Chemicals',       price: 800, quantity:  200, deliveryDays: 30, location: 'Mumbai, India',     validTill: '2026-06-27', risk: 'Medium', product: 'Phosphoric Acid', origin: 'USA',     make: 'Mosaic', packaging: 'Bulk Liquid', paymentTerms: '60 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.75, expense: 2800, customDuty: 12, sws: 10, add: 1600, otherExpense: 900 },
+  { id: 'p3', type: 'Sale',     offerId: 'SAL-7740', supplierCustomer: 'Fertilizer Corp India',  price: 840, quantity:  150, deliveryDays:  6, location: 'Kandla, India',     validTill: '2026-06-20', risk: 'Low',    product: 'Phosphoric Acid', origin: 'Morocco', make: 'OCP',    packaging: 'Bulk Liquid', paymentTerms: 'Net 60',  deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.50, expense: 900,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 300 },
   // Acetic Acid
-  { id: 'a1', type: 'Purchase', offerId: 'PUR-4630', supplierCustomer: 'Celanese Corp',          price: 920, quantity:  120, deliveryDays: 18, location: 'Vizag, India',     validTill: '2026-06-22', risk: 'Low',    product: 'Acetic Acid', origin: 'Malaysia', make: 'Celanese', packaging: 'ISO Tank',    paymentTerms: '30 Days', deliveryTerm: 'CIF',      currency: 'USD' },
-  { id: 'a2', type: 'Purchase', offerId: 'PUR-4632', supplierCustomer: 'BP Chemicals',           price: 935, quantity:   80, deliveryDays: 22, location: 'Nhava Sheva, India', validTill: '2026-06-24', risk: 'Medium', product: 'Acetic Acid', origin: 'Singapore',make: 'BP Chem', packaging: 'ISO Tank',    paymentTerms: '45 Days', deliveryTerm: 'CFR',      currency: 'USD' },
-  { id: 'a3', type: 'Sale',     offerId: 'SAL-7750', supplierCustomer: 'Textile Mills Ltd',      price: 1020, quantity:  60, deliveryDays:  4, location: 'Surat, India',     validTill: '2026-06-18', risk: 'Low',    product: 'Acetic Acid', origin: 'Malaysia', make: 'Celanese', packaging: 'ISO Tank',    paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD' },
-  { id: 'a4', type: 'Sale',     offerId: 'SAL-7752', supplierCustomer: 'Pharma Chem Co',         price: 1010, quantity: 100, deliveryDays:  7, location: 'Mumbai, India',    validTill: '2026-06-21', risk: 'Low',    product: 'Acetic Acid', origin: 'Singapore',make: 'BP Chem', packaging: 'ISO Tank',    paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD' },
+  { id: 'a1', type: 'Purchase', offerId: 'PUR-4630', supplierCustomer: 'Celanese Corp',          price: 920, quantity:  120, deliveryDays: 18, location: 'Vizag, India',      validTill: '2026-06-22', risk: 'Low',    product: 'Acetic Acid', origin: 'Malaysia',  make: 'Celanese', packaging: 'ISO Tank', paymentTerms: '30 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.50, expense: 1300, customDuty: 7.5, sws: 10, add: 900,  otherExpense: 500 },
+  { id: 'a2', type: 'Purchase', offerId: 'PUR-4632', supplierCustomer: 'BP Chemicals',           price: 935, quantity:   80, deliveryDays: 22, location: 'Nhava Sheva, India', validTill: '2026-06-24', risk: 'Medium', product: 'Acetic Acid', origin: 'Singapore', make: 'BP Chem',  packaging: 'ISO Tank', paymentTerms: '45 Days', deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.25, expense: 1700, customDuty: 7.5, sws: 10, add: 950,  otherExpense: 600 },
+  { id: 'a3', type: 'Sale',     offerId: 'SAL-7750', supplierCustomer: 'Textile Mills Ltd',      price: 1020, quantity:  60, deliveryDays:  4, location: 'Surat, India',      validTill: '2026-06-18', risk: 'Low',    product: 'Acetic Acid', origin: 'Malaysia',  make: 'Celanese', packaging: 'ISO Tank', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.50, expense: 650,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 200 },
+  { id: 'a4', type: 'Sale',     offerId: 'SAL-7752', supplierCustomer: 'Pharma Chem Co',         price: 1010, quantity: 100, deliveryDays:  7, location: 'Mumbai, India',     validTill: '2026-06-21', risk: 'Low',    product: 'Acetic Acid', origin: 'Singapore', make: 'BP Chem',  packaging: 'ISO Tank', paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.25, expense: 700,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 250 },
   // Potassium Carbonate
-  { id: 'k1', type: 'Purchase', offerId: 'PUR-4640', supplierCustomer: 'BASF SE',                price: 950, quantity:  150, deliveryDays: 20, location: 'Chennai, India',   validTill: '2026-06-25', risk: 'Low',    product: 'Potassium Carbonate', origin: 'Germany', make: 'BASF',   packaging: '25 KG Bags', paymentTerms: '60 Days', deliveryTerm: 'CIF',      currency: 'USD' },
-  { id: 'k2', type: 'Purchase', offerId: 'PUR-4642', supplierCustomer: 'Euro Chem Industries',   price: 930, quantity:   80, deliveryDays: 16, location: 'Mumbai, India',    validTill: '2026-06-23', risk: 'Medium', product: 'Potassium Carbonate', origin: 'Germany', make: 'Evonik', packaging: '25 KG Bags', paymentTerms: '45 Days', deliveryTerm: 'CFR',      currency: 'USD' },
-  { id: 'k3', type: 'Sale',     offerId: 'SAL-7760', supplierCustomer: 'Export House India',     price: 1050, quantity: 80, deliveryDays:  5, location: 'Chennai, India',    validTill: '2026-06-18', risk: 'Low',    product: 'Potassium Carbonate', origin: 'Germany', make: 'BASF',   packaging: '25 KG Bags', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD' },
+  { id: 'k1', type: 'Purchase', offerId: 'PUR-4640', supplierCustomer: 'BASF SE',                price: 950, quantity:  150, deliveryDays: 20, location: 'Chennai, India',    validTill: '2026-06-25', risk: 'Low',    product: 'Potassium Carbonate', origin: 'Germany', make: 'BASF',   packaging: '25 KG Bags', paymentTerms: '60 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.75, expense: 2100, customDuty: 7.5, sws: 10, add: 1000, otherExpense: 700 },
+  { id: 'k2', type: 'Purchase', offerId: 'PUR-4642', supplierCustomer: 'Euro Chem Industries',   price: 930, quantity:   80, deliveryDays: 16, location: 'Mumbai, India',     validTill: '2026-06-23', risk: 'Medium', product: 'Potassium Carbonate', origin: 'Germany', make: 'Evonik', packaging: '25 KG Bags', paymentTerms: '45 Days', deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.50, expense: 1900, customDuty: 7.5, sws: 10, add: 950,  otherExpense: 650 },
+  { id: 'k3', type: 'Sale',     offerId: 'SAL-7760', supplierCustomer: 'Export House India',     price: 1050, quantity:  80, deliveryDays:  5, location: 'Chennai, India',    validTill: '2026-06-18', risk: 'Low',    product: 'Potassium Carbonate', origin: 'Germany', make: 'BASF',   packaging: '25 KG Bags', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.75, expense: 850,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 300 },
 ];
 
 const PAGE_SIZE = 8;
 
-function riskColor(r: RiskLevel) {
-  return r === 'Low' ? 'var(--green)' : r === 'Medium' ? 'var(--gold)' : 'var(--red)';
-}
-function deliveryColor(d: number) {
-  return d <= 6 ? 'var(--green)' : 'var(--white)';
-}
+
 function fmtDate(s: string) {
   return new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -125,47 +126,89 @@ function CompareModal({
   const prices = offers.map(o => o.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const deliveries = offers.map(o => o.deliveryDays);
-  const minDel = Math.min(...deliveries);
-  const maxDel = Math.max(...deliveries);
-
   function priceClass(p: number) {
     if (offers.length < 2) return '';
     if (p === minPrice) return 'cmp-cmp-best';
     if (p === maxPrice) return 'cmp-cmp-worst';
     return 'cmp-cmp-mid';
   }
-  function delClass(d: number) {
-    if (offers.length < 2) return '';
-    if (d === minDel) return 'cmp-cmp-best';
-    if (d === maxDel) return 'cmp-cmp-worst';
-    return 'cmp-cmp-mid';
-  }
+
+  const mono: React.CSSProperties = { fontFamily: 'JetBrains Mono,monospace' };
+  const monoBold: React.CSSProperties = { ...mono, fontWeight: 700 };
 
   const rows: { label: string; render: (o: ComparableOffer) => React.ReactNode }[] = [
-    { label: 'Type',              render: o => <span className={`cmp-type-badge ${o.type.toLowerCase()}`}>{o.type}</span> },
-    { label: 'Offer ID',         render: o => <span className="cmp-offer-id">{o.offerId}</span> },
-    { label: 'Supplier / Customer', render: o => <strong style={{ color: 'var(--white)' }}>{o.supplierCustomer}</strong> },
-    { label: 'Price (USD / MT)', render: o => <span className={priceClass(o.price)} style={{ fontFamily: 'JetBrains Mono,monospace', fontWeight: 700 }}>{o.price}</span> },
-    { label: 'Quantity (MT)',    render: o => <span style={{ fontFamily: 'JetBrains Mono,monospace' }}>{o.quantity.toLocaleString()}</span> },
-    { label: 'Delivery Time',   render: o => <span className={delClass(o.deliveryDays)} style={{ fontWeight: 600 }}>{o.deliveryDays} Days</span> },
-    { label: 'Location',        render: o => o.location },
-    { label: 'Valid Till',      render: o => fmtDate(o.validTill) },
+    // {
+    //   label: 'Company From',
+    //   render: o => <strong style={{ color: 'var(--white)' }}>{o.supplierCustomer}</strong>,
+    // },
     {
-      label: 'Risk',
-      render: o => (
-        <span className="cmp-risk">
-          <span className="cmp-risk-dot" style={{ background: riskColor(o.risk) }} />
-          {o.risk}
-        </span>
-      ),
+      label: 'Load Port',
+      render: o => o.location,
     },
-    { label: 'Origin',          render: o => o.origin },
-    { label: 'Make / Brand',    render: o => o.make },
-    { label: 'Packaging',       render: o => o.packaging },
-    { label: 'Payment Terms',   render: o => o.paymentTerms },
-    { label: 'Delivery Term',   render: o => o.deliveryTerm },
-    { label: 'Currency',        render: o => o.currency },
+    {
+      label: 'QTY (MT)',
+      render: o => <span style={mono}>{o.quantity.toLocaleString()}</span>,
+    },
+    {
+      label: 'Delivery Term',
+      render: o => o.deliveryTerm,
+    },
+    {
+      label: 'Price (FC)',
+      render: o => <span className={priceClass(o.price)} style={monoBold}>{o.price} {o.currency}</span>,
+    },
+    {
+      label: 'Exchange Rate',
+      render: o => <span style={mono}>{o.exchangeRate.toFixed(2)}</span>,
+    },
+    {
+      label: 'Price (INR) / MT',
+      render: o => {
+        const inr = o.price * o.exchangeRate;
+        return <span style={monoBold}>₹ {Math.round(inr).toLocaleString('en-IN')}</span>;
+      },
+    },
+    {
+      label: 'Valid Till',
+      render: o => fmtDate(o.validTill),
+    },
+    {
+      label: 'Expenses (Freight & Insurance)',
+      render: o => <span style={mono}>₹ {o.expense.toLocaleString('en-IN')}</span>,
+    },
+    {
+      label: 'Custom Duty BCD',
+      render: o => {
+        const bcd = Math.round(o.price * o.exchangeRate * o.customDuty / 100);
+        return <span style={mono}>{o.customDuty}% = ₹ {bcd.toLocaleString('en-IN')}</span>;
+      },
+    },
+    {
+      label: 'SWS',
+      render: o => {
+        const bcd = o.price * o.exchangeRate * o.customDuty / 100;
+        const swsAmt = Math.round(bcd * o.sws / 100);
+        return <span style={mono}>{o.sws}% of BCD = ₹ {swsAmt.toLocaleString('en-IN')}</span>;
+      },
+    },
+    {
+      label: 'ADD (₹)',
+      render: o => <span style={mono}>₹ {o.add.toLocaleString('en-IN')}</span>,
+    },
+    {
+      label: 'Other Expense',
+      render: o => <span style={mono}>₹ {o.otherExpense.toLocaleString('en-IN')}</span>,
+    },
+    {
+      label: 'Landed Cost / MT',
+      render: o => {
+        const priceInr = o.price * o.exchangeRate;
+        const bcd = priceInr * o.customDuty / 100;
+        const swsAmt = bcd * o.sws / 100;
+        const landed = Math.round(priceInr + o.expense + bcd + swsAmt + o.add + o.otherExpense);
+        return <span style={{ ...monoBold, color: 'var(--green)' }}>₹ {landed.toLocaleString('en-IN')}</span>;
+      },
+    },
   ];
 
   return (
@@ -190,13 +233,13 @@ function CompareModal({
                 {offers.map(o => (
                   <th key={o.id}>
                     <div style={{ marginBottom: 4 }}>
-                      <span className={`cmp-type-badge ${o.type.toLowerCase()}`}>{o.type}</span>
+                      {/* <span className={`cmp-type-badge ${o.type.toLowerCase()}`}>{o.type}</span> */}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--white)', fontFamily: 'JetBrains Mono,monospace' }}>
-                      {o.offerId}
+                      {o.supplierCustomer}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--gray)', marginTop: 2, fontWeight: 500, fontFamily: 'Montserrat,sans-serif' }}>
-                      {o.supplierCustomer}
+                      {o.offerId}
                     </div>
                   </th>
                 ))}
@@ -221,42 +264,30 @@ function CompareModal({
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function ComparablePage() {
-  const [activeFilter, setActiveFilter] = useState<OfferFilter>('All');
+
   const [selectedProduct, setSelectedProduct] = useState('Methanol');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
-    return ALL_OFFERS.filter(o => {
-      if (o.product !== selectedProduct) return false;
-      if (activeFilter === 'Purchase') return o.type === 'Purchase';
-      if (activeFilter === 'Sale') return o.type === 'Sale';
-      return true;
-    });
-  }, [activeFilter, selectedProduct]);
+    return ALL_OFFERS.filter(o => o.product === selectedProduct && o.type === 'Purchase');
+  }, [selectedProduct]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const selectedOffers = ALL_OFFERS.filter(o => selectedIds.has(o.id));
 
-  const allForProduct = ALL_OFFERS.filter(o => o.product === selectedProduct);
-  const purchaseOffers = allForProduct.filter(o => o.type === 'Purchase');
-  const saleOffers = allForProduct.filter(o => o.type === 'Sale');
+  const purchaseOffers = ALL_OFFERS.filter(o => o.product === selectedProduct && o.type === 'Purchase');
   const bestBuy = purchaseOffers.length ? Math.min(...purchaseOffers.map(o => o.price)) : 0;
-  const bestSell = saleOffers.length ? Math.max(...saleOffers.map(o => o.price)) : 0;
-  const spread = bestSell - bestBuy;
-  const avgDelivery = allForProduct.length
-    ? (allForProduct.reduce((s, o) => s + o.deliveryDays, 0) / allForProduct.length).toFixed(1)
-    : '0';
-  const lowRiskCount = allForProduct.filter(o => o.risk === 'Low').length;
+  const confirmedCount = selectedIds.size;
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-      } else if (next.size < 3) {
+      } else if (next.size < 4) {
         next.add(id);
       }
       return next;
@@ -264,12 +295,6 @@ export default function ComparablePage() {
   };
 
   const canCompare = selectedIds.size >= 2;
-
-  const handleFilterChange = (f: OfferFilter) => {
-    setActiveFilter(f);
-    setPage(1);
-    setSelectedIds(new Set());
-  };
 
   const handleProductChange = (p: string) => {
     setSelectedProduct(p);
@@ -289,15 +314,7 @@ export default function ComparablePage() {
       <div className="cmp-controls">
         {/* Type tabs */}
         <div className="cmp-tabs">
-          {(['All', 'Purchase', 'Sale'] as OfferFilter[]).map(f => (
-            <button
-              key={f}
-              className={`cmp-tab${activeFilter === f ? ' active' : ''}`}
-              onClick={() => handleFilterChange(f)}
-            >
-              {f === 'All' ? 'All Offers' : f}
-            </button>
-          ))}
+          <button className="cmp-tab active">Purchase</button>
         </div>
 
         {/* Product selector */}
@@ -366,50 +383,11 @@ export default function ComparablePage() {
           }
         />
         <StatCard
-          label="Total Sale Offers"
-          value={saleOffers.length}
-          sub={`Best Price: USD ${bestSell} / MT`}
+          label="Confirmed Offer"
+          value={confirmedCount}
+          sub={confirmedCount === 0 ? 'No offers confirmed yet' : `${confirmedCount} offer${confirmedCount > 1 ? 's' : ''} selected`}
           iconBg="rgba(6,214,160,.12)"
           iconColor="var(--green)"
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Price Spread (Best Buy vs Best Sell)"
-          value={`USD ${spread} / MT`}
-          sub="Potential Margin"
-          iconBg="rgba(244,162,97,.14)"
-          iconColor="var(--gold)"
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-              <polyline points="16 7 22 7 22 13" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Average Delivery Time"
-          value={`${avgDelivery} Days`}
-          sub="Across all offers"
-          iconBg="rgba(244,162,97,.14)"
-          iconColor="var(--gold)"
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="Low Risk Offers"
-          value={lowRiskCount}
-          sub="Across all offers"
-          iconBg="rgba(46,196,182,.12)"
-          iconColor="var(--teal)"
           icon={
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
               <path d="M12 2L2 7v7c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V7z" />
@@ -423,22 +401,22 @@ export default function ComparablePage() {
       <div className="cmp-table-wrap">
         <div className="cmp-table-header">
           <div className="cmp-table-title">
-            {activeFilter === 'All' ? 'All' : activeFilter} Offers for {selectedProduct}
+            Purchase Offers for {selectedProduct}
           </div>
         </div>
         <table className="cmp-table">
           <thead>
             <tr>
               <th style={{ width: 36 }}></th>
-              <th style={{ width: 90 }}>Type</th>
-              <th>Offer ID</th>
-              <th>Supplier / Customer</th>
-              <th className="num">Price (USD / MT)</th>
-              <th className="num">Quantity (MT)</th>
-              <th>Delivery Time</th>
-              <th>Location</th>
+              <th>Company From</th>
+              <th className="num">QTY (MT)</th>
+              <th>Load Port</th>
+              <th>Delivery Term</th>
+              <th className="num">Price (FC)</th>
+              <th className="num">Exchange Rate</th>
               <th>Valid Till</th>
-              <th>Risk</th>
+              <th className="num">Expense (₹)</th>
+              <th className="num">Custom Duty</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -451,29 +429,18 @@ export default function ComparablePage() {
                     className="cmp-checkbox"
                     checked={selectedIds.has(offer.id)}
                     onChange={() => toggleSelect(offer.id)}
-                    disabled={!selectedIds.has(offer.id) && selectedIds.size >= 3}
+                    disabled={!selectedIds.has(offer.id) && selectedIds.size >= 4}
                   />
                 </td>
-                <td>
-                  <span className={`cmp-type-badge ${offer.type.toLowerCase()}`}>{offer.type}</span>
-                </td>
-                <td className="cmp-offer-id">{offer.offerId}</td>
                 <td style={{ fontWeight: 600 }}>{offer.supplierCustomer}</td>
-                <td className="num" style={{ fontWeight: 700 }}>{offer.price}</td>
                 <td className="num">{offer.quantity.toLocaleString()}</td>
-                <td>
-                  <span style={{ color: deliveryColor(offer.deliveryDays), fontWeight: 600 }}>
-                    {offer.deliveryDays} Days
-                  </span>
-                </td>
                 <td className="cmp-location">{offer.location}</td>
+                <td>{offer.deliveryTerm}</td>
+                <td className="num" style={{ fontWeight: 700 }}>{offer.price} {offer.currency}</td>
+                <td className="num">{offer.exchangeRate.toFixed(2)}</td>
                 <td style={{ fontSize: 11 }}>{fmtDate(offer.validTill)}</td>
-                <td>
-                  <span className="cmp-risk">
-                    <span className="cmp-risk-dot" style={{ background: riskColor(offer.risk) }} />
-                    {offer.risk}
-                  </span>
-                </td>
+                <td className="num">₹ {offer.expense.toLocaleString()}</td>
+                <td className="num">{offer.customDuty}%</td>
                 <td>
                   <div className="cmp-actions">
                     <button className="cmp-action-btn view" title="View details">
@@ -486,7 +453,7 @@ export default function ComparablePage() {
                       className={`cmp-action-btn add${selectedIds.has(offer.id) ? ' added' : ''}`}
                       title={selectedIds.has(offer.id) ? 'Remove from compare' : 'Add to compare'}
                       onClick={() => toggleSelect(offer.id)}
-                      disabled={!selectedIds.has(offer.id) && selectedIds.size >= 3}
+                      disabled={!selectedIds.has(offer.id) && selectedIds.size >= 4}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
                         {selectedIds.has(offer.id) ? (
@@ -506,7 +473,7 @@ export default function ComparablePage() {
             {paged.length === 0 && (
               <tr>
                 <td colSpan={11} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--gray)' }}>
-                  No {activeFilter === 'All' ? '' : activeFilter + ' '}offers found for {selectedProduct}
+                  No purchase offers found for {selectedProduct}
                 </td>
               </tr>
             )}
@@ -539,12 +506,12 @@ export default function ComparablePage() {
         <div className="cmp-bar-info">
           <div className="cmp-bar-title">Compare Multiple Offers</div>
           <div className="cmp-bar-sub">
-            Select 2 to 3 offers from the list and click &apos;Compare Offers&apos; to see a detailed side-by-side comparison.
+            Select 3 to 4 offers from the list and click &apos;Compare Offers&apos; to see a detailed side-by-side comparison.
           </div>
         </div>
         <div className="cmp-bar-right">
           <span className="cmp-selected-label">
-            Selected Offers: <strong>{selectedIds.size} / 3</strong>
+            Selected Offers: <strong>{selectedIds.size} / 4</strong>
           </span>
           {selectedIds.size > 0 && (
             <button

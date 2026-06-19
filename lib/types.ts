@@ -143,11 +143,15 @@ export interface SaleFormPayload {
 }
 
 export interface SaleListResponse {
-  rows: SaleEntry[];
-  total: number;
-  page: number;
-  limit: number;
+  content: SaleEntry[];
+  totalElements: number;
   totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
 }
 
 export interface CreateSaleResponse {
