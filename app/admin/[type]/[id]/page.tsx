@@ -26,7 +26,7 @@ export default function AdminDetailPage() {
           setOrder(found || null);
         } else {
           const data = await fetchTodaySales(today, 1, 1000);
-          const found = data.rows.find((o) => o.id === String(id));
+          const found = data.content.find((o) => o.id === String(id));
           setOrder(found || null);
         }
       } catch (error) {
