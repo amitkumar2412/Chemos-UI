@@ -7,6 +7,7 @@ import { MOCK_NOTIFICATIONS } from './dashboard/data/mockData';
 import { useState } from 'react';
 import type { Period, Currency } from './dashboard/types';
 import type { DashboardModule } from './dashboard/DashboardSidebar';
+import { ActiveModuleContext } from '@/lib/activeModuleContext';
 
 interface AppShellProps {
   children: ReactNode;
@@ -42,7 +43,9 @@ export default function AppShell({ children }: AppShellProps) {
       />
 
       {/* Main content */}
-      <main className="db-main">{children}</main>
+      <ActiveModuleContext.Provider value={{ activeModule }}>
+        <main className="db-main">{children}</main>
+      </ActiveModuleContext.Provider>
     </div>
   );
 }

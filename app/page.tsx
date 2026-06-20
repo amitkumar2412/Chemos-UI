@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { Currency } from '@/components/dashboard/types';
-import type { DashboardModule } from '@/components/dashboard/DashboardSidebar';
 
 import { KpiGrid } from '@/components/dashboard/KpiCard';
 import PipelineSlider from '@/components/dashboard/PipelineSlider';
@@ -14,6 +13,8 @@ import ProcurementModule from '@/components/dashboard/modules/ProcurementModule'
 import ScmModule from '@/components/dashboard/modules/ScmModule';
 import FinanceModule from '@/components/dashboard/modules/FinanceModule';
 import ResearchModule from '@/components/dashboard/modules/ResearchModule';
+import ComingSoonOverlay from '@/components/dashboard/ComingSoonOverlay';
+import { useActiveModule } from '@/lib/activeModuleContext';
 
 import {
   MOCK_KPIS,
@@ -35,31 +36,24 @@ import {
 
 export default function HomePage() {
   const [currency] = useState<Currency>('inr');
-  const [activeModule] = useState<DashboardModule>('overview');
+  const { activeModule } = useActiveModule();
 
   return (
     <>
-      {/* ── Overview module ────────────────────────────────────────── */}
+      {/* ── Overview module — blurred (under development) ─────────── */}
       {activeModule === 'overview' && (
-        <>
-          {/* KPI cards */}
+        <ComingSoonOverlay module="Overview" progress={65}>
           <KpiGrid kpis={MOCK_KPIS} currency={currency} />
-
-          {/* Pipeline */}
           <PipelineSlider stages={MOCK_PIPELINE} />
-
-          {/* ICC + Alerts row */}
           <div className="db-grid-icc-alerts">
             <InventoryCommandCentre items={MOCK_ICC} currency={currency} />
             <AlertsPanel alerts={MOCK_ALERTS} />
           </div>
-
-          {/* Revenue + Forecast charts */}
           <div className="db-grid-2">
             <RevenueChartCard data={MOCK_REVENUE} />
             <ForecastChartCard />
           </div>
-        </>
+        </ComingSoonOverlay>
       )}
 
       {/* ── Procurement module ─────────────────────────────────────── */}
@@ -76,13 +70,19 @@ export default function HomePage() {
         />
       )}
 
-      {/* ── Finance module ─────────────────────────────────────────── */}
+      {/* ── Finance module — blurred (under development) ───────────── */}
       {activeModule === 'finance' && (
-        <FinanceModule offers={MOCK_FINANCE_OFFERS} cashflow={MOCK_CASHFLOW} currency={currency} />
+        <ComingSoonOverlay module="Finance Intelligence" progress={40}>
+          <FinanceModule offers={MOCK_FINANCE_OFFERS} cashflow={MOCK_CASHFLOW} currency={currency} />
+        </ComingSoonOverlay>
       )}
 
-      {/* ── Research & Analysis module ─────────────────────────────── */}
-      {activeModule === 'research' && <ResearchModule shockChemicals={MOCK_SHOCK_CHEMICALS} news={MOCK_NEWS} />}
+      {/* ── Research & Analysis module — blurred (under development) ── */}
+      {activeModule === 'research' && (
+        <ComingSoonOverlay module="Research & Analysis" progress={25}>
+          <ResearchModule shockChemicals={MOCK_SHOCK_CHEMICALS} news={MOCK_NEWS} />
+        </ComingSoonOverlay>
+      )}
     </>
   );
 }
