@@ -1,88 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-
-
-type RiskLevel = 'Low' | 'Medium' | 'High';
-
-interface ComparableOffer {
-  id: string;
-  type: 'Purchase' | 'Sale';
-  offerId: string;
-  supplierCustomer: string;
-  price: number;
-  quantity: number;
-  deliveryDays: number;
-  location: string;
-  validTill: string;
-  risk: RiskLevel;
-  product: string;
-  origin: string;
-  make: string;
-  packaging: string;
-  paymentTerms: string;
-  deliveryTerm: string;
-  currency: string;
-  exchangeRate: number;
-  expense: number;
-  customDuty: number;
-  sws: number;
-  add: number;
-  otherExpense: number;
-}
-
-const PRODUCTS = [
-  'Methanol',
-  'Sodium Bicarbonate',
-  'Citric Acid',
-  'Phosphoric Acid',
-  'Acetic Acid',
-  'Potassium Carbonate',
-];
-
-const ALL_OFFERS: ComparableOffer[] = [
-  // Methanol – Purchase
-  { id: 'm1', type: 'Purchase', offerId: 'PUR-4587', supplierCustomer: 'Global Chemicals Ltd',   price: 245, quantity: 1000, deliveryDays:  5, location: 'Nhava Sheva, India', validTill: '2026-06-15', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: '45 Days',     deliveryTerm: 'CIF',      currency: 'USD', exchangeRate: 83.50, expense: 1200, customDuty: 5,   sws: 10, add: 500,  otherExpense: 300 },
-  { id: 'm2', type: 'Purchase', offerId: 'PUR-4589', supplierCustomer: 'Euro Chem Industries',   price: 248, quantity:  500, deliveryDays:  7, location: 'Kandla, India',      validTill: '2026-06-14', risk: 'Medium', product: 'Methanol', origin: 'Iran',         make: 'NPC',    packaging: 'ISO Tank',    paymentTerms: '30 Days',     deliveryTerm: 'CFR',      currency: 'USD', exchangeRate: 83.25, expense: 1500, customDuty: 5,   sws: 10, add: 650,  otherExpense: 400 },
-  { id: 'm3', type: 'Purchase', offerId: 'PUR-4591', supplierCustomer: 'Middle East Traders',    price: 252, quantity:  750, deliveryDays: 10, location: 'Mundra, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Methanol', origin: 'UAE',          make: 'Ruwais', packaging: 'ISO Tank',    paymentTerms: '60 Days',     deliveryTerm: 'CIF',      currency: 'USD', exchangeRate: 83.75, expense: 1100, customDuty: 5,   sws: 10, add: 450,  otherExpense: 250 },
-  { id: 'm4', type: 'Purchase', offerId: 'PUR-4593', supplierCustomer: 'Gulf Chem LLC',          price: 250, quantity:  600, deliveryDays: 12, location: 'Hazira, India',      validTill: '2026-06-18', risk: 'High',   product: 'Methanol', origin: 'Qatar',        make: 'Qafco',  packaging: 'Bulk',        paymentTerms: '45 Days',     deliveryTerm: 'FOB',      currency: 'USD', exchangeRate: 83.60, expense: 1800, customDuty: 5,   sws: 10, add: 600,  otherExpense: 500 },
-  // Methanol – Sale
-  { id: 'm5', type: 'Sale',     offerId: 'SAL-7712', supplierCustomer: 'ABC Petrochem Ltd',      price: 298, quantity:  800, deliveryDays:  6, location: 'Nhava Sheva, India', validTill: '2026-06-15', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: 'Net 30',      deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.50, expense: 900,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 200 },
-  { id: 'm6', type: 'Sale',     offerId: 'SAL-7714', supplierCustomer: 'Oceanic Solvents Co.',   price: 295, quantity: 1200, deliveryDays:  8, location: 'Kandla, India',      validTill: '2026-06-17', risk: 'Medium', product: 'Methanol', origin: 'Iran',         make: 'NPC',    packaging: 'ISO Tank',    paymentTerms: 'Net 45',      deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.25, expense: 750,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 150 },
-  { id: 'm7', type: 'Sale',     offerId: 'SAL-7716', supplierCustomer: 'Greenfield Industries',  price: 300, quantity:  500, deliveryDays:  5, location: 'Mundra, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Methanol', origin: 'UAE',          make: 'Ruwais', packaging: 'Drum',        paymentTerms: 'Net 30',      deliveryTerm: 'CIF',      currency: 'USD', exchangeRate: 83.75, expense: 600,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 100 },
-  { id: 'm8', type: 'Sale',     offerId: 'SAL-7718', supplierCustomer: 'Future Polymers',        price: 292, quantity:  700, deliveryDays:  7, location: 'Nhava Sheva, India', validTill: '2026-06-19', risk: 'Low',    product: 'Methanol', origin: 'Saudi Arabia', make: 'SABIC',   packaging: 'ISO Tank',    paymentTerms: 'LC at Sight', deliveryTerm: 'CFR',      currency: 'USD', exchangeRate: 83.50, expense: 800,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 180 },
-  // Sodium Bicarbonate – Purchase
-  { id: 's1', type: 'Purchase', offerId: 'PUR-4601', supplierCustomer: 'Solvay Chemicals',       price: 850, quantity:  100, deliveryDays: 14, location: 'Mumbai, India',      validTill: '2026-06-20', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey',  make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: '45 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.50, expense: 2000, customDuty: 7.5, sws: 10, add: 800,  otherExpense: 500 },
-  { id: 's2', type: 'Purchase', offerId: 'PUR-4603', supplierCustomer: 'Asian Suppliers Co',     price: 820, quantity:  200, deliveryDays: 18, location: 'Nhava Sheva, India', validTill: '2026-06-21', risk: 'Medium', product: 'Sodium Bicarbonate', origin: 'China',   make: 'Tianjin', packaging: '25 KG Bags', paymentTerms: '30 Days', deliveryTerm: 'FOB', currency: 'USD', exchangeRate: 83.25, expense: 1800, customDuty: 7.5, sws: 10, add: 700,  otherExpense: 450 },
-  { id: 's3', type: 'Purchase', offerId: 'PUR-4605', supplierCustomer: 'Euro Chemicals GmbH',   price: 870, quantity:  150, deliveryDays: 22, location: 'Chennai, India',     validTill: '2026-06-23', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Germany', make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: '60 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.75, expense: 2200, customDuty: 7.5, sws: 10, add: 900,  otherExpense: 600 },
-  // Sodium Bicarbonate – Sale
-  { id: 's4', type: 'Sale',     offerId: 'SAL-7720', supplierCustomer: 'Pharma Industries Ltd',  price: 920, quantity:   50, deliveryDays:  3, location: 'Mumbai, India',      validTill: '2026-06-16', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey',  make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.50, expense: 500,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 150 },
-  { id: 's5', type: 'Sale',     offerId: 'SAL-7722', supplierCustomer: 'Food Processing Co',     price: 910, quantity:  100, deliveryDays:  5, location: 'Delhi, India',       validTill: '2026-06-17', risk: 'Low',    product: 'Sodium Bicarbonate', origin: 'Turkey',  make: 'Solvay',  packaging: '25 KG Bags', paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.25, expense: 600,  customDuty: 0,   sws: 0,  add: 0,    otherExpense: 200 },
-  // Citric Acid
-  { id: 'c1', type: 'Purchase', offerId: 'PUR-4610', supplierCustomer: 'Weifang Trading Co',     price: 1150, quantity: 200, deliveryDays: 21, location: 'Chennai, India',    validTill: '2026-06-22', risk: 'Medium', product: 'Citric Acid', origin: 'China',  make: 'Weifang', packaging: '25 KG Bags', paymentTerms: '30 Days', deliveryTerm: 'FOB', currency: 'USD', exchangeRate: 83.25, expense: 1600, customDuty: 10, sws: 10, add: 1200, otherExpense: 700 },
-  { id: 'c2', type: 'Purchase', offerId: 'PUR-4612', supplierCustomer: 'RZBC Group',             price: 1120, quantity: 500, deliveryDays: 25, location: 'Nhava Sheva, India', validTill: '2026-06-24', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'RZBC',    packaging: '25 KG Bags', paymentTerms: '45 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.50, expense: 1400, customDuty: 10, sws: 10, add: 1100, otherExpense: 600 },
-  { id: 'c3', type: 'Sale',     offerId: 'SAL-7730', supplierCustomer: 'Food Corp India',        price: 1250, quantity: 100, deliveryDays:  4, location: 'Chennai, India',    validTill: '2026-06-18', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'Weifang', packaging: '25 KG Bags', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.25, expense: 700,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 250 },
-  { id: 'c4', type: 'Sale',     offerId: 'SAL-7732', supplierCustomer: 'Beverage Industries',    price: 1230, quantity: 200, deliveryDays:  6, location: 'Mumbai, India',     validTill: '2026-06-20', risk: 'Low',    product: 'Citric Acid', origin: 'China',  make: 'RZBC',    packaging: '25 KG Bags', paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.50, expense: 800,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 300 },
-  // Phosphoric Acid
-  { id: 'p1', type: 'Purchase', offerId: 'PUR-4620', supplierCustomer: 'OCP Morocco',            price: 780, quantity:  300, deliveryDays: 25, location: 'Kandla, India',     validTill: '2026-06-25', risk: 'Low',    product: 'Phosphoric Acid', origin: 'Morocco', make: 'OCP',    packaging: 'Bulk Liquid', paymentTerms: '45 Days', deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.50, expense: 2500, customDuty: 12, sws: 10, add: 1500, otherExpense: 800 },
-  { id: 'p2', type: 'Purchase', offerId: 'PUR-4622', supplierCustomer: 'Mosaic Chemicals',       price: 800, quantity:  200, deliveryDays: 30, location: 'Mumbai, India',     validTill: '2026-06-27', risk: 'Medium', product: 'Phosphoric Acid', origin: 'USA',     make: 'Mosaic', packaging: 'Bulk Liquid', paymentTerms: '60 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.75, expense: 2800, customDuty: 12, sws: 10, add: 1600, otherExpense: 900 },
-  { id: 'p3', type: 'Sale',     offerId: 'SAL-7740', supplierCustomer: 'Fertilizer Corp India',  price: 840, quantity:  150, deliveryDays:  6, location: 'Kandla, India',     validTill: '2026-06-20', risk: 'Low',    product: 'Phosphoric Acid', origin: 'Morocco', make: 'OCP',    packaging: 'Bulk Liquid', paymentTerms: 'Net 60',  deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.50, expense: 900,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 300 },
-  // Acetic Acid
-  { id: 'a1', type: 'Purchase', offerId: 'PUR-4630', supplierCustomer: 'Celanese Corp',          price: 920, quantity:  120, deliveryDays: 18, location: 'Vizag, India',      validTill: '2026-06-22', risk: 'Low',    product: 'Acetic Acid', origin: 'Malaysia',  make: 'Celanese', packaging: 'ISO Tank', paymentTerms: '30 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.50, expense: 1300, customDuty: 7.5, sws: 10, add: 900,  otherExpense: 500 },
-  { id: 'a2', type: 'Purchase', offerId: 'PUR-4632', supplierCustomer: 'BP Chemicals',           price: 935, quantity:   80, deliveryDays: 22, location: 'Nhava Sheva, India', validTill: '2026-06-24', risk: 'Medium', product: 'Acetic Acid', origin: 'Singapore', make: 'BP Chem',  packaging: 'ISO Tank', paymentTerms: '45 Days', deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.25, expense: 1700, customDuty: 7.5, sws: 10, add: 950,  otherExpense: 600 },
-  { id: 'a3', type: 'Sale',     offerId: 'SAL-7750', supplierCustomer: 'Textile Mills Ltd',      price: 1020, quantity:  60, deliveryDays:  4, location: 'Surat, India',      validTill: '2026-06-18', risk: 'Low',    product: 'Acetic Acid', origin: 'Malaysia',  make: 'Celanese', packaging: 'ISO Tank', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.50, expense: 650,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 200 },
-  { id: 'a4', type: 'Sale',     offerId: 'SAL-7752', supplierCustomer: 'Pharma Chem Co',         price: 1010, quantity: 100, deliveryDays:  7, location: 'Mumbai, India',     validTill: '2026-06-21', risk: 'Low',    product: 'Acetic Acid', origin: 'Singapore', make: 'BP Chem',  packaging: 'ISO Tank', paymentTerms: 'Net 45',  deliveryTerm: 'FOR',      currency: 'USD', exchangeRate: 83.25, expense: 700,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 250 },
-  // Potassium Carbonate
-  { id: 'k1', type: 'Purchase', offerId: 'PUR-4640', supplierCustomer: 'BASF SE',                price: 950, quantity:  150, deliveryDays: 20, location: 'Chennai, India',    validTill: '2026-06-25', risk: 'Low',    product: 'Potassium Carbonate', origin: 'Germany', make: 'BASF',   packaging: '25 KG Bags', paymentTerms: '60 Days', deliveryTerm: 'CIF', currency: 'USD', exchangeRate: 83.75, expense: 2100, customDuty: 7.5, sws: 10, add: 1000, otherExpense: 700 },
-  { id: 'k2', type: 'Purchase', offerId: 'PUR-4642', supplierCustomer: 'Euro Chem Industries',   price: 930, quantity:   80, deliveryDays: 16, location: 'Mumbai, India',     validTill: '2026-06-23', risk: 'Medium', product: 'Potassium Carbonate', origin: 'Germany', make: 'Evonik', packaging: '25 KG Bags', paymentTerms: '45 Days', deliveryTerm: 'CFR', currency: 'USD', exchangeRate: 83.50, expense: 1900, customDuty: 7.5, sws: 10, add: 950,  otherExpense: 650 },
-  { id: 'k3', type: 'Sale',     offerId: 'SAL-7760', supplierCustomer: 'Export House India',     price: 1050, quantity:  80, deliveryDays:  5, location: 'Chennai, India',    validTill: '2026-06-18', risk: 'Low',    product: 'Potassium Carbonate', origin: 'Germany', make: 'BASF',   packaging: '25 KG Bags', paymentTerms: 'Net 30',  deliveryTerm: 'Ex-Works', currency: 'USD', exchangeRate: 83.75, expense: 850,  customDuty: 0,  sws: 0,  add: 0,    otherExpense: 300 },
-];
+import { useState, useEffect, useMemo } from 'react';
+import { fetchAllPurchases, comparePurchases } from '@/lib/api';
+import type { PurchaseOrder, CompareResponse, CompareItem } from '@/lib/api';
 
 const PAGE_SIZE = 8;
 
-
-function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+function fmtDate(s: string | null | undefined) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
@@ -117,33 +45,31 @@ function StatCard({
 
 // ── Compare Modal ─────────────────────────────────────────────────────────────
 function CompareModal({
-  offers,
+  data,
+  portMap,
   onClose,
 }: {
-  offers: ComparableOffer[];
+  data: CompareResponse;
+  portMap: Map<string, string>;
   onClose: () => void;
 }) {
-  const prices = offers.map(o => o.price);
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  function priceClass(p: number) {
-    if (offers.length < 2) return '';
-    if (p === minPrice) return 'cmp-cmp-best';
-    if (p === maxPrice) return 'cmp-cmp-worst';
-    return 'cmp-cmp-mid';
-  }
+  const { purchases, highlights } = data;
 
   const mono: React.CSSProperties = { fontFamily: 'JetBrains Mono,monospace' };
   const monoBold: React.CSSProperties = { ...mono, fontWeight: 700 };
 
-  const rows: { label: string; render: (o: ComparableOffer) => React.ReactNode }[] = [
-    // {
-    //   label: 'Company From',
-    //   render: o => <strong style={{ color: 'var(--white)' }}>{o.supplierCustomer}</strong>,
-    // },
+  function hlClass(field: keyof CompareResponse['highlights'], id: string) {
+    const h = highlights[field];
+    if (!h) return '';
+    if (h.best_id === id) return 'cmp-cmp-best';
+    if (h.worst_id === id) return 'cmp-cmp-worst';
+    return 'cmp-cmp-mid';
+  }
+
+  const rows: { label: string; render: (o: CompareItem) => React.ReactNode }[] = [
     {
       label: 'Load Port',
-      render: o => o.location,
+      render: o => portMap.get(o.id) ?? '—',
     },
     {
       label: 'QTY (MT)',
@@ -151,26 +77,31 @@ function CompareModal({
     },
     {
       label: 'Delivery Term',
-      render: o => o.deliveryTerm,
+      render: o => o.delivery_term,
     },
     {
       label: 'Price (FC)',
-      render: o => <span className={priceClass(o.price)} style={monoBold}>{o.price} {o.currency}</span>,
+      render: o => (
+        <span className={hlClass('price_fc', o.id)} style={monoBold}>
+          {o.price_fc} {o.currency || 'USD'}
+        </span>
+      ),
     },
     {
       label: 'Exchange Rate',
-      render: o => <span style={mono}>{o.exchangeRate.toFixed(2)}</span>,
+      render: o => <span style={mono}>{o.exchange_rate.toFixed(2)}</span>,
     },
     {
       label: 'Price (INR) / MT',
-      render: o => {
-        const inr = o.price * o.exchangeRate;
-        return <span style={monoBold}>₹ {Math.round(inr).toLocaleString('en-IN')}</span>;
-      },
+      render: o => (
+        <span className={hlClass('price_inr_per_mt', o.id)} style={monoBold}>
+          ₹ {o.price_inr_per_mt.toLocaleString('en-IN')}
+        </span>
+      ),
     },
     {
       label: 'Valid Till',
-      render: o => fmtDate(o.validTill),
+      render: o => fmtDate(o.valid_till),
     },
     {
       label: 'Expenses (Freight & Insurance)',
@@ -178,18 +109,11 @@ function CompareModal({
     },
     {
       label: 'Custom Duty BCD',
-      render: o => {
-        const bcd = Math.round(o.price * o.exchangeRate * o.customDuty / 100);
-        return <span style={mono}>{o.customDuty}% = ₹ {bcd.toLocaleString('en-IN')}</span>;
-      },
+      render: o => <span style={mono}>₹ {o.custom_duty.toLocaleString('en-IN')}</span>,
     },
     {
       label: 'SWS',
-      render: o => {
-        const bcd = o.price * o.exchangeRate * o.customDuty / 100;
-        const swsAmt = Math.round(bcd * o.sws / 100);
-        return <span style={mono}>{o.sws}% of BCD = ₹ {swsAmt.toLocaleString('en-IN')}</span>;
-      },
+      render: o => <span style={mono}>₹ {o.sws.toLocaleString('en-IN')}</span>,
     },
     {
       label: 'ADD (₹)',
@@ -197,17 +121,15 @@ function CompareModal({
     },
     {
       label: 'Other Expense',
-      render: o => <span style={mono}>₹ {o.otherExpense.toLocaleString('en-IN')}</span>,
+      render: o => <span style={mono}>₹ {o.other_expense.toLocaleString('en-IN')}</span>,
     },
     {
       label: 'Landed Cost / MT',
-      render: o => {
-        const priceInr = o.price * o.exchangeRate;
-        const bcd = priceInr * o.customDuty / 100;
-        const swsAmt = bcd * o.sws / 100;
-        const landed = Math.round(priceInr + o.expense + bcd + swsAmt + o.add + o.otherExpense);
-        return <span style={{ ...monoBold, color: 'var(--green)' }}>₹ {landed.toLocaleString('en-IN')}</span>;
-      },
+      render: o => (
+        <span className={hlClass('landed_cost_per_mt', o.id)} style={{ ...monoBold, color: hlClass('landed_cost_per_mt', o.id) ? undefined : 'var(--green)' }}>
+          ₹ {o.landed_cost_per_mt.toLocaleString('en-IN')}
+        </span>
+      ),
     },
   ];
 
@@ -218,7 +140,7 @@ function CompareModal({
           <div>
             <div className="cmp-modal-title">Offer Comparison</div>
             <div className="cmp-modal-sub">
-              Side-by-side comparison · {offers.length} offer{offers.length > 1 ? 's' : ''} selected ·{' '}
+              Side-by-side comparison · {purchases.length} offer{purchases.length > 1 ? 's' : ''} selected ·{' '}
               <span style={{ color: 'var(--green)' }}>Green = best</span>{' '}
               <span style={{ color: 'var(--red)', marginLeft: 6 }}>Red = worst</span>
             </div>
@@ -230,16 +152,13 @@ function CompareModal({
             <thead>
               <tr>
                 <th>Field</th>
-                {offers.map(o => (
+                {purchases.map(o => (
                   <th key={o.id}>
-                    <div style={{ marginBottom: 4 }}>
-                      {/* <span className={`cmp-type-badge ${o.type.toLowerCase()}`}>{o.type}</span> */}
-                    </div>
                     <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--white)', fontFamily: 'JetBrains Mono,monospace' }}>
-                      {o.supplierCustomer}
+                      {o.company_from}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--gray)', marginTop: 2, fontWeight: 500, fontFamily: 'Montserrat,sans-serif' }}>
-                      {o.offerId}
+                      {o.id}
                     </div>
                   </th>
                 ))}
@@ -249,7 +168,7 @@ function CompareModal({
               {rows.map(row => (
                 <tr key={row.label}>
                   <td>{row.label}</td>
-                  {offers.map(o => (
+                  {purchases.map(o => (
                     <td key={o.id}>{row.render(o)}</td>
                   ))}
                 </tr>
@@ -264,37 +183,69 @@ function CompareModal({
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function ComparablePage() {
-
-  const [selectedProduct, setSelectedProduct] = useState('Methanol');
+  const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showModal, setShowModal] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const [compareData, setCompareData] = useState<CompareResponse | null>(null);
   const [page, setPage] = useState(1);
 
-  const filtered = useMemo(() => {
-    return ALL_OFFERS.filter(o => o.product === selectedProduct && o.type === 'Purchase');
-  }, [selectedProduct]);
+  useEffect(() => {
+    fetchAllPurchases()
+      .then(data => {
+        setPurchases(data);
+        if (data.length > 0) {
+          const first = [...new Set(data.map(p => p.product))].filter(Boolean).sort()[0];
+          if (first) setSelectedProduct(first);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const products = useMemo(
+    () => [...new Set(purchases.map(p => p.product))].filter(Boolean).sort(),
+    [purchases]
+  );
+
+  const filtered = useMemo(
+    () => (selectedProduct ? purchases.filter(p => p.product === selectedProduct) : purchases),
+    [purchases, selectedProduct]
+  );
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const selectedOffers = ALL_OFFERS.filter(o => selectedIds.has(o.id));
 
-  const purchaseOffers = ALL_OFFERS.filter(o => o.product === selectedProduct && o.type === 'Purchase');
-  const bestBuy = purchaseOffers.length ? Math.min(...purchaseOffers.map(o => o.price)) : 0;
-  const confirmedCount = selectedIds.size;
+  const portMap = useMemo(
+    () => new Map(purchases.map(p => [p.id, p.port])),
+    [purchases]
+  );
+
+  const bestBuy = filtered.length ? Math.min(...filtered.map(o => o.priceFc)) : 0;
+  const canCompare = selectedIds.size >= 2;
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else if (next.size < 4) {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else if (next.size < 4) next.add(id);
       return next;
     });
   };
 
-  const canCompare = selectedIds.size >= 2;
+  const handleCompare = async () => {
+    if (!canCompare) return;
+    setComparing(true);
+    try {
+      const data = await comparePurchases([...selectedIds]);
+      setCompareData(data);
+    } catch (err) {
+      console.error('Compare failed:', err);
+    } finally {
+      setComparing(false);
+    }
+  };
 
   const handleProductChange = (p: string) => {
     setSelectedProduct(p);
@@ -312,12 +263,10 @@ export default function ComparablePage() {
 
       {/* Controls */}
       <div className="cmp-controls">
-        {/* Type tabs */}
         <div className="cmp-tabs">
           <button className="cmp-tab active">Purchase</button>
         </div>
 
-        {/* Product selector */}
         <div className="cmp-product-selector">
           <span className="cmp-product-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
@@ -329,8 +278,9 @@ export default function ComparablePage() {
             className="cmp-product-select"
             value={selectedProduct}
             onChange={e => handleProductChange(e.target.value)}
+            disabled={loading}
           >
-            {PRODUCTS.map(p => (
+            {products.map(p => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
@@ -338,21 +288,30 @@ export default function ComparablePage() {
 
         <div style={{ flex: 1 }} />
 
-        {/* Compare Offers */}
         <button
           className="cmp-compare-btn"
-          disabled={!canCompare}
-          onClick={() => canCompare && setShowModal(true)}
+          disabled={!canCompare || comparing}
+          onClick={handleCompare}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-            <rect x="2" y="3" width="8" height="18" rx="1" />
-            <rect x="14" y="3" width="8" height="18" rx="1" />
-          </svg>
-          Compare Offers
-          <span className="cmp-compare-badge">{selectedIds.size}</span>
+          {comparing ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14" style={{ animation: 'spin 1s linear infinite' }}>
+                <circle cx="12" cy="12" r="10" strokeDasharray="30 10" />
+              </svg>
+              Comparing…
+            </span>
+          ) : (
+            <>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                <rect x="2" y="3" width="8" height="18" rx="1" />
+                <rect x="14" y="3" width="8" height="18" rx="1" />
+              </svg>
+              Compare Offers
+              <span className="cmp-compare-badge">{selectedIds.size}</span>
+            </>
+          )}
         </button>
 
-        {/* Export */}
         <button className="cmp-export-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -370,8 +329,8 @@ export default function ComparablePage() {
       <div className="cmp-stats-row">
         <StatCard
           label="Total Purchase Offers"
-          value={purchaseOffers.length}
-          sub={`Best Price: USD ${bestBuy} / MT`}
+          value={loading ? '…' : filtered.length}
+          sub={loading ? 'Loading…' : filtered.length > 0 ? `Best Price: ${bestBuy.toLocaleString()} / MT` : 'No offers'}
           iconBg="rgba(72,149,239,.15)"
           iconColor="var(--blue)"
           icon={
@@ -384,8 +343,8 @@ export default function ComparablePage() {
         />
         <StatCard
           label="Confirmed Offer"
-          value={confirmedCount}
-          sub={confirmedCount === 0 ? 'No offers confirmed yet' : `${confirmedCount} offer${confirmedCount > 1 ? 's' : ''} selected`}
+          value={selectedIds.size}
+          sub={selectedIds.size === 0 ? 'No offers confirmed yet' : `${selectedIds.size} offer${selectedIds.size > 1 ? 's' : ''} selected`}
           iconBg="rgba(6,214,160,.12)"
           iconColor="var(--green)"
           icon={
@@ -401,7 +360,7 @@ export default function ComparablePage() {
       <div className="cmp-table-wrap">
         <div className="cmp-table-header">
           <div className="cmp-table-title">
-            Purchase Offers for {selectedProduct}
+            Purchase Offers{selectedProduct ? ` for ${selectedProduct}` : ''}
           </div>
         </div>
         <table className="cmp-table">
@@ -421,61 +380,70 @@ export default function ComparablePage() {
             </tr>
           </thead>
           <tbody>
-            {paged.map(offer => (
-              <tr key={offer.id} className={selectedIds.has(offer.id) ? 'cmp-selected' : ''}>
-                <td>
-                  <input
-                    type="checkbox"
-                    className="cmp-checkbox"
-                    checked={selectedIds.has(offer.id)}
-                    onChange={() => toggleSelect(offer.id)}
-                    disabled={!selectedIds.has(offer.id) && selectedIds.size >= 4}
-                  />
-                </td>
-                <td style={{ fontWeight: 600 }}>{offer.supplierCustomer}</td>
-                <td className="num">{offer.quantity.toLocaleString()}</td>
-                <td className="cmp-location">{offer.location}</td>
-                <td>{offer.deliveryTerm}</td>
-                <td className="num" style={{ fontWeight: 700 }}>{offer.price} {offer.currency}</td>
-                <td className="num">{offer.exchangeRate.toFixed(2)}</td>
-                <td style={{ fontSize: 11 }}>{fmtDate(offer.validTill)}</td>
-                <td className="num">₹ {offer.expense.toLocaleString()}</td>
-                <td className="num">{offer.customDuty}%</td>
-                <td>
-                  <div className="cmp-actions">
-                    <button className="cmp-action-btn view" title="View details">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    </button>
-                    <button
-                      className={`cmp-action-btn add${selectedIds.has(offer.id) ? ' added' : ''}`}
-                      title={selectedIds.has(offer.id) ? 'Remove from compare' : 'Add to compare'}
-                      onClick={() => toggleSelect(offer.id)}
-                      disabled={!selectedIds.has(offer.id) && selectedIds.size >= 4}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                        {selectedIds.has(offer.id) ? (
-                          <polyline points="20 6 9 17 4 12" />
-                        ) : (
-                          <>
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                          </>
-                        )}
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {paged.length === 0 && (
+            {loading ? (
               <tr>
                 <td colSpan={11} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--gray)' }}>
-                  No purchase offers found for {selectedProduct}
+                  Loading purchases…
                 </td>
               </tr>
+            ) : paged.length === 0 ? (
+              <tr>
+                <td colSpan={11} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--gray)' }}>
+                  No purchase offers found{selectedProduct ? ` for ${selectedProduct}` : ''}
+                </td>
+              </tr>
+            ) : (
+              paged.map(offer => (
+                <tr key={offer.id} className={selectedIds.has(offer.id) ? 'cmp-selected' : ''}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      className="cmp-checkbox"
+                      checked={selectedIds.has(offer.id)}
+                      onChange={() => toggleSelect(offer.id)}
+                      disabled={!selectedIds.has(offer.id) && selectedIds.size >= 4}
+                    />
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{offer.companyFrom}</td>
+                  <td className="num">{offer.quantity.toLocaleString()}</td>
+                  <td className="cmp-location">{offer.port || '—'}</td>
+                  <td>{offer.deliveryTerm}</td>
+                  <td className="num" style={{ fontWeight: 700 }}>
+                    {offer.priceFc} {offer.currency || 'USD'}
+                  </td>
+                  <td className="num">{offer.exchangeRate?.toFixed(2) ?? '—'}</td>
+                  <td style={{ fontSize: 11 }}>{fmtDate(offer.etd)}</td>
+                  <td className="num">₹ {offer.expense?.toLocaleString() ?? '0'}</td>
+                  <td className="num">{offer.customDuty ?? 0}%</td>
+                  <td>
+                    <div className="cmp-actions">
+                      <button className="cmp-action-btn view" title="View details">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      </button>
+                      <button
+                        className={`cmp-action-btn add${selectedIds.has(offer.id) ? ' added' : ''}`}
+                        title={selectedIds.has(offer.id) ? 'Remove from compare' : 'Add to compare'}
+                        onClick={() => toggleSelect(offer.id)}
+                        disabled={!selectedIds.has(offer.id) && selectedIds.size >= 4}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
+                          {selectedIds.has(offer.id) ? (
+                            <polyline points="20 6 9 17 4 12" />
+                          ) : (
+                            <>
+                              <line x1="12" y1="5" x2="12" y2="19" />
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </>
+                          )}
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -506,7 +474,7 @@ export default function ComparablePage() {
         <div className="cmp-bar-info">
           <div className="cmp-bar-title">Compare Multiple Offers</div>
           <div className="cmp-bar-sub">
-            Select 3 to 4 offers from the list and click &apos;Compare Offers&apos; to see a detailed side-by-side comparison.
+            Select 2 to 4 offers from the list and click &apos;Compare Offers&apos; to see a detailed side-by-side comparison.
           </div>
         </div>
         <div className="cmp-bar-right">
@@ -523,10 +491,10 @@ export default function ComparablePage() {
           )}
           <button
             className={`cmp-compare-now-btn${canCompare ? ' enabled' : ''}`}
-            disabled={!canCompare}
-            onClick={() => canCompare && setShowModal(true)}
+            disabled={!canCompare || comparing}
+            onClick={handleCompare}
           >
-            Compare Now
+            {comparing ? 'Comparing…' : 'Compare Now'}
           </button>
         </div>
       </div>
@@ -588,8 +556,12 @@ export default function ComparablePage() {
       </div>
 
       {/* Compare Modal */}
-      {showModal && (
-        <CompareModal offers={selectedOffers} onClose={() => setShowModal(false)} />
+      {compareData && (
+        <CompareModal
+          data={compareData}
+          portMap={portMap}
+          onClose={() => setCompareData(null)}
+        />
       )}
     </div>
   );

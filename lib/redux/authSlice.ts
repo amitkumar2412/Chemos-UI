@@ -1,20 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type UserRole = 'admin' | 'purchase' | 'sales' | 'both';
-
-export interface Permission {
-  canViewPurchases: boolean;
-  canViewSales: boolean;
-  canEditPurchases: boolean;
-  canEditSales: boolean;
-}
-
 export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  permissions: Permission;
+  username: string;
+  role: string;
   token: string;
 }
 
@@ -40,13 +28,12 @@ const authSlice = createSlice({
       state.user = null;
       state.isAuthenticated = false;
     },
-    updatePermissions: (state, action: PayloadAction<Permission>) => {
-      if (state.user) {
-        state.user.permissions = action.payload;
-      }
+    initFromStorage: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
     },
   },
 });
 
-export const { login, logout, updatePermissions } = authSlice.actions;
+export const { login, logout, initFromStorage } = authSlice.actions;
 export default authSlice.reducer;

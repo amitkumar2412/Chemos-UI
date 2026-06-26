@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Modal from '@/components/Modal';
 import SaleForm from '@/components/SaleForm';
 import SaleDetailModal from '@/components/SaleDetailModal';
+import SaleEditModal from '@/components/SaleEditModal';
+import ActionMenu from '@/components/ActionMenu';
 import { fetchFeedOptions, fetchAllSales, createSale } from '@/lib/api';
 import type { SaleEntry, FeedOptions, SaleFormPayload } from '@/lib/types';
 
@@ -33,6 +35,7 @@ export default function SalesPage() {
   const [entries, setEntries] = useState<SaleEntry[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -165,6 +168,7 @@ export default function SalesPage() {
                     <th style={{ ...TH, textAlign: 'right' }}>Price (₹)</th>
                     <th style={TH}>Delivery Term</th>
                     <th style={TH}>Port</th>
+                    <th style={{ ...TH, textAlign: 'center' }}>Status</th>
                     <th style={{ ...TH, textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
@@ -191,21 +195,13 @@ export default function SalesPage() {
                       <td style={{ padding: '16px', fontSize: '14px' }}>{sale.deliveryTerm ?? '—'}</td>
                       <td style={{ padding: '16px', fontSize: '14px' }}>{sale.port ?? '—'}</td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => setViewingId(sale.id)}
-                          style={{
-                            padding: '6px 12px',
-                            background: 'var(--blue)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          View
-                        </button>
+                        <StatusBadge status={sale.status} />
+                      </td>
+                      <td style={{ padding: '16px', textAlign: 'center' }}>
+                        <ActionMenu items={[
+                          { label: 'View Details', onClick: () => setViewingId(sale.id) },
+                          { label: 'Edit', onClick: () => setEditingId(sale.id) },
+                        ]} />
                       </td>
                     </tr>
                   ))}
@@ -278,6 +274,14 @@ export default function SalesPage() {
         onClose={() => setViewingId(null)}
       />
 
+      {/* Edit Modal */}
+      <SaleEditModal
+        saleId={editingId}
+        feedOptions={feedOptions}
+        onClose={() => setEditingId(null)}
+        onSaved={() => loadSales(currentPage)}
+      />
+
       {/* Create Modal */}
       <Modal
         isOpen={isCreateModalOpen}
@@ -291,6 +295,33 @@ export default function SalesPage() {
         />
       </Modal>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const s = status ?? 'UNKNOWN';
+  const colorMap: Record<string, { bg: string; color: string }> = {
+    CONFIRMED:   { bg: 'rgba(72,187,120,0.15)', color: '#48bb78' },
+    UNCONFIRMED: { bg: 'rgba(237,137,54,0.15)', color: '#ed8936' },
+    CANCELLED:   { bg: 'rgba(245,101,101,0.15)', color: '#f56565' },
+  };
+  const style = colorMap[s.toUpperCase()] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        padding: '3px 10px',
+        borderRadius: '999px',
+        fontSize: '11px',
+        fontWeight: '600',
+        letterSpacing: '0.04em',
+        background: style.bg,
+        color: style.color,
+        textTransform: 'uppercase',
+      }}
+    >
+      {s}
+    </span>
   );
 }
 

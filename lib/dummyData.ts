@@ -1,61 +1,4 @@
-import type { User, UserRole, Permission } from './redux/authSlice';
 import type { PunchEntry, SaleEntry } from './types';
-
-// Dummy Users for Testing
-export const dummyUsers: User[] = [
-  {
-    id: 'user-1',
-    name: 'Admin User',
-    email: 'admin@chemos.com',
-    role: 'admin',
-    token: 'token-admin-123',
-    permissions: {
-      canViewPurchases: true,
-      canViewSales: true,
-      canEditPurchases: true,
-      canEditSales: true,
-    },
-  },
-  {
-    id: 'user-2',
-    name: 'Purchase Manager',
-    email: 'purchase@chemos.com',
-    role: 'purchase',
-    token: 'token-purchase-456',
-    permissions: {
-      canViewPurchases: true,
-      canViewSales: false,
-      canEditPurchases: true,
-      canEditSales: false,
-    },
-  },
-  {
-    id: 'user-3',
-    name: 'Sales Manager',
-    email: 'sales@chemos.com',
-    role: 'sales',
-    token: 'token-sales-789',
-    permissions: {
-      canViewPurchases: false,
-      canViewSales: true,
-      canEditPurchases: false,
-      canEditSales: true,
-    },
-  },
-  {
-    id: 'user-4',
-    name: 'Both Access User',
-    email: 'both@chemos.com',
-    role: 'both',
-    token: 'token-both-101',
-    permissions: {
-      canViewPurchases: true,
-      canViewSales: true,
-      canEditPurchases: true,
-      canEditSales: true,
-    },
-  },
-];
 
 // Dummy Purchase Orders (PunchEntry)
 export const dummyPurchaseOrders: PunchEntry[] = [
@@ -370,18 +313,3 @@ export const dummySaleOrders: SaleEntry[] = [
   },
 ];
 
-// Helper function to get user by token
-export function getUserByToken(token: string): User | undefined {
-  return dummyUsers.find((user) => user.token === token);
-}
-
-// Helper function to get user by email
-export function getUserByEmail(email: string): User | undefined {
-  return dummyUsers.find((user) => user.email === email);
-}
-
-// Helper function to simulate login
-export function simulateLogin(email: string): User | null {
-  const user = getUserByEmail(email);
-  return user || null;
-}

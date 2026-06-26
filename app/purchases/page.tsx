@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Modal from '@/components/Modal';
 import SaleEntryCard from '@/components/SaleEntryCard';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
+import ActionMenu from '@/components/ActionMenu';
 import { fetchFeedOptions, fetchAllPurchases, createPunch } from '@/lib/api';
 import type { PurchaseOrder } from '@/lib/api';
 import type { FeedOptions, SalePunchPayload } from '@/lib/types';
@@ -141,6 +142,7 @@ export default function PurchasesPage() {
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Price (INR)</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Delivery Term</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Discharge Ports</th>
+                  <th style={{ padding: '16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Status</th>
                   <th style={{ padding: '16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Actions</th>
                 </tr>
               </thead>
@@ -154,38 +156,13 @@ export default function PurchasesPage() {
                     <td style={{ padding: '16px', fontSize: '14px' }}>₹ {entry.priceInr.toLocaleString('en-IN')}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.deliveryTerm}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.dischargePorts}</td>
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => setViewingId(entry.id)}
-                          style={{
-                            padding: '6px 12px',
-                            background: 'var(--blue)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          View
-                        </button>
-                        <button
-                          style={{
-                            padding: '6px 12px',
-                            background: 'var(--green)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Confirm
-                        </button>
-                      </div>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <StatusBadge status={entry.status} />
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <ActionMenu items={[
+                        { label: 'View Details', onClick: () => setViewingId(entry.id) },
+                      ]} />
                     </td>
                   </tr>
                 ))}
@@ -216,5 +193,32 @@ export default function PurchasesPage() {
         />
       </Modal>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const s = status ?? 'UNKNOWN';
+  const colorMap: Record<string, { bg: string; color: string }> = {
+    CONFIRMED:   { bg: 'rgba(72,187,120,0.15)', color: '#48bb78' },
+    UNCONFIRMED: { bg: 'rgba(237,137,54,0.15)', color: '#ed8936' },
+    CANCELLED:   { bg: 'rgba(245,101,101,0.15)', color: '#f56565' },
+  };
+  const style = colorMap[s.toUpperCase()] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        padding: '3px 10px',
+        borderRadius: '999px',
+        fontSize: '11px',
+        fontWeight: '600',
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        background: style.bg,
+        color: style.color,
+      }}
+    >
+      {s}
+    </span>
   );
 }

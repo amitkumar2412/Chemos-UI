@@ -287,6 +287,27 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FORM}</span>
                 Orders Management
               </Link>
+              <Link href="/admin/users" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                <span className="db-sb-secondary-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                    <circle cx="8" cy="5" r="3" />
+                    <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+                  </svg>
+                </span>
+                Users
+              </Link>
+              <Link href="/admin/audit" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                <span className="db-sb-secondary-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                    <path d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1z" />
+                    <line x1="4" y1="6" x2="12" y2="6" />
+                    <line x1="4" y1="9" x2="9" y2="9" />
+                    <circle cx="12" cy="11" r="2" />
+                    <line x1="13.4" y1="12.4" x2="15" y2="14" />
+                  </svg>
+                </span>
+                Audit Trail
+              </Link>
             </div>
           )}
         </div>

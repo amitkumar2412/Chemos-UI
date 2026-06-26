@@ -1,5 +1,5 @@
 const BASE_URL =
-  (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'https://20a8-103-51-116-91.ngrok-free.app') + '/api/v1';
+  (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
 
 const TOKEN_KEY = 'chemos_token';
 

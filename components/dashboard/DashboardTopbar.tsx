@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Currency, Period, Notification } from './types';
-import UserSwitcher from '../UserSwitcher';
+import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
+import { logout } from '@/lib/redux/authSlice';
+import { authService } from '@/lib/services/auth';
 
 interface DashboardTopbarProps {
   period: Period;
@@ -20,10 +22,23 @@ export default function DashboardTopbar({
   period, currency, asOf, notifications,
   onPeriodChange, onCurrencyChange, onAsOfChange, onMenuToggle,
 }: DashboardTopbarProps) {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
   const [showNotif, setShowNotif]   = useState(false);
   const [showAvatar, setShowAvatar] = useState(false);
   const [spinning, setSpinning]     = useState(false);
   const [lastRefresh, setLastRefresh] = useState('just now');
+
+  const handleSignOut = () => {
+    authService.logout();
+    dispatch(logout());
+    router.replace('/login');
+  };
+
+  const avatarInitials = user?.username
+    ? user.username.slice(0, 2).toUpperCase()
+    : '?';
 
   const notifRef  = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
@@ -108,12 +123,6 @@ export default function DashboardTopbar({
           {mounted ? (theme === 'dark' ? '☀️' : '🌙') : '🌙'}
         </button>
 
-        {/* Search */}
-        <div className="db-search">
-          <span>Quick actions…</span>
-          <kbd>⌘K</kbd>
-        </div>
-
         {/* Notifications */}
         <div ref={notifRef} style={{ position: 'relative' }}>
           <div className="db-icon" onClick={() => setShowNotif((v) => !v)}>
@@ -156,21 +165,42 @@ export default function DashboardTopbar({
           </button>
         </div>
 
-        {/* User Switcher for Testing */}
-        <UserSwitcher />
-
         {/* Avatar */}
         <div ref={avatarRef} className="db-avatar-wrap">
-          <div className="db-avatar" onClick={() => setShowAvatar((v) => !v)}>SK</div>
+          <div className="db-avatar" onClick={() => setShowAvatar((v) => !v)}>{avatarInitials}</div>
           <div className={`db-avatar-menu${showAvatar ? ' show' : ''}`}>
-            <div className="db-avatar-menu-item">👤 My Profile</div>
-            <div className="db-avatar-menu-item">⚙️ Preferences</div>
-            <div className="db-avatar-menu-item">🔔 Alert Rules</div>
+            {/* User profile card */}
+            <div style={{ padding: '20px 16px 16px', textAlign: 'center', borderBottom: '1px solid var(--border)' }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: 'var(--blue)', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 22, fontWeight: 700, margin: '0 auto 10px',
+              }}>
+                {avatarInitials}
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+                {user?.username ?? '—'}
+              </div>
+              <span style={{
+                display: 'inline-block',
+                fontSize: 11, fontWeight: 600,
+                padding: '2px 10px',
+                background: 'var(--blue-dim)',
+                color: 'var(--blue)',
+                borderRadius: 20,
+                letterSpacing: '0.04em',
+              }}>
+                {user?.role ?? '—'}
+              </span>
+            </div>
             <div className="db-avatar-divider" />
-            <div className="db-avatar-menu-item">🔑 API Keys</div>
-            <div className="db-avatar-menu-item">📖 Docs</div>
-            <div className="db-avatar-divider" />
-            <div className="db-avatar-menu-item danger">🚪 Sign Out</div>
+            <div className="db-avatar-menu-item danger" onClick={handleSignOut}>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15" style={{ marginRight: 8, flexShrink: 0 }}>
+                <path d="M13 3h4a1 1 0 011 1v12a1 1 0 01-1 1h-4M9 14l4-4-4-4M3 10h10" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Sign Out
+            </div>
           </div>
         </div>
       </div>

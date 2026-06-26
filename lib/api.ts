@@ -114,6 +114,7 @@ export interface PurchaseOrder {
   paymentTerm: string;
   etd: string;
   eta: string;
+  status?: string | null;
 }
 
 export async function fetchAllPurchases(): Promise<PurchaseOrder[]> {
@@ -122,4 +123,100 @@ export async function fetchAllPurchases(): Promise<PurchaseOrder[]> {
 
 export async function fetchPurchaseById(id: string): Promise<PurchaseOrder> {
   return apiClient.get<PurchaseOrder>(`/purchase/${id}`);
+}
+
+export async function confirmPurchase(id: string): Promise<PurchaseOrder> {
+  return apiClient.patch<PurchaseOrder>(`/purchase/${id}/confirm`);
+}
+
+export async function confirmSale(id: string): Promise<SaleEntry> {
+  return apiClient.patch<SaleEntry>(`/sales/${id}/confirm`);
+}
+
+export interface CompareItem {
+  id: string;
+  company_from: string;
+  quantity: number;
+  delivery_term: string;
+  price_fc: number;
+  currency: string;
+  exchange_rate: number;
+  price_inr_per_mt: number;
+  valid_till: string;
+  expense: number;
+  custom_duty: number;
+  sws: number;
+  add: number;
+  other_expense: number;
+  landed_cost_per_mt: number;
+}
+
+export interface CompareHighlight {
+  best_id: string;
+  worst_id: string;
+}
+
+export interface CompareResponse {
+  purchases: CompareItem[];
+  highlights: {
+    price_fc?: CompareHighlight;
+    price_inr_per_mt?: CompareHighlight;
+    landed_cost_per_mt?: CompareHighlight;
+  };
+}
+
+export async function comparePurchases(purchaseIds: string[]): Promise<CompareResponse> {
+  return apiClient.post<CompareResponse>('/purchase/compare', { purchase_ids: purchaseIds });
+}
+
+export async function updateSale(
+  id: string,
+  payload: SaleFormPayload & { status?: string | null }
+): Promise<SaleEntry> {
+  return apiClient.put<SaleEntry>(`/sales/${id}`, payload);
+}
+
+export type AuditEntityType = 'SALE' | 'PURCHASE' | 'USER';
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  performedBy: string;
+  performedByName: string;
+  performedByRole: string;
+  dataBefore: string | null;
+  dataAfter: string | null;
+  performedAt: string;
+}
+
+export interface AuditLogPage {
+  content: AuditLog[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  displayName: string;
+}
+
+export async function fetchRoles(): Promise<Role[]> {
+  return apiClient.get<Role[]>('/auth/roles');
+}
+
+export async function fetchAuditLogs(
+  page = 0,
+  size = 20,
+  entityType?: AuditEntityType
+): Promise<AuditLogPage> {
+  const params: Record<string, string | number | boolean> = { page, size };
+  if (entityType) params.entityType = entityType;
+  return apiClient.get<AuditLogPage>('/audit/logs', { params });
 }
