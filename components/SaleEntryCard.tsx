@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
@@ -88,6 +88,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false); // synchronous guard — state update alone is too late
   const [dateValue, setDateValue] = useState('');
   const [dateStamp, setDateStamp] = useState('');
 
@@ -123,6 +124,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return; // block concurrent submissions synchronously
     const qty = parseFloat(quantity);
     const fc = parseFloat(priceFc);
     const exRate = parseFloat(exchangeRate);
@@ -145,6 +147,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
       'Formula Price': 'FORMULA',
     };
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const data = await onSubmit({
@@ -187,6 +190,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Submission failed');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

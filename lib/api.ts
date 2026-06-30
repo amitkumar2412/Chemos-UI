@@ -8,7 +8,7 @@ import type {
   SaleListResponse,
   SaleEntry,
 } from './types';
-import { apiClient } from './apiClient';
+import { apiClient, tokenStorage } from './apiClient';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '';
 
@@ -80,6 +80,25 @@ export async function deleteSale(id: number): Promise<void> {
   if (!res.ok) throw new Error('Delete failed');
 }
 
+// Backend may return port as a full entity object instead of a plain string
+export interface PortEntity {
+  id: string;
+  displayName: string;
+  searchKey?: string;
+  locode?: string;
+  isIndian?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type PortValue = string | PortEntity | null;
+
+export function getPortName(port: PortValue): string {
+  if (!port) return '—';
+  if (typeof port === 'string') return port || '—';
+  return port.displayName || '—';
+}
+
 export interface PurchaseOrder {
   id: string;
   companyTo: string;
@@ -96,7 +115,7 @@ export interface PurchaseOrder {
   priceInr: number;
   deliveryTerm: string;
   paymentDays: number;
-  port: string;
+  port: PortValue;
   marketPrice: number;
   marketStatus: string;
   costPrice: number;
@@ -117,8 +136,17 @@ export interface PurchaseOrder {
   status?: string | null;
 }
 
-export async function fetchAllPurchases(): Promise<PurchaseOrder[]> {
-  return apiClient.get<PurchaseOrder[]>('/purchase/allPurchase');
+export async function fetchAllPurchases(params?: {
+  status?: string;
+  product?: string;
+}): Promise<PurchaseOrder[]> {
+  const query: Record<string, string> = {};
+  if (params?.status) query.status = params.status;
+  if (params?.product) query.product = params.product;
+  return apiClient.get<PurchaseOrder[]>(
+    '/purchase/allPurchase',
+    Object.keys(query).length ? { params: query } : undefined
+  );
 }
 
 export async function fetchPurchaseById(id: string): Promise<PurchaseOrder> {
@@ -149,6 +177,7 @@ export interface CompareItem {
   add: number;
   other_expense: number;
   landed_cost_per_mt: number;
+  transit_days: number;
 }
 
 export interface CompareHighlight {
@@ -167,6 +196,54 @@ export interface CompareResponse {
 
 export async function comparePurchases(purchaseIds: string[]): Promise<CompareResponse> {
   return apiClient.post<CompareResponse>('/purchase/compare', { purchase_ids: purchaseIds });
+}
+
+export async function exportPhysicalStockCsv(): Promise<string> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+  const res = await fetch(`${BASE_URL}/purchase/export-physical-stock`, {
+    method: 'GET',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Export failed');
+  return res.text();
+}
+
+export interface ImportPhysicalStockResult {
+  updated: number;
+  skipped: number;
+  errors: string[];
+}
+
+export async function importPhysicalStock(file: File): Promise<ImportPhysicalStockResult> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+
+  // Force text/csv so the backend parses it as CSV regardless of what the
+  // OS/browser MIME registry reports (Windows often tags .csv as application/vnd.ms-excel)
+  const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
+  const formData = new FormData();
+  formData.append('file', csvBlob, file.name);
+
+  const res = await fetch(`${BASE_URL}/purchase/import-physical-stock`, {
+    method: 'POST',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Import failed (${res.status}): ${msg}`);
+  }
+  return res.json();
 }
 
 export async function updateSale(

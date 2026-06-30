@@ -152,8 +152,8 @@ export default function PurchasesPage() {
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.companyFrom}</td>
                     <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{entry.product}</td>
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{entry.shipment}</td>
-                    <td style={{ padding: '16px', fontSize: '14px' }}>{entry.quantity.toLocaleString('en-IN')} MT</td>
-                    <td style={{ padding: '16px', fontSize: '14px' }}>₹ {entry.priceInr.toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '16px', fontSize: '14px' }}>{entry.quantity?.toLocaleString('en-IN') ?? '—'} MT</td>
+                    <td style={{ padding: '16px', fontSize: '14px' }}>₹ {entry.priceInr?.toLocaleString('en-IN') ?? '—'}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.deliveryTerm}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.dischargePorts}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>

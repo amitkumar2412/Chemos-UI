@@ -731,6 +731,10 @@ select.fi option { background: var(--navy-mid); color: var(--white); }
   gap: 8px;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes login-spin {
   to { transform: rotate(360deg); }
 }

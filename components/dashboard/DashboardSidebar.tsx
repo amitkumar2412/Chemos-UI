@@ -13,7 +13,7 @@ interface DashboardSidebarProps {
   onMobileClose?: () => void;
 }
 
-type MainCategory = 'main' | 'intelligence' | 'purchase' | 'sales' | 'inventory' | 'comparable' | 'admin' | null;
+type MainCategory = 'main' | 'intelligence' | 'purchase' | 'sales' | 'inventory' | 'comparable' | 'admin' | 'template' | null;
 
 const ICON_OVERVIEW = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
@@ -63,6 +63,15 @@ const ICON_COMPARABLE = (
     <rect x="14" y="3" width="8" height="18" rx="1" />
     <line x1="6" y1="8" x2="6" y2="8.01" strokeWidth="2.5" strokeLinecap="round" />
     <line x1="18" y1="8" x2="18" y2="8.01" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+const ICON_TEMPLATE = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="8" y1="13" x2="16" y2="13" />
+    <line x1="8" y1="17" x2="12" y2="17" />
   </svg>
 );
 
@@ -190,6 +199,14 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
           {ICON_ADMIN}
           <span className="db-sb-icon-label">Admin</span>
         </button>
+        <button
+          className={`db-sb-icon-btn${activeMain === 'template' ? ' active' : ''}`}
+          onClick={() => toggleMain('template')}
+          title="Template"
+        >
+          {ICON_TEMPLATE}
+          <span className="db-sb-icon-label">Template</span>
+        </button>
 
         <div className="db-sb-spacer" />
         
@@ -287,6 +304,16 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FORM}</span>
                 Orders Management
               </Link>
+              <Link href="/admin/purchase-sale-link" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                <span className="db-sb-secondary-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                    <path d="M2 8h3M11 8h3M5 5l-2 3 2 3M11 5l2 3-2 3" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="5" cy="8" r="1.5" fill="currentColor" stroke="none" />
+                    <circle cx="11" cy="8" r="1.5" fill="currentColor" stroke="none" />
+                  </svg>
+                </span>
+                Purchase-Sale Link
+              </Link>
               <Link href="/admin/users" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
                 <span className="db-sb-secondary-icon">
                   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
@@ -307,6 +334,16 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
                   </svg>
                 </span>
                 Audit Trail
+              </Link>
+            </div>
+          )}
+
+          {activeMain === 'template' && (
+            <div className="db-sb-secondary-content">
+              <div className="db-sb-secondary-header">Template</div>
+              <Link href="/template/purchase" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                <span className="db-sb-secondary-icon">{ICON_SMALL_PROCUREMENT}</span>
+                Purchase
               </Link>
             </div>
           )}

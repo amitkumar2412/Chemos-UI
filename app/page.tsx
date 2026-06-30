@@ -40,9 +40,9 @@ export default function HomePage() {
 
   return (
     <>
-      {/* ── Overview module — blurred (under development) ─────────── */}
+      {/* ── Overview module ───────────────────────────────────────── */}
       {activeModule === 'overview' && (
-        <ComingSoonOverlay module="Overview" progress={65}>
+        <>
           <KpiGrid kpis={MOCK_KPIS} currency={currency} />
           <PipelineSlider stages={MOCK_PIPELINE} />
           <div className="db-grid-icc-alerts">
@@ -53,7 +53,7 @@ export default function HomePage() {
             <RevenueChartCard data={MOCK_REVENUE} />
             <ForecastChartCard />
           </div>
-        </ComingSoonOverlay>
+        </>
       )}
 
       {/* ── Procurement module ─────────────────────────────────────── */}

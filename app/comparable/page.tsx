@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAllPurchases, comparePurchases } from '@/lib/api';
+import { fetchAllPurchases, comparePurchases, getPortName } from '@/lib/api';
 import type { PurchaseOrder, CompareResponse, CompareItem } from '@/lib/api';
 
 const PAGE_SIZE = 8;
@@ -43,14 +43,181 @@ function StatCard({
   );
 }
 
+// ── Interest Rate Prompt ──────────────────────────────────────────────────────
+function InterestRatePrompt({
+  defaultRate,
+  onConfirm,
+  onCancel,
+}: {
+  defaultRate: number;
+  onConfirm: (rate: number) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [rate, setRate] = useState(defaultRate);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const doConfirm = async () => {
+    if (loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await onConfirm(rate);
+      // parent sets showRatePrompt(false) on success → this component unmounts
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Compare failed. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') doConfirm();
+    if (e.key === 'Escape' && !loading) onCancel();
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.65)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1100,
+      }}
+      onClick={loading ? undefined : onCancel}
+    >
+      <div
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: 16,
+          padding: '28px 32px',
+          width: 360,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.45)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Set Interest Rate</div>
+        <div style={{ fontSize: 13, color: 'var(--gray)', marginBottom: 24, lineHeight: 1.5 }}>
+          Used to calculate <strong style={{ color: 'var(--text)' }}>Credit Benefit</strong> and{' '}
+          <strong style={{ color: 'var(--text)' }}>Voyage Cost</strong> in the comparison.
+        </div>
+
+        <label style={{ fontSize: 12, color: 'var(--gray)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
+          Annual Interest Rate
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: error ? 12 : 28 }}>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            value={rate}
+            autoFocus
+            disabled={loading}
+            onChange={e => setRate(Number(e.target.value))}
+            onKeyDown={handleKeyDown}
+            style={{
+              flex: 1,
+              padding: '10px 12px',
+              background: 'var(--navy-light)',
+              border: `1px solid ${error ? '#f56565' : 'var(--blue)'}`,
+              borderRadius: 8,
+              color: 'var(--text)',
+              fontSize: 22,
+              fontFamily: 'JetBrains Mono,monospace',
+              fontWeight: 700,
+              textAlign: 'right',
+              outline: 'none',
+              opacity: loading ? 0.6 : 1,
+            }}
+          />
+          <span style={{ fontSize: 15, color: 'var(--gray)', fontWeight: 600, minWidth: 40 }}>% / yr</span>
+        </div>
+
+        {error && (
+          <div style={{
+            marginBottom: 16,
+            padding: '8px 12px',
+            background: 'rgba(245,101,101,0.1)',
+            border: '1px solid rgba(245,101,101,0.3)',
+            borderRadius: 6,
+            color: '#f56565',
+            fontSize: 12,
+          }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            style={{
+              flex: 1,
+              padding: '10px',
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              color: 'var(--gray)',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              opacity: loading ? 0.5 : 1,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={doConfirm}
+            disabled={loading}
+            style={{
+              flex: 2,
+              padding: '10px',
+              background: 'linear-gradient(135deg, var(--blue), var(--teal))',
+              border: 'none',
+              borderRadius: 8,
+              color: 'white',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: '0 4px 12px rgba(66,153,225,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              opacity: loading ? 0.85 : 1,
+            }}
+          >
+            {loading ? (
+              <>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14"
+                  style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="8" cy="8" r="6" strokeDasharray="25" strokeDashoffset="8" />
+                </svg>
+                Comparing…
+              </>
+            ) : 'Compare'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Compare Modal ─────────────────────────────────────────────────────────────
 function CompareModal({
   data,
   portMap,
+  purchaseMap,
+  interestRate,
   onClose,
 }: {
   data: CompareResponse;
   portMap: Map<string, string>;
+  purchaseMap: Map<string, PurchaseOrder>;
+  interestRate: number;
   onClose: () => void;
 }) {
   const { purchases, highlights } = data;
@@ -65,6 +232,39 @@ function CompareModal({
     if (h.worst_id === id) return 'cmp-cmp-worst';
     return 'cmp-cmp-mid';
   }
+
+  // daily rate = annualRate / 100 / 365
+  const dailyRate = interestRate / 100 / 365;
+
+  function creditBenefit(o: CompareItem): number {
+    const po = purchaseMap.get(o.id);
+    return (po?.paymentDays ?? 0) * o.landed_cost_per_mt * dailyRate;
+  }
+
+  function voyageCost(o: CompareItem): number {
+    return (o.transit_days ?? 0) * o.landed_cost_per_mt * dailyRate;
+  }
+
+  function isAdvance(o: CompareItem): boolean {
+    const term = purchaseMap.get(o.id)?.paymentTerm ?? '';
+    return term.toUpperCase().includes('ADVANCE');
+  }
+
+  function totalCost(o: CompareItem): number {
+    const cb = creditBenefit(o);
+    const vc = voyageCost(o);
+    return isAdvance(o)
+      ? o.landed_cost_per_mt + cb + vc
+      : o.landed_cost_per_mt - cb + vc;
+  }
+
+  // Client-side best/worst for Total Cost
+  const totalCosts = purchases.map(o => totalCost(o));
+  const bestTotal  = purchases.length > 1 ? Math.min(...totalCosts) : null;
+  const worstTotal = purchases.length > 1 ? Math.max(...totalCosts) : null;
+
+  const fmt = (n: number) =>
+    n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const rows: { label: string; render: (o: CompareItem) => React.ReactNode }[] = [
     {
@@ -126,10 +326,70 @@ function CompareModal({
     {
       label: 'Landed Cost / MT',
       render: o => (
-        <span className={hlClass('landed_cost_per_mt', o.id)} style={{ ...monoBold, color: hlClass('landed_cost_per_mt', o.id) ? undefined : 'var(--green)' }}>
+        <span className={hlClass('landed_cost_per_mt', o.id)} style={monoBold}>
           ₹ {o.landed_cost_per_mt.toLocaleString('en-IN')}
         </span>
       ),
+    },
+    // ── Divider row ───────────────────────────────────────────────────────────
+    {
+      label: '──',
+      render: () => null,
+    },
+    {
+      label: 'Voyage Days',
+      render: (o: CompareItem) => (
+        <span style={mono}>{o.transit_days ?? '—'} days</span>
+      ),
+    },
+    {
+      label: 'Payment Days',
+      render: (o: CompareItem) => {
+        const po = purchaseMap.get(o.id);
+        return (
+          <span style={mono}>
+            {po?.paymentDays ?? '—'} days
+            {po?.paymentTerm ? (
+              <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--gray)', fontFamily: 'Montserrat,sans-serif', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {po.paymentTerm}
+              </span>
+            ) : null}
+          </span>
+        );
+      },
+    },
+    {
+      label: `Credit Benefit`,
+      render: (o: CompareItem) => {
+        const cb = creditBenefit(o);
+        const adv = isAdvance(o);
+        return (
+          <span style={{ ...monoBold, color: adv ? '#ed8936' : '#48bb78' }}>
+            {adv ? '+' : '−'} ₹ {fmt(cb)}
+          </span>
+        );
+      },
+    },
+    {
+      label: 'Voyage Cost',
+      render: (o: CompareItem) => (
+        <span style={{ ...monoBold, color: '#ed8936' }}>
+          + ₹ {fmt(voyageCost(o))}
+        </span>
+      ),
+    },
+    {
+      label: 'Total Cost / MT',
+      render: (o: CompareItem) => {
+        const total = totalCost(o);
+        const isBest  = bestTotal !== null && total === bestTotal;
+        const isWorst = worstTotal !== null && total === worstTotal;
+        return (
+          <span style={{ ...monoBold, color: isBest ? 'var(--green)' : isWorst ? 'var(--red)' : undefined }}>
+            ₹ {fmt(total)}
+          </span>
+        );
+      },
     },
   ];
 
@@ -144,6 +404,14 @@ function CompareModal({
               <span style={{ color: 'var(--green)' }}>Green = best</span>{' '}
               <span style={{ color: 'var(--red)', marginLeft: 6 }}>Red = worst</span>
             </div>
+          </div>
+          {/* Interest rate badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 16,
+            padding: '4px 10px', background: 'var(--navy-light)', border: '1px solid var(--border)', borderRadius: 6 }}>
+            <span style={{ fontSize: 11, color: 'var(--gray)', fontWeight: 500 }}>Interest</span>
+            <span style={{ fontSize: 13, color: 'var(--blue)', fontFamily: 'JetBrains Mono,monospace', fontWeight: 700 }}>
+              {interestRate}% / yr
+            </span>
           </div>
           <button className="cmp-modal-close" onClick={onClose}>✕</button>
         </div>
@@ -165,14 +433,20 @@ function CompareModal({
               </tr>
             </thead>
             <tbody>
-              {rows.map(row => (
-                <tr key={row.label}>
-                  <td>{row.label}</td>
-                  {purchases.map(o => (
-                    <td key={o.id}>{row.render(o)}</td>
-                  ))}
-                </tr>
-              ))}
+              {rows.map(row =>
+                row.label === '──' ? (
+                  <tr key="divider">
+                    <td colSpan={purchases.length + 1} style={{ padding: '4px 0', borderBottom: '2px solid var(--border)' }} />
+                  </tr>
+                ) : (
+                  <tr key={row.label}>
+                    <td>{row.label}</td>
+                    {purchases.map(o => (
+                      <td key={o.id}>{row.render(o)}</td>
+                    ))}
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
@@ -184,45 +458,53 @@ function CompareModal({
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function ComparablePage() {
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
+  const [allProducts, setAllProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [comparing, setComparing] = useState(false);
   const [compareData, setCompareData] = useState<CompareResponse | null>(null);
   const [page, setPage] = useState(1);
+  const [showRatePrompt, setShowRatePrompt] = useState(false);
+  const [pendingRate, setPendingRate] = useState(12);
+  const [confirmedRate, setConfirmedRate] = useState(12);
 
+  // Fetch all UNCONFIRMED once on mount to populate the product dropdown
   useEffect(() => {
-    fetchAllPurchases()
+    fetchAllPurchases({ status: 'UNCONFIRMED' })
       .then(data => {
-        setPurchases(data);
-        if (data.length > 0) {
-          const first = [...new Set(data.map(p => p.product))].filter(Boolean).sort()[0];
-          if (first) setSelectedProduct(first);
-        }
+        const prods = [...new Set(data.map(p => p.product))].filter(Boolean).sort();
+        setAllProducts(prods);
+        if (prods.length > 0) setSelectedProduct(prods[0]);
+        else setLoading(false);
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .catch(e => { console.error(e); setLoading(false); });
   }, []);
 
-  const products = useMemo(
-    () => [...new Set(purchases.map(p => p.product))].filter(Boolean).sort(),
-    [purchases]
-  );
+  // Re-fetch from backend with status=UNCONFIRMED + product filter whenever product changes
+  useEffect(() => {
+    if (!selectedProduct) return;
+    setLoading(true);
+    fetchAllPurchases({ status: 'UNCONFIRMED', product: selectedProduct })
+      .then(setPurchases)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [selectedProduct]);
 
-  const filtered = useMemo(
-    () => (selectedProduct ? purchases.filter(p => p.product === selectedProduct) : purchases),
-    [purchases, selectedProduct]
-  );
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(purchases.length / PAGE_SIZE);
+  const paged = purchases.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const portMap = useMemo(
-    () => new Map(purchases.map(p => [p.id, p.port])),
+    () => new Map(purchases.map(p => [p.id, getPortName(p.port)])),
     [purchases]
   );
 
-  const bestBuy = filtered.length ? Math.min(...filtered.map(o => o.priceFc)) : 0;
+  const purchaseMap = useMemo(
+    () => new Map(purchases.map(p => [p.id, p])),
+    [purchases]
+  );
+
+  const bestBuy = purchases.length ? Math.min(...purchases.map(o => o.priceFc)) : 0;
   const canCompare = selectedIds.size >= 2;
 
   const toggleSelect = (id: string) => {
@@ -234,14 +516,19 @@ export default function ComparablePage() {
     });
   };
 
-  const handleCompare = async () => {
+  const handleCompare = () => {
     if (!canCompare) return;
+    setShowRatePrompt(true);
+  };
+
+  const handleConfirmCompare = async (rate: number): Promise<void> => {
+    setConfirmedRate(rate);
+    setPendingRate(rate);
     setComparing(true);
     try {
       const data = await comparePurchases([...selectedIds]);
       setCompareData(data);
-    } catch (err) {
-      console.error('Compare failed:', err);
+      setShowRatePrompt(false); // close prompt only on success
     } finally {
       setComparing(false);
     }
@@ -280,7 +567,7 @@ export default function ComparablePage() {
             onChange={e => handleProductChange(e.target.value)}
             disabled={loading}
           >
-            {products.map(p => (
+            {allProducts.map(p => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
@@ -329,8 +616,8 @@ export default function ComparablePage() {
       <div className="cmp-stats-row">
         <StatCard
           label="Total Purchase Offers"
-          value={loading ? '…' : filtered.length}
-          sub={loading ? 'Loading…' : filtered.length > 0 ? `Best Price: ${bestBuy.toLocaleString()} / MT` : 'No offers'}
+          value={loading ? '…' : purchases.length}
+          sub={loading ? 'Loading…' : purchases.length > 0 ? `Best Price: ${bestBuy.toLocaleString()} / MT` : 'No offers'}
           iconBg="rgba(72,149,239,.15)"
           iconColor="var(--blue)"
           icon={
@@ -405,11 +692,11 @@ export default function ComparablePage() {
                     />
                   </td>
                   <td style={{ fontWeight: 600 }}>{offer.companyFrom}</td>
-                  <td className="num">{offer.quantity.toLocaleString()}</td>
-                  <td className="cmp-location">{offer.port || '—'}</td>
-                  <td>{offer.deliveryTerm}</td>
+                  <td className="num">{offer.quantity?.toLocaleString() ?? '—'}</td>
+                  <td className="cmp-location">{getPortName(offer.port)}</td>
+                  <td>{offer.deliveryTerm ?? '—'}</td>
                   <td className="num" style={{ fontWeight: 700 }}>
-                    {offer.priceFc} {offer.currency || 'USD'}
+                    {offer.priceFc ?? '—'} {offer.currency || 'USD'}
                   </td>
                   <td className="num">{offer.exchangeRate?.toFixed(2) ?? '—'}</td>
                   <td style={{ fontSize: 11 }}>{fmtDate(offer.etd)}</td>
@@ -452,7 +739,7 @@ export default function ComparablePage() {
         {totalPages > 1 && (
           <div className="cmp-pagination">
             <span className="cmp-showing">
-              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} offers
+              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, purchases.length)} of {purchases.length} offers
             </span>
             <div className="cmp-pages">
               <button className="cmp-page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
@@ -555,11 +842,22 @@ export default function ComparablePage() {
         ))}
       </div>
 
+      {/* Interest Rate Prompt */}
+      {showRatePrompt && (
+        <InterestRatePrompt
+          defaultRate={pendingRate}
+          onConfirm={handleConfirmCompare}
+          onCancel={() => setShowRatePrompt(false)}
+        />
+      )}
+
       {/* Compare Modal */}
       {compareData && (
         <CompareModal
           data={compareData}
           portMap={portMap}
+          purchaseMap={purchaseMap}
+          interestRate={confirmedRate}
           onClose={() => setCompareData(null)}
         />
       )}
