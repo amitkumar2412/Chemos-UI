@@ -33,11 +33,11 @@ export default function AlertsPanel({ alerts: initialAlerts }: AlertsPanelProps)
     <div className="db-card">
       <div className="db-card-header">
         <div>
-          <div className="db-card-title">⚡ Active Alerts</div>
+          <div className="db-card-title"> Active Alerts</div>
           <div className="db-card-subtitle">External &amp; internal risk signals</div>
         </div>
         <div className="db-card-actions">
-          <button className="db-card-btn">⬇ CSV</button>
+          
         </div>
       </div>
       <div className="db-card-body">

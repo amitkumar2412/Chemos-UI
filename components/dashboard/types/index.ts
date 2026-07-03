@@ -52,7 +52,9 @@ export interface IccItem {
   item: string;
   port: string;
   company: string;
+  // physicalUnsoldClosing
   physical: number;
+  // incomingUnsoldClosing
   ready: number;
   safety: number;
   reorder: number;
@@ -60,6 +62,14 @@ export interface IccItem {
   selling: number;
   trend7d: number[];
   status: InventoryStatus;
+  // extended API fields (optional — mock data omits them)
+  physicalStockOpening?: number;
+  physicalSold?: number;
+  incomingUnsoldOpening?: number;
+  incomingUnsoldNew?: number;
+  incomingSold?: number;
+  totalStock?: number;
+  vessels?: { vesselName: string; eta: string; inventoryDays: number; companyFrom?: string }[];
 }
 
 // ─── Vendor ───────────────────────────────────────────────────────────────

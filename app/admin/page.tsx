@@ -8,6 +8,7 @@ import {
   confirmPurchase,
   confirmSale,
   fetchFeedOptions,
+  getPortName,
   type PurchaseOrder,
 } from '@/lib/api';
 import type { SaleEntry, FeedOptions } from '@/lib/types';
@@ -288,7 +289,7 @@ function PurchaseTable({
                 </td>
                 <td style={{ padding: '16px', fontSize: '14px' }}>{o.currency ?? '—'}</td>
                 <td style={{ padding: '16px', fontSize: '14px' }}>{o.deliveryTerm ?? '—'}</td>
-                <td style={{ padding: '16px', fontSize: '14px' }}>{o.port ?? '—'}</td>
+                <td style={{ padding: '16px', fontSize: '14px' }}>{getPortName(o.port)}</td>
                 <td style={{ padding: '16px', textAlign: 'center' }}>
                   <StatusBadge status={o.status} />
                 </td>
@@ -372,7 +373,7 @@ function SaleTable({
                   ₹{o.price.toLocaleString('en-IN')}
                 </td>
                 <td style={{ padding: '16px', fontSize: '14px' }}>{o.deliveryTerm ?? '—'}</td>
-                <td style={{ padding: '16px', fontSize: '14px' }}>{o.port ?? '—'}</td>
+                <td style={{ padding: '16px', fontSize: '14px' }}>{getPortName(o.port)}</td>
                 <td style={{ padding: '16px', textAlign: 'center' }}>
                   <StatusBadge status={o.status} />
                 </td>

@@ -238,11 +238,11 @@ function CompareModal({
 
   function creditBenefit(o: CompareItem): number {
     const po = purchaseMap.get(o.id);
-    return (po?.paymentDays ?? 0) * o.landed_cost_per_mt * dailyRate;
+    return (po?.paymentDays ?? 0) * (o.landed_cost_per_mt ?? 0) * dailyRate;
   }
 
   function voyageCost(o: CompareItem): number {
-    return (o.transit_days ?? 0) * o.landed_cost_per_mt * dailyRate;
+    return (o.transit_days ?? 0) * (o.landed_cost_per_mt ?? 0) * dailyRate;
   }
 
   function isAdvance(o: CompareItem): boolean {
@@ -273,29 +273,29 @@ function CompareModal({
     },
     {
       label: 'QTY (MT)',
-      render: o => <span style={mono}>{o.quantity.toLocaleString()}</span>,
+      render: o => <span style={mono}>{(o.quantity ?? 0).toLocaleString()}</span>,
     },
     {
       label: 'Delivery Term',
-      render: o => o.delivery_term,
+      render: o => o.delivery_term ?? '—',
     },
     {
       label: 'Price (FC)',
       render: o => (
         <span className={hlClass('price_fc', o.id)} style={monoBold}>
-          {o.price_fc} {o.currency || 'USD'}
+          {o.price_fc ?? '—'} {o.currency || 'USD'}
         </span>
       ),
     },
     {
       label: 'Exchange Rate',
-      render: o => <span style={mono}>{o.exchange_rate.toFixed(2)}</span>,
+      render: o => <span style={mono}>{(o.exchange_rate ?? 0).toFixed(2)}</span>,
     },
     {
       label: 'Price (INR) / MT',
       render: o => (
         <span className={hlClass('price_inr_per_mt', o.id)} style={monoBold}>
-          ₹ {o.price_inr_per_mt.toLocaleString('en-IN')}
+          ₹ {(o.price_inr_per_mt ?? 0).toLocaleString('en-IN')}
         </span>
       ),
     },
@@ -305,29 +305,29 @@ function CompareModal({
     },
     {
       label: 'Expenses (Freight & Insurance)',
-      render: o => <span style={mono}>₹ {o.expense.toLocaleString('en-IN')}</span>,
+      render: o => <span style={mono}>₹ {(o.expense ?? 0).toLocaleString('en-IN')}</span>,
     },
     {
       label: 'Custom Duty BCD',
-      render: o => <span style={mono}>₹ {o.custom_duty.toLocaleString('en-IN')}</span>,
+      render: o => <span style={mono}>₹ {(o.custom_duty ?? 0).toLocaleString('en-IN')}</span>,
     },
     {
       label: 'SWS',
-      render: o => <span style={mono}>₹ {o.sws.toLocaleString('en-IN')}</span>,
+      render: o => <span style={mono}>₹ {(o.sws ?? 0).toLocaleString('en-IN')}</span>,
     },
     {
       label: 'ADD (₹)',
-      render: o => <span style={mono}>₹ {o.add.toLocaleString('en-IN')}</span>,
+      render: o => <span style={mono}>₹ {(o.add ?? 0).toLocaleString('en-IN')}</span>,
     },
     {
       label: 'Other Expense',
-      render: o => <span style={mono}>₹ {o.other_expense.toLocaleString('en-IN')}</span>,
+      render: o => <span style={mono}>₹ {(o.other_expense ?? 0).toLocaleString('en-IN')}</span>,
     },
     {
       label: 'Landed Cost / MT',
       render: o => (
         <span className={hlClass('landed_cost_per_mt', o.id)} style={monoBold}>
-          ₹ {o.landed_cost_per_mt.toLocaleString('en-IN')}
+          ₹ {(o.landed_cost_per_mt ?? 0).toLocaleString('en-IN')}
         </span>
       ),
     },

@@ -297,3 +297,149 @@ export async function fetchAuditLogs(
   if (entityType) params.entityType = entityType;
   return apiClient.get<AuditLogPage>('/audit/logs', { params });
 }
+
+// ── Sale-Purchase Links ───────────────────────────────────────────────────────
+
+export interface SalePurchaseLink {
+  id: string;
+  saleId: string;
+  purchaseId: string;
+  linkedQuantity: number;
+  purchaseOriginalQuantity: number;
+  purchaseAvailableQuantity: number;
+  saleTotalRequired: number;
+  saleRemainingQuantity: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaleLinkItem {
+  linkId: string;
+  purchaseId: string;
+  linkedQuantity: number;
+  purchaseOriginalQuantity: number;
+  purchaseAvailableQuantity: number;
+}
+
+export interface SaleSummary {
+  saleId: string;
+  totalRequired: number;
+  totalLinked: number;
+  remaining: number;
+  links: SaleLinkItem[];
+}
+
+export interface PurchaseLinkItem {
+  linkId: string;
+  saleId: string;
+  linkedQuantity: number;
+  saleTotalRequired: number;
+  saleRemainingQuantity: number;
+}
+
+export interface PurchaseSummary {
+  purchaseId: string;
+  originalQuantity: number;
+  totalLinked: number;
+  availableQuantity: number;
+  links: PurchaseLinkItem[];
+}
+
+export async function createLink(
+  saleId: string,
+  purchaseId: string,
+  linkedQuantity: number
+): Promise<SalePurchaseLink> {
+  return apiClient.post<SalePurchaseLink>('/links', { saleId, purchaseId, linkedQuantity });
+}
+
+export async function updateLink(
+  linkId: string,
+  linkedQuantity: number
+): Promise<SalePurchaseLink> {
+  return apiClient.put<SalePurchaseLink>(`/links/${linkId}`, { linkedQuantity });
+}
+
+export async function deleteLink(linkId: string): Promise<void> {
+  return apiClient.delete(`/links/${linkId}`);
+}
+
+export async function getSaleSummary(saleId: string): Promise<SaleSummary> {
+  return apiClient.get<SaleSummary>(`/links/sale/${saleId}`);
+}
+
+export async function getPurchaseSummary(purchaseId: string): Promise<PurchaseSummary> {
+  return apiClient.get<PurchaseSummary>(`/links/purchase/${purchaseId}`);
+}
+
+export async function fetchMyLinks(): Promise<SalePurchaseLink[]> {
+  return apiClient.get<SalePurchaseLink[]>('/links/me');
+}
+
+// ── Stock Stats ───────────────────────────────────────────────────────────────
+
+const STOCK_STATS_BASE =
+  (process.env.NEXT_PUBLIC_STOCK_STATS_URL ??
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082')) +
+  '/api/v1';
+
+export interface StockStatsSummary {
+  totalStock: number;
+  physicalUnsoldClosing: number;
+  incomingUnsoldClosing: number;
+  incomingSold: number;
+}
+
+export interface VesselInventoryEntry {
+  vesselName: string;
+  eta: string;
+  inventoryDays: number;
+  companyFrom?: string;
+}
+
+export interface StockStatsByProduct {
+  product: string;
+  dischargePort: string;
+  physicalStockOpening: number;
+  physicalSold: number;
+  physicalUnsoldClosing: number;
+  incomingUnsoldOpening: number;
+  incomingUnsoldNew: number;
+  incomingSold: number;
+  incomingUnsoldClosing: number;
+  totalStock: number;
+  vesselInventory: VesselInventoryEntry[];
+}
+
+export async function fetchStockStatsByProduct(): Promise<StockStatsByProduct[]> {
+  const token = tokenStorage.get();
+  const res = await fetch(`${STOCK_STATS_BASE}/stock-stats/by-product`, {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Stock stats by-product fetch failed: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchStockStatsSummary(
+  vesselName?: string,
+  product?: string
+): Promise<StockStatsSummary> {
+  const url = new URL(`${STOCK_STATS_BASE}/stock-stats/summary`);
+  if (vesselName) url.searchParams.set('vesselName', vesselName);
+  if (product)    url.searchParams.set('product', product);
+
+  const token = tokenStorage.get();
+  const res = await fetch(url.toString(), {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Stock stats fetch failed: ${res.status}`);
+  return res.json();
+}

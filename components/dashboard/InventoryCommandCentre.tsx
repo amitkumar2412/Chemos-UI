@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { IccItem, InventoryStatus, Currency } from './types';
+import { fetchStockStatsSummary, fetchStockStatsByProduct, type StockStatsSummary, type StockStatsByProduct } from '@/lib/api';
 
 // ─── Inline sparkline ─────────────────────────────────────────────────────
 function MiniSparkline({ data, status }: { data: number[]; status: InventoryStatus }) {
@@ -87,6 +88,28 @@ function DetailRail({ item, onClose }: { item: IccItem; onClose: () => void }) {
         </div>
       </div>
 
+      {item.vessels && item.vessels.length > 0 && (
+        <div className="db-rail-section">
+          <div className="db-rail-section-title">Vessel Name</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {item.vessels.map((v, vi) => (
+              <div key={vi} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)' }}>{v.vesselName}</div>
+                  {v.companyFrom && (
+                    <div style={{ fontSize: 9, color: 'var(--gray-dim)', marginTop: 2 }}>{v.companyFrom}</div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--white)', fontFamily: 'JetBrains Mono, monospace' }}>{v.inventoryDays}d</div>
+                  <div style={{ fontSize: 8, color: 'var(--gray-dim)', textTransform: 'uppercase', letterSpacing: 1 }}>inventory</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="db-rail-section">
         <div className="db-rail-section-title">7-Day Trend</div>
         <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -129,11 +152,63 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
   const [sortDir, setSortDir]       = useState<1 | -1>(1);
   const [aggByItem, setAggByItem]   = useState(false);
 
-  const ports    = useMemo(() => [...new Set(items.map((i) => i.port))],    [items]);
-  const companies = useMemo(() => [...new Set(items.map((i) => i.company))],[items]);
+  const [summary, setSummary]               = useState<StockStatsSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [lastUpdated, setLastUpdated]       = useState<string>('just now');
+  const [byProduct, setByProduct]           = useState<StockStatsByProduct[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setSummaryLoading(true);
+      try {
+        const [summaryData, byProductData] = await Promise.allSettled([
+          fetchStockStatsSummary(),
+          fetchStockStatsByProduct(),
+        ]);
+        if (!cancelled) {
+          if (summaryData.status === 'fulfilled') setSummary(summaryData.value);
+          if (byProductData.status === 'fulfilled') setByProduct(byProductData.value);
+          setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+        }
+      } finally {
+        if (!cancelled) setSummaryLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const apiItems = useMemo((): IccItem[] | null => {
+    if (!byProduct || byProduct.length === 0) return null;
+    return byProduct.map((row) => ({
+      item:                  row.product,
+      port:                  row.dischargePort,
+      company:               '—',
+      physical:              row.physicalUnsoldClosing,
+      ready:                 row.incomingUnsoldClosing,
+      safety:                0,
+      reorder:               0,
+      market:                0,
+      selling:               0,
+      trend7d:               [row.physicalStockOpening, row.physicalUnsoldClosing],
+      status:                row.totalStock <= 0 ? 'critical' : row.physicalUnsoldClosing < 50 ? 'warn' : 'ok',
+      physicalStockOpening:  row.physicalStockOpening,
+      physicalSold:          row.physicalSold,
+      incomingUnsoldOpening: row.incomingUnsoldOpening,
+      incomingUnsoldNew:     row.incomingUnsoldNew,
+      incomingSold:          row.incomingSold,
+      totalStock:            row.totalStock,
+      vessels:               row.vesselInventory ?? [],
+    }));
+  }, [byProduct]);
+
+  const tableItems = apiItems ?? items;
+
+  const ports    = useMemo(() => [...new Set(tableItems.map((i) => i.port))],    [tableItems]);
 
   const filtered = useMemo(() => {
-    let rows = items;
+    let rows = tableItems;
     if (search)      rows = rows.filter((r) => r.item.toLowerCase().includes(search.toLowerCase()) || r.company.toLowerCase().includes(search.toLowerCase()) || r.port.toLowerCase().includes(search.toLowerCase()));
     if (portFilter)  rows = rows.filter((r) => r.port === portFilter);
     if (coFilter)    rows = rows.filter((r) => r.company === coFilter);
@@ -158,25 +233,30 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
       if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sortDir;
       return String(av).localeCompare(String(bv)) * sortDir;
     });
-  }, [items, search, portFilter, coFilter, statusFilter, aggByItem, sortCol, sortDir]);
+  }, [tableItems, search, portFilter, coFilter, statusFilter, aggByItem, sortCol, sortDir]);
 
   const toggleSort = (col: SortKey) => {
     if (sortCol === col) setSortDir((d) => (d === 1 ? -1 : 1));
     else { setSortCol(col); setSortDir(1); }
   };
 
-  // Headline aggregates
-  const totalPhysical = items.reduce((s, i) => s + i.physical, 0);
-  const totalReady    = items.reduce((s, i) => s + i.ready, 0);
-  const criticalCount = items.filter((i) => i.status === 'critical').length;
-  const negativeCount = items.filter((i) => i.status === 'negative').length;
-  const skuCount      = new Set(items.map((i) => `${i.item}|${i.port}|${i.company}`)).size;
+  // Headline aggregates — from summary API when available, otherwise derived from table data
+  const totalPhysical         = tableItems.reduce((s, i) => s + i.physical, 0);
+  const totalReady            = tableItems.reduce((s, i) => s + i.ready, 0);
+  const totalStock            = summary ? summary.totalStock            : totalPhysical;
+  const physicalUnsoldClosing = summary ? summary.physicalUnsoldClosing : totalReady;
+  const incomingUnsold        = summary ? summary.incomingUnsoldClosing : 0;
+  const incomingSold          = summary ? summary.incomingSold          : 0;
+
+  function fmt(v: number) { return Number.isInteger(v) ? v : parseFloat(v.toFixed(2)); }
 
   const statusCounts = useMemo(() => ({
-    critical: items.filter((i) => i.status === 'critical').length,
-    warn:     items.filter((i) => i.status === 'warn').length,
-    ok:       items.filter((i) => i.status === 'ok').length,
-  }), [items]);
+    critical: tableItems.filter((i) => i.status === 'critical').length,
+    warn:     tableItems.filter((i) => i.status === 'warn').length,
+    ok:       tableItems.filter((i) => i.status === 'ok').length,
+  }), [tableItems]);
+
+
 
   return (
     <div className="db-icc-wrap">
@@ -191,22 +271,23 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
             </div>
             <div>
               <div className="db-icc-title">Inventory Command Centre</div>
-              <div className="db-icc-sub">Real-time stock intelligence · {items.length} positions</div>
+              <div className="db-icc-sub">Real-time stock intelligence · {tableItems.length} positions</div>
             </div>
           </div>
           <div className="db-icc-pulse">
             <div className="db-icc-pulse-dot" />
-            <span className="db-icc-pulse-text">Updated <strong>just now</strong></span>
+            <span className="db-icc-pulse-text">
+              {summaryLoading ? 'Loading…' : <>Updated <strong>{lastUpdated}</strong></>}
+            </span>
           </div>
         </div>
 
         {/* Headline stats */}
         <div className="db-headline">
-          <HeadlineStat icon="⚖️" label="Physical Stock"   value={totalPhysical} unit=" MT" delta={`${items.length} positions`} />
-          <HeadlineStat icon="✓"  label="Ready / Unsold"  value={totalReady}    unit=" MT" delta="total committed-out" />
-          <HeadlineStat icon="⚠" label="Critical Items"  value={criticalCount}              colorClass={criticalCount > 0 ? 'db-hl-crit' : ''} />
-          <HeadlineStat icon="−" label="Negative Balance" value={negativeCount}              colorClass={negativeCount > 0 ? 'db-hl-neg' : ''} />
-          <HeadlineStat icon="⊞" label="SKU Coverage"    value={skuCount}       delta="item × port × co" />
+          <HeadlineStat icon="" label="TOTAL STOCK"             value={fmt(totalStock)}            unit=" MT" />
+          <HeadlineStat icon="" label="PHYSICAL UNSOLD" value={fmt(physicalUnsoldClosing)} unit=" MT" />
+          <HeadlineStat icon="" label="INCOMING UNSOLD"         value={fmt(incomingUnsold)}        unit=" MT" />
+          <HeadlineStat icon="" label="INCOMING SOLD"           value={fmt(incomingSold)}          unit=" MT" />
         </div>
 
         {/* Filter controls */}
@@ -268,27 +349,42 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
 
         {/* Table + Rail */}
         <div className="db-icc-main">
-          <div className="db-tbl-region">
-            <table className="db-inv">
+          <div className="db-tbl-region" style={{ overflowX: 'auto' }}>
+            <table className="db-inv" style={{ minWidth: 1400 }}>
               <thead>
                 <tr>
                   {([
-                    ['item','Item'], ['port','Port'], ['company','Co.'],
-                    ['physical','Physical'], ['ready','Ready'],
-                    ['safety','Safety / Reorder'], ['market','Market'],
-                    ['selling','Selling'], ['trend7d','7d Trend'], ['status','Status'],
-                  ] as [SortKey, string][]).map(([col, label]) => (
-                    <th
-                      key={col}
-                      className={['physical','ready','market','selling'].includes(col) ? 'num' : ''}
-                      onClick={() => col !== 'trend7d' && toggleSort(col)}
-                    >
-                      {label}
-                      {sortCol === col && (
-                        <span style={{ marginLeft: 4, opacity: .6 }}>{sortDir === 1 ? '▲' : '▼'}</span>
-                      )}
-                    </th>
-                  ))}
+                    ['item',                 'Product'],
+                    ['vessels_eta',          'Vessel Date'],
+                    ['vessels_name',         'Vessel Name'],
+                    ['port',                 'Port'],
+                    ['physicalStockOpening', 'Physical Stock '], 
+                    ['physicalSold',         'Physical Sold'],
+                    ['physical',             'Physical Unsold '],
+                    ['incomingUnsoldOpening','Incoming Stock'],
+                    ['incomingUnsoldNew',    'Purchase Incoming'],
+                    ['incomingSold',         'Incoming Sales'],
+                    ['ready',                'Incoming Balance'],
+                    ['totalStock',           'Total Stock'],
+                    ['vessels_days',         'Inventory Days'],
+                    ['vessels_company',      'Company Name'],
+                  ] as [string, string][]).map(([col, label]) => {
+                    const isVesselCol = ['vessels_eta','vessels_name','vessels_days','vessels_company'].includes(col);
+                    const isNum = ['physicalStockOpening','physicalSold','physical','incomingUnsoldOpening','incomingUnsoldNew','incomingSold','ready','totalStock','vessels_days'].includes(col);
+                    return (
+                      <th
+                        key={col}
+                        className={isNum ? 'num' : ''}
+                        onClick={() => !isVesselCol && toggleSort(col as SortKey)}
+                        style={isVesselCol ? { cursor: 'default' } : {}}
+                      >
+                        {label}
+                        {sortCol === col && !isVesselCol && (
+                          <span style={{ marginLeft: 4, opacity: .6 }}>{sortDir === 1 ? '▲' : '▼'}</span>
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -304,28 +400,56 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                         {row.item}
                       </div>
                     </td>
-                    <td>{row.port}</td>
-                    <td>{row.company}</td>
-                    <td className="num">{row.physical}</td>
-                    <td className="num">{row.ready}</td>
                     <td>
-                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: 'var(--gray-dim)' }}>
-                        {row.safety} / {row.reorder}
-                      </span>
+                      {row.vessels && row.vessels.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {row.vessels.map((v, vi) => (
+                            <span key={vi} style={{ fontSize: 10, color: 'var(--gray)', whiteSpace: 'nowrap' }}>{v.eta || '—'}</span>
+                          ))}
+                        </div>
+                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
                     </td>
-                    <td className="num">{row.market.toLocaleString('en-IN')}</td>
-                    <td className="num">{row.selling.toLocaleString('en-IN')}</td>
-                    <td><MiniSparkline data={row.trend7d} status={row.status} /></td>
                     <td>
-                      <span className={`db-status-pill ${row.status}`}>
-                        {row.status.toUpperCase()}
-                      </span>
+                      {row.vessels && row.vessels.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {row.vessels.map((v, vi) => (
+                            <span key={vi} style={{ fontSize: 10, fontWeight: 600, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{v.vesselName}</span>
+                          ))}
+                        </div>
+                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
+                    </td>
+                    <td>{row.port}</td>
+                    <td className="num">{row.physicalStockOpening ?? '—'}</td>
+                    <td className="num">{row.physicalSold ?? '—'}</td>
+                    <td className="num">{row.physical}</td>
+                    <td className="num">{row.incomingUnsoldOpening ?? '—'}</td>
+                    <td className="num">{row.incomingUnsoldNew ?? '—'}</td>
+                    <td className="num">{row.incomingSold ?? '—'}</td>
+                    <td className="num">{row.ready}</td>
+                    <td className="num">{row.totalStock ?? '—'}</td>
+                    <td className="num">
+                      {row.vessels && row.vessels.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {row.vessels.map((v, vi) => (
+                            <span key={vi} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, whiteSpace: 'nowrap' }}>{v.inventoryDays}</span>
+                          ))}
+                        </div>
+                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
+                    </td>
+                    <td>
+                      {row.vessels && row.vessels.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {row.vessels.map((v, vi) => (
+                            <span key={vi} style={{ fontSize: 10, color: 'var(--gray)', whiteSpace: 'nowrap' }}>{v.companyFrom || '—'}</span>
+                          ))}
+                        </div>
+                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
+                    <td colSpan={14} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
                       No items match the current filters
                     </td>
                   </tr>
@@ -354,7 +478,7 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
               <span>Showing</span>
               <strong>{filtered.length}</strong>
               <span>of</span>
-              <strong>{items.length}</strong>
+              <strong>{tableItems.length}</strong>
               <span>rows</span>
             </div>
             <div className="db-icc-foot-stat">
@@ -362,6 +486,82 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
               <strong>{filtered.reduce((s, r) => s + r.physical, 0)} MT</strong>
             </div>
           </div>
+        </div>
+
+        {/* ─── Summary Panel ──────────────────────────────────────────────── */}
+        <StockSummaryPanel
+          summary={summary}
+          loading={summaryLoading}
+          items={tableItems}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Stock Summary Panel ───────────────────────────────────────────────────
+function StockSummaryPanel({
+  items,
+}: {
+  summary: StockStatsSummary | null;
+  loading: boolean;
+  items: IccItem[];
+}) {
+  const portTotals = useMemo(() => {
+    const map = new Map<string, number>();
+    items.forEach((i) => map.set(i.port, (map.get(i.port) ?? 0) + i.physical));
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [items]);
+
+  const maxPortQty = portTotals[0]?.[1] ?? 1;
+
+  const totalItems = items.length;
+  const criticalCt = items.filter((i) => i.status === 'critical').length;
+  const warnCt     = items.filter((i) => i.status === 'warn').length;
+  const okCt       = items.filter((i) => i.status === 'ok').length;
+
+  return (
+    <div className="db-summary">
+      <div className="db-summary-title">Stock Summary</div>
+
+      {/* Status breakdown + port breakdown */}
+      <div className="db-summary-lower">
+        {/* Status breakdown */}
+        <div className="db-sum-status">
+          <div className="db-sum-section-title">Status Distribution — {totalItems} positions</div>
+          {([
+            ['critical', criticalCt] as const,
+            ['warn',     warnCt]     as const,
+            ['ok',       okCt]       as const,
+          ]).map(([s, count]) => (
+            <div key={s} className="db-sum-status-row">
+              <span className={`db-sum-status-label ${s}`}>{s.toUpperCase()}</span>
+              <div className="db-sum-bar-track">
+                <div
+                  className={`db-sum-bar-fill ${s}`}
+                  style={{ width: totalItems ? `${(count / totalItems) * 100}%` : '0%' }}
+                />
+              </div>
+              <span className="db-sum-status-count">{count}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Port breakdown */}
+        <div className="db-sum-ports">
+          <div className="db-sum-section-title">Physical Stock by Port</div>
+          {portTotals.map(([port, qty]) => (
+            <div key={port} className="db-sum-port-row">
+              <span className="db-sum-port-name">{port}</span>
+              <div className="db-sum-port-bar-track">
+                <div
+                  className="db-sum-port-bar-fill"
+                  style={{ width: `${(qty / maxPortQty) * 100}%` }}
+                />
+              </div>
+              <span className="db-sum-port-qty">{qty} MT</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
