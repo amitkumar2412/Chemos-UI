@@ -1,5 +1,10 @@
 export type AvailabilityType = 'Ready' | 'Incoming' | '';
-export type MarketStatusType = 'Ready Market' | 'Incoming' | 'Spot' | '';
+export type MarketStatusType = string;
+
+export interface MarketStatusOption {
+  id: string;
+  name: string;
+}
 
 export interface PunchEntry {
   id: number;

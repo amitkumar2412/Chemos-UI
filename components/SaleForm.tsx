@@ -5,10 +5,12 @@ import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
+import { fetchMarketStatuses } from '@/lib/api';
 import type {
   FeedOptions,
   SaleFormPayload,
   MarketStatusType,
+  MarketStatusOption,
   CreateSaleResponse,
 } from '@/lib/types';
 
@@ -40,6 +42,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
   const [transitTolerance, setTransitTolerance] = useState('');
   const [marketPrice, setMarketPrice] = useState('');
   const [marketStatus, setMarketStatus] = useState<MarketStatusType>('');
+  const [marketStatusOptions, setMarketStatusOptions] = useState<MarketStatusOption[]>([]);
   const [message, setMessage] = useState('');
   const [vesselName, setVesselName] = useState(initialData?.vesselName || '');
   const [remarks, setRemarks] = useState(initialData?.remarks || '');
@@ -63,6 +66,10 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
     update();
     const id = setInterval(update, 30_000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    fetchMarketStatuses().then(setMarketStatusOptions).catch(() => {});
   }, []);
 
   const clearForm = () => {
@@ -245,8 +252,12 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
           </div>
           <div className="fg">
             <label className="fl">Market Status</label>
-            <AutocompleteInput id="sf-market-status" value={marketStatus} onChange={v => setMarketStatus(v as MarketStatusType)}
-              options={['Ready Market', 'Incoming', 'Spot']} placeholder="Market status" />
+            <select className="fi" value={marketStatus} onChange={e => setMarketStatus(e.target.value)}>
+              <option value="">Select…</option>
+              {marketStatusOptions.map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Row 8: Vessel, Sales Person, Broker */}

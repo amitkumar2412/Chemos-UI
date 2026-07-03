@@ -7,6 +7,7 @@ import type {
   CreateSaleResponse,
   SaleListResponse,
   SaleEntry,
+  MarketStatusOption,
 } from './types';
 import { apiClient, tokenStorage } from './apiClient';
 
@@ -16,6 +17,10 @@ export async function fetchFeedOptions(): Promise<FeedOptions> {
   const res = await fetch(`${API_BASE}/api/feed-options`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch feed options');
   return res.json();
+}
+
+export async function fetchMarketStatuses(): Promise<MarketStatusOption[]> {
+  return apiClient.get<MarketStatusOption[]>('/market-status/all');
 }
 
 /** day = YYYY-MM-DD, page/limit for pagination */

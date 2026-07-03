@@ -6,8 +6,8 @@ import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
-import { fetchSaleById, updateSale } from '@/lib/api';
-import type { SaleEntry, FeedOptions, MarketStatusType } from '@/lib/types';
+import { fetchSaleById, updateSale, fetchMarketStatuses } from '@/lib/api';
+import type { SaleEntry, FeedOptions, MarketStatusType, MarketStatusOption } from '@/lib/types';
 
 interface Props {
   saleId: string | null;
@@ -39,6 +39,7 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
   const [transitTolerance, setTransitTolerance] = useState('');
   const [marketPrice, setMarketPrice] = useState('');
   const [marketStatus, setMarketStatus] = useState<MarketStatusType>('');
+  const [marketStatusOptions, setMarketStatusOptions] = useState<MarketStatusOption[]>([]);
   const [message, setMessage] = useState('');
   const [vesselName, setVesselName] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -47,6 +48,10 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchMarketStatuses().then(setMarketStatusOptions).catch(() => {});
+  }, []);
 
   // Fetch sale by ID whenever the modal opens
   useEffect(() => {
@@ -313,13 +318,12 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
                 </div>
                 <div className="fg">
                   <label className="fl">Market Status</label>
-                  <AutocompleteInput
-                    id="se-market-status"
-                    value={marketStatus}
-                    onChange={v => setMarketStatus(v as MarketStatusType)}
-                    options={['Ready Market', 'Incoming', 'Spot']}
-                    placeholder="Market status"
-                  />
+                  <select className="fi" value={marketStatus} onChange={e => setMarketStatus(e.target.value)}>
+                    <option value="">Select…</option>
+                    {marketStatusOptions.map(o => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Vessel, Sales Person, Broker, Remarks */}

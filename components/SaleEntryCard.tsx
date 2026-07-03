@@ -8,10 +8,12 @@ import ProductAutocompleteInput from './ProductAutocompleteInput';
 import CountryAutocompleteInput from './CountryAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import PortMultiAutocompleteInput from './PortMultiAutocompleteInput';
+import { fetchMarketStatuses } from '@/lib/api';
 import type {
   FeedOptions,
   SalePunchPayload,
   MarketStatusType,
+  MarketStatusOption,
   CreatePunchResponse,
 } from '@/lib/types';
 
@@ -51,6 +53,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   const [dischargePorts, setDischargePorts] = useState<string[]>(initialData?.discharge_ports || []);
   const [marketPrice, setMarketPrice] = useState(initialData?.market_price ? String(initialData.market_price) : '');
   const [marketStatus, setMarketStatus] = useState<MarketStatusType>('');
+  const [marketStatusOptions, setMarketStatusOptions] = useState<MarketStatusOption[]>([]);
   const [costPrice, setCostPrice] = useState('');
   const [replacementCost, setReplacementCost] = useState('');
 
@@ -106,6 +109,9 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    fetchMarketStatuses().then(setMarketStatusOptions).catch(() => {});
+  }, []);
 
   const clearForm = () => {
     setCompanyTo(''); setCompanyFrom(''); setProduct(''); setVesselName('');
@@ -285,11 +291,11 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           </div>
           <div className="fg">
             <label className="fl">Market Status</label>
-            <select className="fi" value={marketStatus} onChange={e => setMarketStatus(e.target.value as MarketStatusType)}>
+            <select className="fi" value={marketStatus} onChange={e => setMarketStatus(e.target.value)}>
               <option value="">Select…</option>
-              <option value="Ready Market">Ready Market</option>
-              <option value="Incoming">Incoming</option>
-              <option value="Spot">Spot</option>
+              {marketStatusOptions.map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
             </select>
           </div>
           <div className="fg">
