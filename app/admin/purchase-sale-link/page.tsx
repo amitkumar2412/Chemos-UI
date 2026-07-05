@@ -259,16 +259,16 @@ function LinkQuantityModal({
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-            <div style={{ padding: '12px 14px', background: 'rgba(66,153,225,0.08)', border: '1px solid rgba(66,153,225,0.25)', borderRadius: 8 }}>
+            <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(66,153,225,0.08)', border: '1px solid rgba(66,153,225,0.25)', borderRadius: 8 }}>
               <div style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Purchase</div>
-              <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{purchase.companyFrom}</div>
+              <div title={purchase.companyFrom} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{purchase.companyFrom}</div>
               <div style={{ fontSize: 11, color: 'var(--gray)', marginBottom: 8 }}>#{purchase.id.slice(0, 8)}…</div>
               <div style={{ fontSize: 16, ...mono, fontWeight: 700 }}>{purchaseAvailable.toLocaleString('en-IN')} MT</div>
               <div style={{ fontSize: 10, color: 'var(--gray)' }}>available</div>
             </div>
-            <div style={{ padding: '12px 14px', background: 'rgba(72,187,120,0.08)', border: '1px solid rgba(72,187,120,0.25)', borderRadius: 8 }}>
+            <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(72,187,120,0.08)', border: '1px solid rgba(72,187,120,0.25)', borderRadius: 8 }}>
               <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Sale</div>
-              <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{sale.companyTo}</div>
+              <div title={sale.companyTo} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{sale.companyTo}</div>
               <div style={{ fontSize: 11, color: 'var(--gray)', marginBottom: 8 }}>#{sale.id.slice(0, 8)}…</div>
               <div style={{ fontSize: 16, ...mono, fontWeight: 700 }}>{saleRemaining.toLocaleString('en-IN')} MT</div>
               <div style={{ fontSize: 10, color: 'var(--gray)' }}>still needed</div>
