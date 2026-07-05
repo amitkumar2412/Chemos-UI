@@ -88,28 +88,6 @@ function DetailRail({ item, onClose }: { item: IccItem; onClose: () => void }) {
         </div>
       </div>
 
-      {item.vessels && item.vessels.length > 0 && (
-        <div className="db-rail-section">
-          <div className="db-rail-section-title">Vessel Name</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {item.vessels.map((v, vi) => (
-              <div key={vi} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)' }}>{v.vesselName}</div>
-                  {v.companyFrom && (
-                    <div style={{ fontSize: 9, color: 'var(--gray-dim)', marginTop: 2 }}>{v.companyFrom}</div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--white)', fontFamily: 'JetBrains Mono, monospace' }}>{v.inventoryDays}d</div>
-                  <div style={{ fontSize: 8, color: 'var(--gray-dim)', textTransform: 'uppercase', letterSpacing: 1 }}>inventory</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="db-rail-section">
         <div className="db-rail-section-title">7-Day Trend</div>
         <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -182,24 +160,23 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
   const apiItems = useMemo((): IccItem[] | null => {
     if (!byProduct || byProduct.length === 0) return null;
     return byProduct.map((row) => ({
-      item:                  row.product,
-      port:                  row.dischargePort,
-      company:               '—',
-      physical:              row.physicalUnsoldClosing,
-      ready:                 row.incomingUnsoldClosing,
-      safety:                0,
-      reorder:               0,
-      market:                0,
-      selling:               0,
-      trend7d:               [row.physicalStockOpening, row.physicalUnsoldClosing],
-      status:                row.totalStock <= 0 ? 'critical' : row.physicalUnsoldClosing < 50 ? 'warn' : 'ok',
-      physicalStockOpening:  row.physicalStockOpening,
-      physicalSold:          row.physicalSold,
-      incomingUnsoldOpening: row.incomingUnsoldOpening,
-      incomingUnsoldNew:     row.incomingUnsoldNew,
-      incomingSold:          row.incomingSold,
-      totalStock:            row.totalStock,
-      vessels:               row.vesselInventory ?? [],
+      item:             row.product,
+      port:             row.dischargePort,
+      company:          '—',
+      physical:         row.physicalUnsold,
+      ready:            row.incomingBalance,
+      safety:           0,
+      reorder:          0,
+      market:           0,
+      selling:          0,
+      trend7d:          [row.physicalStock, row.physicalUnsold],
+      status:           row.totalStock <= 0 ? 'critical' : row.physicalUnsold < 50 ? 'warn' : 'ok',
+      physicalStock:    row.physicalStock,
+      physicalSold:     row.physicalSold,
+      incomingStock:    row.incomingStock,
+      purchaseIncoming: row.purchaseIncoming,
+      incomingSales:    row.incomingSales,
+      totalStock:       row.totalStock,
     }));
   }, [byProduct]);
 
@@ -350,36 +327,30 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
         {/* Table + Rail */}
         <div className="db-icc-main">
           <div className="db-tbl-region" style={{ overflowX: 'auto' }}>
-            <table className="db-inv" style={{ minWidth: 1400 }}>
+            <table className="db-inv" style={{ minWidth: 1100 }}>
               <thead>
                 <tr>
                   {([
-                    ['item',                 'Product'],
-                    ['vessels_eta',          'Vessel Date'],
-                    ['vessels_name',         'Vessel Name'],
-                    ['port',                 'Port'],
-                    ['physicalStockOpening', 'Physical Stock '], 
-                    ['physicalSold',         'Physical Sold'],
-                    ['physical',             'Physical Unsold '],
-                    ['incomingUnsoldOpening','Incoming Stock'],
-                    ['incomingUnsoldNew',    'Purchase Incoming'],
-                    ['incomingSold',         'Incoming Sales'],
-                    ['ready',                'Incoming Balance'],
-                    ['totalStock',           'Total Stock'],
-                    ['vessels_days',         'Inventory Days'],
-                    ['vessels_company',      'Company Name'],
+                    ['item',             'Product'],
+                    ['port',             'Port'],
+                    ['physicalStock',    'Physical Stock '],
+                    ['physicalSold',     'Physical Sold'],
+                    ['physical',         'Physical Unsold '],
+                    ['incomingStock',    'Incoming Stock'],
+                    ['purchaseIncoming', 'Purchase Incoming'],
+                    ['incomingSales',    'Incoming Sales'],
+                    ['ready',            'Incoming Balance'],
+                    ['totalStock',       'Total Stock'],
                   ] as [string, string][]).map(([col, label]) => {
-                    const isVesselCol = ['vessels_eta','vessels_name','vessels_days','vessels_company'].includes(col);
-                    const isNum = ['physicalStockOpening','physicalSold','physical','incomingUnsoldOpening','incomingUnsoldNew','incomingSold','ready','totalStock','vessels_days'].includes(col);
+                    const isNum = ['physicalStock','physicalSold','physical','incomingStock','purchaseIncoming','incomingSales','ready','totalStock'].includes(col);
                     return (
                       <th
                         key={col}
                         className={isNum ? 'num' : ''}
-                        onClick={() => !isVesselCol && toggleSort(col as SortKey)}
-                        style={isVesselCol ? { cursor: 'default' } : {}}
+                        onClick={() => toggleSort(col as SortKey)}
                       >
                         {label}
-                        {sortCol === col && !isVesselCol && (
+                        {sortCol === col && (
                           <span style={{ marginLeft: 4, opacity: .6 }}>{sortDir === 1 ? '▲' : '▼'}</span>
                         )}
                       </th>
@@ -400,56 +371,20 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                         {row.item}
                       </div>
                     </td>
-                    <td>
-                      {row.vessels && row.vessels.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          {row.vessels.map((v, vi) => (
-                            <span key={vi} style={{ fontSize: 10, color: 'var(--gray)', whiteSpace: 'nowrap' }}>{v.eta || '—'}</span>
-                          ))}
-                        </div>
-                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
-                    </td>
-                    <td>
-                      {row.vessels && row.vessels.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          {row.vessels.map((v, vi) => (
-                            <span key={vi} style={{ fontSize: 10, fontWeight: 600, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{v.vesselName}</span>
-                          ))}
-                        </div>
-                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
-                    </td>
                     <td>{row.port}</td>
-                    <td className="num">{row.physicalStockOpening ?? '—'}</td>
+                    <td className="num">{row.physicalStock ?? '—'}</td>
                     <td className="num">{row.physicalSold ?? '—'}</td>
                     <td className="num">{row.physical}</td>
-                    <td className="num">{row.incomingUnsoldOpening ?? '—'}</td>
-                    <td className="num">{row.incomingUnsoldNew ?? '—'}</td>
-                    <td className="num">{row.incomingSold ?? '—'}</td>
+                    <td className="num">{row.incomingStock ?? '—'}</td>
+                    <td className="num">{row.purchaseIncoming ?? '—'}</td>
+                    <td className="num">{row.incomingSales ?? '—'}</td>
                     <td className="num">{row.ready}</td>
                     <td className="num">{row.totalStock ?? '—'}</td>
-                    <td className="num">
-                      {row.vessels && row.vessels.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          {row.vessels.map((v, vi) => (
-                            <span key={vi} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, whiteSpace: 'nowrap' }}>{v.inventoryDays}</span>
-                          ))}
-                        </div>
-                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
-                    </td>
-                    <td>
-                      {row.vessels && row.vessels.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          {row.vessels.map((v, vi) => (
-                            <span key={vi} style={{ fontSize: 10, color: 'var(--gray)', whiteSpace: 'nowrap' }}>{v.companyFrom || '—'}</span>
-                          ))}
-                        </div>
-                      ) : <span style={{ color: 'var(--gray-dim)', fontSize: 10 }}>—</span>}
-                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={14} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
                       No items match the current filters
                     </td>
                   </tr>

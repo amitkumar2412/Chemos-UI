@@ -395,25 +395,17 @@ export interface StockStatsSummary {
   incomingSold: number;
 }
 
-export interface VesselInventoryEntry {
-  vesselName: string;
-  eta: string;
-  inventoryDays: number;
-  companyFrom?: string;
-}
-
 export interface StockStatsByProduct {
   product: string;
   dischargePort: string;
-  physicalStockOpening: number;
+  physicalStock: number;
   physicalSold: number;
-  physicalUnsoldClosing: number;
-  incomingUnsoldOpening: number;
-  incomingUnsoldNew: number;
-  incomingSold: number;
-  incomingUnsoldClosing: number;
+  physicalUnsold: number;
+  incomingStock: number;
+  purchaseIncoming: number;
+  incomingSales: number;
+  incomingBalance: number;
   totalStock: number;
-  vesselInventory: VesselInventoryEntry[];
 }
 
 export async function fetchStockStatsByProduct(): Promise<StockStatsByProduct[]> {

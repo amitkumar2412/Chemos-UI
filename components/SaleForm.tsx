@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
@@ -51,6 +51,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false); // synchronous guard — state update alone is too late
   const [result, setResult] = useState<ResultState>(null);
   const [dateValue, setDateValue] = useState('');
   const [dateStamp, setDateStamp] = useState('');
@@ -81,6 +82,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return; // block concurrent submissions synchronously
     setResult(null);
     const qty = parseFloat(quantity);
     const priceVal = parseFloat(price);
@@ -97,6 +99,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const data = await onSubmit({
@@ -131,6 +134,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
     } catch (err: unknown) {
       setResult({ msg: err instanceof Error ? err.message : 'Submission failed', ok: false });
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

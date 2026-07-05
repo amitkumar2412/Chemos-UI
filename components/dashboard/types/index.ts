@@ -63,13 +63,12 @@ export interface IccItem {
   trend7d: number[];
   status: InventoryStatus;
   // extended API fields (optional — mock data omits them)
-  physicalStockOpening?: number;
+  physicalStock?: number;
   physicalSold?: number;
-  incomingUnsoldOpening?: number;
-  incomingUnsoldNew?: number;
-  incomingSold?: number;
+  incomingStock?: number;
+  purchaseIncoming?: number;
+  incomingSales?: number;
   totalStock?: number;
-  vessels?: { vesselName: string; eta: string; inventoryDays: number; companyFrom?: string }[];
 }
 
 // ─── Vendor ───────────────────────────────────────────────────────────────
