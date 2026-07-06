@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAllPurchases, comparePurchases, getPortName, getProductName } from '@/lib/api';
+import { fetchAllPurchases, comparePurchases, getPortName, getProductName, getProductId, getPaymentTermName } from '@/lib/api';
 import type { PurchaseOrder, CompareResponse, CompareItem } from '@/lib/api';
 
 const PAGE_SIZE = 8;
@@ -246,7 +246,7 @@ function CompareModal({
   }
 
   function isAdvance(o: CompareItem): boolean {
-    const term = purchaseMap.get(o.id)?.paymentTerm ?? '';
+    const term = getPaymentTermName(purchaseMap.get(o.id)?.paymentTerm ?? null);
     return term.toUpperCase().includes('ADVANCE');
   }
 
@@ -351,7 +351,7 @@ function CompareModal({
             {po?.paymentDays ?? '—'} days
             {po?.paymentTerm ? (
               <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--gray)', fontFamily: 'Montserrat,sans-serif', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                {po.paymentTerm}
+                {getPaymentTermName(po.paymentTerm)}
               </span>
             ) : null}
           </span>
@@ -458,7 +458,7 @@ function CompareModal({
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function ComparablePage() {
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
-  const [allProducts, setAllProducts] = useState<string[]>([]);
+  const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -473,9 +473,17 @@ export default function ComparablePage() {
   useEffect(() => {
     fetchAllPurchases({ status: 'UNCONFIRMED' })
       .then(data => {
-        const prods = [...new Set(data.map(p => getProductName(p.product)))].filter(Boolean).sort();
+        const byId = new Map<string, string>();
+        data.forEach(p => {
+          const id = getProductId(p.product);
+          const name = getProductName(p.product);
+          if (id && name && name !== '—') byId.set(id, name);
+        });
+        const prods = [...byId.entries()]
+          .map(([id, name]) => ({ id, name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
         setAllProducts(prods);
-        if (prods.length > 0) setSelectedProduct(prods[0]);
+        if (prods.length > 0) setSelectedProduct(prods[0].id);
         else setLoading(false);
       })
       .catch(e => { console.error(e); setLoading(false); });
@@ -493,6 +501,7 @@ export default function ComparablePage() {
 
   const totalPages = Math.ceil(purchases.length / PAGE_SIZE);
   const paged = purchases.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const selectedProductName = allProducts.find(p => p.id === selectedProduct)?.name ?? selectedProduct;
 
   const portMap = useMemo(
     () => new Map(purchases.map(p => [p.id, getPortName(p.port)])),
@@ -568,7 +577,7 @@ export default function ComparablePage() {
             disabled={loading}
           >
             {allProducts.map(p => (
-              <option key={p} value={p}>{p}</option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </div>
@@ -647,7 +656,7 @@ export default function ComparablePage() {
       <div className="cmp-table-wrap">
         <div className="cmp-table-header">
           <div className="cmp-table-title">
-            Purchase Offers{selectedProduct ? ` for ${selectedProduct}` : ''}
+            Purchase Offers{selectedProduct ? ` for ${selectedProductName}` : ''}
           </div>
         </div>
         <table className="cmp-table">
@@ -676,7 +685,7 @@ export default function ComparablePage() {
             ) : paged.length === 0 ? (
               <tr>
                 <td colSpan={11} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--gray)' }}>
-                  No purchase offers found{selectedProduct ? ` for ${selectedProduct}` : ''}
+                  No purchase offers found{selectedProduct ? ` for ${selectedProductName}` : ''}
                 </td>
               </tr>
             ) : (

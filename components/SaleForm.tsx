@@ -30,6 +30,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
   const [companyFrom, setCompanyFrom] = useState('');
   const [companyTo, setCompanyTo] = useState(initialData?.companyTo || '');
   const [product, setProduct] = useState(initialData?.product || '');
+  const [productId, setProductId] = useState('');
   const [origin, setOrigin] = useState('');
   const [make, setMake] = useState('');
   const [packaging, setPackaging] = useState('');
@@ -75,7 +76,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
 
   const clearForm = () => {
     setSaleType('Export');
-    setCompanyFrom(''); setCompanyTo(''); setProduct(''); setOrigin(''); setMake(''); setPackaging(''); setPort('');
+    setCompanyFrom(''); setCompanyTo(''); setProduct(''); setProductId(''); setOrigin(''); setMake(''); setPackaging(''); setPort('');
     setQuantity(''); setPrice(''); setPayment(''); setDeliveryTerm(''); setStorageDays(''); setTransitTolerance(''); setMarketPrice(''); setMarketStatus(''); setMessage('');
     setVesselName(''); setRemarks(''); setSalesPerson(''); setBrokerName('');
     setResult(null);
@@ -106,7 +107,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
         salesType: saleType,
         companyFrom,
         companyTo,
-        product,
+        product: productId || product,
         origin,
         make,
         packaging,
@@ -184,7 +185,9 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
           {/* Row 3: Product, Origin, Make */}
           <div className="fg">
             <label className="fl">Product <span className="req">*</span></label>
-            <ProductAutocompleteInput id="sf-product" value={product} onChange={setProduct}
+            <ProductAutocompleteInput id="sf-product" value={product}
+              onChange={val => { setProduct(val); setProductId(''); }}
+              onSelect={p => setProductId(p.id)}
               placeholder="e.g. VAM (Carbide Base)" />
           </div>
           {/* <div className="fg">

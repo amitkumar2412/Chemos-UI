@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  fetchAllPurchases, fetchAllSales, getPortName, getProductName,
+  fetchAllPurchases, fetchAllSales, getPortName, getProductName, getPaymentTermName,
   createLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks,
   type PurchaseOrder, type SalePurchaseLink,
 } from '@/lib/api';
@@ -79,7 +79,7 @@ function CompareModal({
     { label: 'Make',            p: purchase.make ?? '—',   s: sale.make ?? '—' },
     { label: 'Origin',          p: purchase.origin ?? '—', s: sale.origin ?? '—' },
     { label: 'Packaging',       p: purchase.packaging ?? '—', s: sale.packaging ?? '—' },
-    { label: 'Payment',         p: purchase.paymentTerm ?? '—', s: sale.payment ?? '—' },
+    { label: 'Payment',         p: getPaymentTermName(purchase.paymentTerm), s: sale.payment ?? '—' },
     { label: 'Company',         p: purchase.companyFrom,   s: sale.companyTo },
     { label: 'Status',          p: <StatusBadge status={purchase.status} />, s: <StatusBadge status={sale.status} /> },
   ];

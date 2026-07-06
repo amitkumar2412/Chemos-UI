@@ -3,20 +3,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/apiClient';
 
+interface CountryOption {
+  id: string;
+  displayName: string;
+}
+
 interface CountryAutocompleteInputProps {
   id?: string;
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (country: CountryOption) => void;
   placeholder?: string;
 }
 
-function normaliseResults(raw: unknown): string[] {
+function normaliseResults(raw: unknown): CountryOption[] {
   if (Array.isArray(raw)) {
     return raw.map((item) => {
-      if (typeof item === 'string') return item;
+      if (typeof item === 'string') return { id: item, displayName: item };
       const r = item as Record<string, unknown>;
-      return (r.displayName ?? r.name ?? '') as string;
-    }).filter(Boolean);
+      return { id: (r.id ?? '') as string, displayName: (r.displayName ?? r.name ?? '') as string };
+    }).filter((opt) => opt.displayName);
   }
   const obj = raw as Record<string, unknown>;
   const arr = obj?.content ?? obj?.data ?? obj?.results ?? [];
@@ -27,9 +33,10 @@ export default function CountryAutocompleteInput({
   id,
   value,
   onChange,
+  onSelect,
   placeholder,
 }: CountryAutocompleteInputProps) {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<CountryOption[]>([]);
   const [showList, setShowList] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const [loading, setLoading] = useState(false);
@@ -79,9 +86,10 @@ export default function CountryAutocompleteInput({
     setTimeout(() => setShowList(false), 150);
   };
 
-  const handlePick = (val: string) => {
+  const handlePick = (opt: CountryOption) => {
     justSelectedRef.current = true;
-    onChange(val);
+    onChange(opt.displayName);
+    onSelect?.(opt);
     setShowList(false);
     setHighlight(-1);
   };
@@ -139,11 +147,11 @@ export default function CountryAutocompleteInput({
           )}
           {!loading && suggestions.map((opt, i) => (
             <div
-              key={opt}
+              key={opt.id}
               className={`ac-item${i === highlight ? ' highlight' : ''}`}
               onMouseDown={() => handlePick(opt)}
             >
-              {renderHighlighted(opt)}
+              {renderHighlighted(opt.displayName)}
             </div>
           ))}
           {!loading && suggestions.length === 0 && (

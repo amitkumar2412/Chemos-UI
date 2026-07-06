@@ -6,6 +6,12 @@ export interface MarketStatusOption {
   name: string;
 }
 
+export interface PaymentTermOption {
+  id: number;
+  paymentTerm: string;
+  creditDays: number;
+}
+
 // Backend may return product as a full entity object instead of a plain string
 export interface ProductEntity {
   id: string;
@@ -78,6 +84,7 @@ export interface SalePunchPayload {
   make: string;
   packaging: string;
   origin: string;
+  payment_term?: number;
 }
 
 export interface FeedOptions {

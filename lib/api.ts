@@ -8,6 +8,7 @@ import type {
   SaleListResponse,
   SaleEntry,
   MarketStatusOption,
+  PaymentTermOption,
   ProductValue,
 } from './types';
 import { apiClient, tokenStorage } from './apiClient';
@@ -22,6 +23,10 @@ export async function fetchFeedOptions(): Promise<FeedOptions> {
 
 export async function fetchMarketStatuses(): Promise<MarketStatusOption[]> {
   return apiClient.get<MarketStatusOption[]>('/market-status/all');
+}
+
+export async function fetchPaymentTerms(): Promise<PaymentTermOption[]> {
+  return apiClient.get<PaymentTermOption[]>('/payment-terms');
 }
 
 /** day = YYYY-MM-DD, page/limit for pagination */
@@ -111,6 +116,32 @@ export function getProductName(product: ProductValue): string {
   return product.name || '—';
 }
 
+export function getProductId(product: ProductValue): string {
+  if (!product) return '';
+  if (typeof product === 'string') return product;
+  return product.id || '';
+}
+
+// Backend may return paymentTerm as a full entity object instead of a plain string
+export interface PaymentTermEntity {
+  id: number;
+  paymentTerm: string;
+  paymentCode?: string;
+  creditDays?: number;
+  description?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type PaymentTermValue = string | PaymentTermEntity | null;
+
+export function getPaymentTermName(term: PaymentTermValue): string {
+  if (!term) return '—';
+  if (typeof term === 'string') return term || '—';
+  return term.paymentTerm || '—';
+}
+
 export interface PurchaseOrder {
   id: string;
   companyTo: string;
@@ -142,7 +173,7 @@ export interface PurchaseOrder {
   otherExpense: number;
   dischargePorts: string;
   priceType: string;
-  paymentTerm: string;
+  paymentTerm: PaymentTermValue;
   etd: string;
   eta: string;
   status?: string | null;

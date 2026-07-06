@@ -8,12 +8,13 @@ import ProductAutocompleteInput from './ProductAutocompleteInput';
 import CountryAutocompleteInput from './CountryAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import PortMultiAutocompleteInput from './PortMultiAutocompleteInput';
-import { fetchMarketStatuses } from '@/lib/api';
+import { fetchMarketStatuses, fetchPaymentTerms } from '@/lib/api';
 import type {
   FeedOptions,
   SalePunchPayload,
   MarketStatusType,
   MarketStatusOption,
+  PaymentTermOption,
   CreatePunchResponse,
 } from '@/lib/types';
 
@@ -39,6 +40,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   const [purchaseType, setPurchaseType] = useState(initialData?.purchase_type || '');
   const [companyFrom, setCompanyFrom] = useState(initialData?.company_from || '');
   const [product, setProduct] = useState(initialData?.product || '');
+  const [productId, setProductId] = useState('');
   const [vesselName, setVesselName] = useState('');
   const [shipmentStart, setShipmentStart] = useState('');
   const [shipmentEnd, setShipmentEnd] = useState('');
@@ -67,8 +69,10 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   const [make, setMake] = useState('');
   const [packaging, setPackaging] = useState('');
   const [origin, setOrigin] = useState(initialData?.origin || '');
+  const [originId, setOriginId] = useState('');
   const [priceType, setPriceType] = useState(initialData?.price_type || 'Fixed Price');
-  const [paymentTerm, setPaymentTerm] = useState(initialData?.payment_term || '');
+  const [paymentTerm, setPaymentTerm] = useState(initialData?.payment_term ? String(initialData.payment_term) : '');
+  const [paymentTermOptions, setPaymentTermOptions] = useState<PaymentTermOption[]>([]);
   const [etd, setEtd] = useState(initialData?.etd || '');
   const [eta, setEta] = useState(initialData?.eta || '');
 
@@ -113,14 +117,18 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     fetchMarketStatuses().then(setMarketStatusOptions).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetchPaymentTerms().then(setPaymentTermOptions).catch(() => {});
+  }, []);
+
   const clearForm = () => {
-    setCompanyTo(''); setCompanyFrom(''); setProduct(''); setVesselName('');
+    setCompanyTo(''); setCompanyFrom(''); setProduct(''); setProductId(''); setVesselName('');
     setShipmentStart(''); setShipmentEnd(''); setQuantity(''); setPriceFc(''); setCurrency('USD'); setOfferUsd(''); setExchangeRate('');
     setDeliveryTerm(''); setPaymentDays(''); setPort(''); setMarketPrice('');
     setMarketStatus(''); setCostPrice(''); setReplacementCost(''); setMake('');
     setExpense(''); setCustomDuty(''); setSws(''); setAdd(''); setOtherExpense('');
     setPurchaseType('');
-    setPackaging(''); setOrigin('');
+    setPackaging(''); setOrigin(''); setOriginId('');
     setDischargePorts([]);
     setPriceType('Fixed Price');
     setPaymentTerm('');
@@ -160,7 +168,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
         company_to: companyTo,
         purchase_type: purchaseType,
         company_from: companyFrom,
-        product,
+        product: productId || product,
         vessel_name: vesselName,
         shipment: shipmentStart && shipmentEnd ? `${shipmentStart} to ${shipmentEnd}` : '',
         quantity: qty,
@@ -178,7 +186,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
         replacement_cost: parseFloat(replacementCost) || 0,
         make,
         packaging,
-        origin,
+        origin: originId || origin,
         expense: parseFloat(expense) || 0,
         custom_duty: parseFloat(customDuty) || 0,
         sws: parseFloat(sws) || 0,
@@ -187,7 +195,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
         add_usd: parseFloat(addUsd) || 0,
         discharge_ports: dischargePorts.join(', '),
         price_type: priceTypeMap[priceType] ?? priceType,
-        payment_term: paymentTerm,
+        payment_term: paymentTerm ? parseInt(paymentTerm, 10) : undefined,
         etd: etd || undefined,
         eta: eta || undefined,
       } as any);
@@ -243,12 +251,16 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           {/* Product, Origin, Make */}
           <div className="fg">
             <label className="fl">Product <span className="req">*</span></label>
-            <ProductAutocompleteInput id="f-product" value={product} onChange={setProduct}
+            <ProductAutocompleteInput id="f-product" value={product}
+              onChange={val => { setProduct(val); setProductId(''); }}
+              onSelect={p => setProductId(p.id)}
               placeholder="e.g. VAM (Carbide Base)" />
           </div>
           <div className="fg">
             <label className="fl">Origin</label>
-            <CountryAutocompleteInput id="f-origin" value={origin} onChange={setOrigin}
+            <CountryAutocompleteInput id="f-origin" value={origin}
+              onChange={val => { setOrigin(val); setOriginId(''); }}
+              onSelect={country => setOriginId(country.id)}
               placeholder="Country of origin" />
           </div>
           <div className="fg">
@@ -373,9 +385,9 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
             <label className="fl">Payment Term</label>
             <select className="fi" value={paymentTerm} onChange={e => setPaymentTerm(e.target.value)}>
               <option value="">Select…</option>
-              <option value="DA">DA</option>
-              <option value="CAD">CAD</option>
-              <option value="LC">LC</option>
+              {paymentTermOptions.map(o => (
+                <option key={o.id} value={o.id}>{o.paymentTerm}</option>
+              ))}
             </select>
           </div>
           <div className="fg">
