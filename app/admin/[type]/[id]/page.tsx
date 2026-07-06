@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { fetchTodayPunches, fetchTodaySales } from '@/lib/api';
+import { fetchTodayPunches, fetchTodaySales, getProductName } from '@/lib/api';
 import type { PunchEntry, SaleEntry } from '@/lib/types';
 
 export default function AdminDetailPage() {
@@ -136,7 +136,7 @@ export default function AdminDetailPage() {
           {/* Common fields */}
           <div>
             <div style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '4px' }}>Product</div>
-            <div style={{ fontSize: '16px', fontWeight: '600' }}>{order.product}</div>
+            <div style={{ fontSize: '16px', fontWeight: '600' }}>{getProductName(order.product)}</div>
           </div>
 
           <div>

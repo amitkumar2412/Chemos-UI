@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  fetchAllPurchases, fetchAllSales, getPortName,
+  fetchAllPurchases, fetchAllSales, getPortName, getProductName,
   createLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks,
   type PurchaseOrder, type SalePurchaseLink,
 } from '@/lib/api';
@@ -61,7 +61,7 @@ function CompareModal({
   const monoBold: React.CSSProperties = { ...mono, fontWeight: 700 };
 
   const rows: { label: string; p: React.ReactNode; s: React.ReactNode }[] = [
-    { label: 'Product',         p: purchase.product,       s: sale.product },
+    { label: 'Product',         p: getProductName(purchase.product), s: getProductName(sale.product) },
     { label: 'Load Port',       p: getPortName(purchase.port), s: sale.port ?? '—' },
     { label: 'QTY (MT)',        p: <span style={mono}>{purchase.quantity.toLocaleString('en-IN')}</span>, s: <span style={mono}>{sale.quantity.toLocaleString('en-IN')}</span> },
     { label: 'Delivery Term',   p: purchase.deliveryTerm ?? '—', s: sale.deliveryTerm ?? '—' },
@@ -387,8 +387,8 @@ export default function PurchaseSaleLinkPage() {
   useEffect(() => {
     // Fetch all purchases + all sales to build the unified product list
     Promise.all([fetchAllPurchases(), fetchAllSales(0, 1000)]).then(([pAll, sAll]) => {
-      const fromPurchases = pAll.map((p) => p.product);
-      const fromSales = sAll.content.map((s) => s.product);
+      const fromPurchases = pAll.map((p) => getProductName(p.product));
+      const fromSales = sAll.content.map((s) => getProductName(s.product));
       const unique = [...new Set([...fromPurchases, ...fromSales])].filter(Boolean).sort();
       setAllProducts(unique);
     }).catch(() => {});
@@ -408,7 +408,7 @@ export default function PurchaseSaleLinkPage() {
         fetchAllSales(0, 500),
       ]);
       setPurchases(pData);
-      setSales(sData.content.filter((s) => s.product === product && s.status?.toUpperCase() === 'CONFIRMED'));
+      setSales(sData.content.filter((s) => getProductName(s.product) === product && s.status?.toUpperCase() === 'CONFIRMED'));
     } catch {
       showToast('Failed to load orders', false);
     } finally {

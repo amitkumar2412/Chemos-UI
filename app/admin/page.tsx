@@ -9,6 +9,7 @@ import {
   confirmSale,
   fetchFeedOptions,
   getPortName,
+  getProductName,
   type PurchaseOrder,
 } from '@/lib/api';
 import type { SaleEntry, FeedOptions } from '@/lib/types';
@@ -278,7 +279,7 @@ function PurchaseTable({
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{o.id}</td>
-                <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{o.product}</td>
+                <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{getProductName(o.product)}</td>
                 <td style={{ padding: '16px', fontSize: '14px' }}>{o.companyFrom}</td>
                 <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{o.companyTo}</td>
                 <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>
@@ -363,7 +364,7 @@ function SaleTable({
               >
                 <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{o.id}</td>
                 <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{o.date}</td>
-                <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{o.product}</td>
+                <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{getProductName(o.product)}</td>
                 <td style={{ padding: '16px', fontSize: '14px' }}>{o.companyTo}</td>
                 <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{o.companyFrom}</td>
                 <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>

@@ -1,6 +1,7 @@
 'use client';
 
 import type { SaleEntry } from '@/lib/types';
+import { getProductName } from '@/lib/api';
 
 interface TodaySalesProps {
   entries: SaleEntry[];
@@ -62,7 +63,7 @@ export default function TodaySales({ entries, onDelete, page, totalPages, total,
 
                   {/* Product + Port */}
                   <div className="punch-product">
-                    <div>{r.product}</div>
+                    <div>{getProductName(r.product)}</div>
                     {r.port && <div className="punch-sub">@ {r.port}</div>}
                   </div>
 

@@ -8,6 +8,7 @@ import type {
   SaleListResponse,
   SaleEntry,
   MarketStatusOption,
+  ProductValue,
 } from './types';
 import { apiClient, tokenStorage } from './apiClient';
 
@@ -104,12 +105,18 @@ export function getPortName(port: PortValue): string {
   return port.displayName || '—';
 }
 
+export function getProductName(product: ProductValue): string {
+  if (!product) return '—';
+  if (typeof product === 'string') return product || '—';
+  return product.name || '—';
+}
+
 export interface PurchaseOrder {
   id: string;
   companyTo: string;
   purchaseType: string;
   companyFrom: string;
-  product: string;
+  product: ProductValue;
   vesselName: string;
   shipment: string;
   quantity: number;

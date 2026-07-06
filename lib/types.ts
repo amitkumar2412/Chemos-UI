@@ -6,12 +6,22 @@ export interface MarketStatusOption {
   name: string;
 }
 
+// Backend may return product as a full entity object instead of a plain string
+export interface ProductEntity {
+  id: string;
+  name: string;
+  hsCode?: string;
+  casNo?: string;
+}
+
+export type ProductValue = string | ProductEntity | null;
+
 export interface PunchEntry {
   id: number;
   ts: string;
   company_to: string;
   company_from: string;
-  product: string;
+  product: ProductValue;
   vessel_name: string;
   shipment: string;
   quantity: number;
@@ -103,7 +113,7 @@ export interface SaleEntry {
   salesType: string;
   companyTo: string;
   companyFrom: string;
-  product: string;
+  product: ProductValue;
   quantity: number;
   price: number;
   payment: string | null;

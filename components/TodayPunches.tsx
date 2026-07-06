@@ -1,6 +1,7 @@
 'use client';
 
 import type { PunchEntry } from '@/lib/types';
+import { getProductName } from '@/lib/api';
 
 interface TodayPunchesProps {
   entries: PunchEntry[];
@@ -63,7 +64,7 @@ export default function TodayPunches({ entries, onDelete, page, totalPages, tota
 
                   {/* Product + Port */}
                   <div className="punch-product">
-                    <div>{r.product}</div>
+                    <div>{getProductName(r.product)}</div>
                     {r.port && <div className="punch-sub">@ {r.port}</div>}
                   </div>
 

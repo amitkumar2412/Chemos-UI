@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAllPurchases, comparePurchases, getPortName } from '@/lib/api';
+import { fetchAllPurchases, comparePurchases, getPortName, getProductName } from '@/lib/api';
 import type { PurchaseOrder, CompareResponse, CompareItem } from '@/lib/api';
 
 const PAGE_SIZE = 8;
@@ -473,7 +473,7 @@ export default function ComparablePage() {
   useEffect(() => {
     fetchAllPurchases({ status: 'UNCONFIRMED' })
       .then(data => {
-        const prods = [...new Set(data.map(p => p.product))].filter(Boolean).sort();
+        const prods = [...new Set(data.map(p => getProductName(p.product)))].filter(Boolean).sort();
         setAllProducts(prods);
         if (prods.length > 0) setSelectedProduct(prods[0]);
         else setLoading(false);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
-import { fetchSaleById } from '@/lib/api';
+import { fetchSaleById, getProductName } from '@/lib/api';
 import type { SaleEntry } from '@/lib/types';
 
 interface Props {
@@ -80,7 +80,7 @@ export default function SaleDetailModal({ saleId, onClose }: Props) {
             <Field label="Sales Type" value={order.salesType} />
             <Field label="Company To" value={order.companyTo} />
             <Field label="Company From" value={order.companyFrom} />
-            <Field label="Product" value={order.product} />
+            <Field label="Product" value={getProductName(order.product)} />
             <Field label="Make" value={order.make} />
             <Field label="Packaging" value={order.packaging} />
             <Field label="Origin" value={order.origin} />

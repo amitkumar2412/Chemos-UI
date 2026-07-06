@@ -6,7 +6,7 @@ import SaleForm from '@/components/SaleForm';
 import SaleDetailModal from '@/components/SaleDetailModal';
 import SaleEditModal from '@/components/SaleEditModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchAllSales, createSale } from '@/lib/api';
+import { fetchFeedOptions, fetchAllSales, createSale, getProductName } from '@/lib/api';
 import type { SaleEntry, FeedOptions, SaleFormPayload } from '@/lib/types';
 
 const EMPTY_OPTIONS: FeedOptions = {
@@ -185,7 +185,7 @@ export default function SalesPage() {
                       </td>
                       <td style={{ padding: '16px', fontSize: '14px' }}>{sale.companyTo}</td>
                       <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{sale.companyFrom}</td>
-                      <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{sale.product}</td>
+                      <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{getProductName(sale.product)}</td>
                       <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>
                         {sale.quantity.toLocaleString('en-IN')}
                       </td>

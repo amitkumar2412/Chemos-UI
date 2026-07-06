@@ -5,7 +5,7 @@ import Modal from '@/components/Modal';
 import SaleEntryCard from '@/components/SaleEntryCard';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchAllPurchases, createPunch } from '@/lib/api';
+import { fetchFeedOptions, fetchAllPurchases, createPunch, getProductName } from '@/lib/api';
 import type { PurchaseOrder } from '@/lib/api';
 import type { FeedOptions, SalePunchPayload } from '@/lib/types';
 
@@ -150,7 +150,7 @@ export default function PurchasesPage() {
                 {entries.map((entry) => (
                   <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.companyFrom}</td>
-                    <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{entry.product}</td>
+                    <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{getProductName(entry.product)}</td>
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{entry.shipment}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.quantity?.toLocaleString('en-IN') ?? '—'} MT</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>₹ {entry.priceInr?.toLocaleString('en-IN') ?? '—'}</td>

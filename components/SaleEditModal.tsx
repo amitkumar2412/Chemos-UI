@@ -6,7 +6,7 @@ import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
-import { fetchSaleById, updateSale, fetchMarketStatuses } from '@/lib/api';
+import { fetchSaleById, updateSale, fetchMarketStatuses, getProductName } from '@/lib/api';
 import type { SaleEntry, FeedOptions, MarketStatusType, MarketStatusOption } from '@/lib/types';
 
 interface Props {
@@ -70,7 +70,7 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
         setSaleType(data.salesType || 'Local');
         setCompanyFrom(data.companyFrom || '');
         setCompanyTo(data.companyTo || '');
-        setProduct(data.product || '');
+        setProduct(data.product ? getProductName(data.product) : '');
         setPackaging(data.packaging || '');
         setPort(data.port || '');
         setQuantity(data.quantity != null ? String(data.quantity) : '');
