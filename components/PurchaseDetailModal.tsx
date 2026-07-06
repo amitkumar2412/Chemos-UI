@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
-import { fetchPurchaseById, getPortName, getProductName, getPaymentTermName } from '@/lib/api';
+import { fetchPurchaseById, getPortName, getProductName, getPaymentTermName, getOriginName } from '@/lib/api';
 import type { PurchaseOrder } from '@/lib/api';
 
 interface Props {
@@ -82,7 +82,7 @@ export default function PurchaseDetailModal({ purchaseId, onClose }: Props) {
             <Field label="Product" value={getProductName(order.product)} />
             <Field label="Make" value={order.make} />
             <Field label="Packaging" value={order.packaging} />
-            <Field label="Origin" value={order.origin} />
+            <Field label="Origin" value={getOriginName(order.origin)} />
             <Field label="Vessel Name" value={order.vesselName} />
           </Section>
 

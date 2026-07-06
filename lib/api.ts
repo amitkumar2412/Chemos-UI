@@ -142,6 +142,23 @@ export function getPaymentTermName(term: PaymentTermValue): string {
   return term.paymentTerm || '—';
 }
 
+// Backend may return origin as a full entity object instead of a plain string
+export interface OriginEntity {
+  id: string;
+  displayName: string;
+  searchKey?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type OriginValue = string | OriginEntity | null;
+
+export function getOriginName(origin: OriginValue): string {
+  if (!origin) return '—';
+  if (typeof origin === 'string') return origin || '—';
+  return origin.displayName || '—';
+}
+
 export interface PurchaseOrder {
   id: string;
   companyTo: string;
@@ -165,7 +182,7 @@ export interface PurchaseOrder {
   replacementCost: number;
   make: string;
   packaging: string;
-  origin: string;
+  origin: OriginValue;
   expense: number;
   customDuty: number;
   sws: number;

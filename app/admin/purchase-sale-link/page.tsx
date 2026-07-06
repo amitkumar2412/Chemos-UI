@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   fetchAllPurchases, fetchAllSales, getPortName, getProductName, getPaymentTermName,
   createLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks,
+  getOriginName, getProductId,
   type PurchaseOrder, type SalePurchaseLink,
 } from '@/lib/api';
 import type { SaleEntry } from '@/lib/types';
@@ -77,7 +78,7 @@ function CompareModal({
     { label: 'ADD (₹)',         p: <span style={mono}>₹ {(purchase.add ?? 0).toLocaleString('en-IN')}</span>, s: '—' },
     { label: 'Other Expense',   p: <span style={mono}>₹ {(purchase.otherExpense ?? 0).toLocaleString('en-IN')}</span>, s: '—' },
     { label: 'Make',            p: purchase.make ?? '—',   s: sale.make ?? '—' },
-    { label: 'Origin',          p: purchase.origin ?? '—', s: sale.origin ?? '—' },
+    { label: 'Origin',          p: getOriginName(purchase.origin), s: sale.origin ?? '—' },
     { label: 'Packaging',       p: purchase.packaging ?? '—', s: sale.packaging ?? '—' },
     { label: 'Payment',         p: getPaymentTermName(purchase.paymentTerm), s: sale.payment ?? '—' },
     { label: 'Company',         p: purchase.companyFrom,   s: sale.companyTo },
@@ -367,9 +368,14 @@ function LinkQuantityModal({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+interface ProductOption {
+  id: string;
+  name: string;
+}
+
 export default function PurchaseSaleLinkPage() {
   const { isAuthenticated } = useAppSelector((s) => s.auth);
-  const [allProducts, setAllProducts] = useState<string[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductOption[]>([]);
   const [product, setProduct] = useState('');
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
   const [sales, setSales] = useState<SaleEntry[]>([]);
@@ -387,9 +393,21 @@ export default function PurchaseSaleLinkPage() {
   useEffect(() => {
     // Fetch all purchases + all sales to build the unified product list
     Promise.all([fetchAllPurchases(), fetchAllSales(0, 1000)]).then(([pAll, sAll]) => {
-      const fromPurchases = pAll.map((p) => getProductName(p.product));
-      const fromSales = sAll.content.map((s) => getProductName(s.product));
-      const unique = [...new Set([...fromPurchases, ...fromSales])].filter(Boolean).sort();
+      const productsMap = new Map<string, ProductOption>();
+      
+      pAll.forEach((p) => {
+        const id = getProductId(p.product);
+        const name = getProductName(p.product);
+        if (id && name) productsMap.set(id, { id, name });
+      });
+      
+      sAll.content.forEach((s) => {
+        const id = getProductId(s.product);
+        const name = getProductName(s.product);
+        if (id && name) productsMap.set(id, { id, name });
+      });
+      
+      const unique = Array.from(productsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
       setAllProducts(unique);
     }).catch(() => {});
   }, []);
@@ -408,7 +426,7 @@ export default function PurchaseSaleLinkPage() {
         fetchAllSales(0, 500),
       ]);
       setPurchases(pData);
-      setSales(sData.content.filter((s) => getProductName(s.product) === product && s.status?.toUpperCase() === 'CONFIRMED'));
+      setSales(sData.content.filter((s) => getProductId(s.product) === product && s.status?.toUpperCase() === 'CONFIRMED'));
     } catch {
       showToast('Failed to load orders', false);
     } finally {
@@ -478,11 +496,12 @@ export default function PurchaseSaleLinkPage() {
   };
 
   const handleLinkSuccess = (apiLink: SalePurchaseLink) => {
+    const productName = allProducts.find(p => p.id === product)?.name || product;
     const newLink: PSLink = {
       id: apiLink.id,
       purchaseId: apiLink.purchaseId,
       saleId: apiLink.saleId,
-      product,
+      product: productName,
       linkedQuantity: apiLink.linkedQuantity,
     };
     setLinks((prev) => [...prev, newLink]);
@@ -549,7 +568,7 @@ export default function PurchaseSaleLinkPage() {
           >
             <option value="">— Select Product —</option>
             {allProducts.map((p) => (
-              <option key={p} value={p}>{p}</option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </div>
@@ -765,7 +784,7 @@ export default function PurchaseSaleLinkPage() {
                                 <div style={{ fontSize: '11px', color: 'var(--gray)' }}>#{p.id}</div>
                               </td>
                               <td style={{ padding: '12px 14px', fontSize: '13px', color: 'var(--gray)' }}>
-                                {p.origin || '—'}
+                                {getOriginName(p.origin)}
                               </td>
                               <td style={{ padding: '12px 14px' }}>
                                 <MarketStatusBadge status={p.marketStatus} />
