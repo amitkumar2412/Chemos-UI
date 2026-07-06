@@ -162,7 +162,7 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
     return byProduct.map((row) => ({
       item:             row.product,
       port:             row.dischargePort,
-      company:          '—',
+      company:          row.companyName ?? '—',
       physical:         row.physicalUnsold,
       ready:            row.incomingBalance,
       safety:           0,
@@ -327,12 +327,13 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
         {/* Table + Rail */}
         <div className="db-icc-main">
           <div className="db-tbl-region" style={{ overflowX: 'auto' }}>
-            <table className="db-inv" style={{ minWidth: 1100 }}>
+            <table className="db-inv" style={{ minWidth: 1220 }}>
               <thead>
                 <tr>
                   {([
                     ['item',             'Product'],
                     ['port',             'Port'],
+                    ['company',          'Company'],
                     ['physicalStock',    'Physical Stock '],
                     ['physicalSold',     'Physical Sold'],
                     ['physical',         'Physical Unsold '],
@@ -372,6 +373,7 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                       </div>
                     </td>
                     <td>{row.port}</td>
+                    <td>{row.company}</td>
                     <td className="num">{row.physicalStock ?? '—'}</td>
                     <td className="num">{row.physicalSold ?? '—'}</td>
                     <td className="num">{row.physical}</td>
@@ -384,7 +386,7 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
                       No items match the current filters
                     </td>
                   </tr>

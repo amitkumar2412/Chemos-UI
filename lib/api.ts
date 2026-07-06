@@ -406,6 +406,7 @@ export interface StockStatsByProduct {
   incomingSales: number;
   incomingBalance: number;
   totalStock: number;
+  companyName: string;
 }
 
 export async function fetchStockStatsByProduct(): Promise<StockStatsByProduct[]> {
