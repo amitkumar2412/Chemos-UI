@@ -7,18 +7,31 @@ interface PortAutocompleteInputProps {
   id?: string;
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (id: string, displayName: string) => void;
   placeholder?: string;
 }
 
-type PortResult = { displayName?: string; portName?: string; name?: string };
+type PortResult = { 
+  id?: string | number; 
+  portId?: string | number;
+  code?: string;
+  portCode?: string;
+  displayName?: string; 
+  portName?: string; 
+  name?: string;
+};
 
-function normaliseResults(raw: unknown): string[] {
+type PortOption = { id: string; displayName: string };
+
+function normaliseResults(raw: unknown): PortOption[] {
   if (Array.isArray(raw)) {
     return raw.map((item) => {
-      if (typeof item === 'string') return item;
+      if (typeof item === 'string') return { id: '', displayName: item };
       const r = item as PortResult;
-      return r.displayName ?? r.portName ?? r.name ?? '';
-    }).filter(Boolean);
+      const displayName = r.displayName ?? r.portName ?? r.name ?? '';
+      const id = String(r.id ?? r.portId ?? r.code ?? r.portCode ?? '');
+      return { id, displayName };
+    }).filter(opt => opt.displayName);
   }
   const obj = raw as Record<string, unknown>;
   const arr = obj?.content ?? obj?.data ?? obj?.results ?? [];
@@ -29,9 +42,10 @@ export default function PortAutocompleteInput({
   id,
   value,
   onChange,
+  onSelect,
   placeholder,
 }: PortAutocompleteInputProps) {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<PortOption[]>([]);
   const [showList, setShowList] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const [loading, setLoading] = useState(false);
@@ -84,9 +98,12 @@ export default function PortAutocompleteInput({
     setTimeout(() => setShowList(false), 150);
   };
 
-  const handlePick = (val: string) => {
+  const handlePick = (opt: PortOption) => {
     justSelectedRef.current = true;
-    onChange(val);
+    onChange(opt.displayName);
+    if (onSelect && opt.id) {
+      onSelect(opt.id, opt.displayName);
+    }
     setShowList(false);
     setHighlight(-1);
   };
@@ -98,9 +115,13 @@ export default function PortAutocompleteInput({
     setError('');
     try {
       const raw = await apiClient.post('/ports/createPort', { portName: name });
-      const created = raw as Record<string, unknown>;
-      const createdName = (created?.displayName ?? created?.portName ?? name) as string;
+      const created = raw as PortResult;
+      const createdName = created?.displayName ?? created?.portName ?? name;
+      const createdId = String(created?.id ?? created?.portId ?? created?.code ?? created?.portCode ?? '');
       onChange(createdName);
+      if (onSelect && createdId) {
+        onSelect(createdId, createdName);
+      }
       setShowList(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create port');
@@ -110,7 +131,7 @@ export default function PortAutocompleteInput({
   };
 
   const exactMatch = suggestions.some(
-    (s) => s.toLowerCase() === value.trim().toLowerCase()
+    (s) => s.displayName.toLowerCase() === value.trim().toLowerCase()
   );
   const showCreate = value.trim().length > 0 && !exactMatch && !loading;
 
@@ -135,17 +156,17 @@ export default function PortAutocompleteInput({
     }
   };
 
-  const renderHighlighted = (opt: string) => {
+  const renderHighlighted = (text: string) => {
     const q = value.trim().toLowerCase();
-    if (!q) return opt;
-    const lower = opt.toLowerCase();
+    if (!q) return text;
+    const lower = text.toLowerCase();
     const idx = lower.indexOf(q);
-    if (idx === -1) return opt;
+    if (idx === -1) return text;
     return (
       <>
-        {opt.slice(0, idx)}
-        <span className="match">{opt.slice(idx, idx + q.length)}</span>
-        {opt.slice(idx + q.length)}
+        {text.slice(0, idx)}
+        <span className="match">{text.slice(idx, idx + q.length)}</span>
+        {text.slice(idx + q.length)}
       </>
     );
   };
@@ -172,11 +193,11 @@ export default function PortAutocompleteInput({
           )}
           {!loading && suggestions.map((opt, i) => (
             <div
-              key={opt}
+              key={opt.id || opt.displayName}
               className={`ac-item${i === highlight ? ' highlight' : ''}`}
               onMouseDown={() => handlePick(opt)}
             >
-              {renderHighlighted(opt)}
+              {renderHighlighted(opt.displayName)}
             </div>
           ))}
           {!loading && suggestions.length === 0 && !showCreate && (

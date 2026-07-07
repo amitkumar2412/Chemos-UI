@@ -35,6 +35,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
   const [make, setMake] = useState('');
   const [packaging, setPackaging] = useState('');
   const [port, setPort] = useState(initialData?.port || '');
+  const [portId, setPortId] = useState('');
   const [quantity, setQuantity] = useState(initialData?.quantity ? String(initialData.quantity) : '');
   const [price, setPrice] = useState(initialData?.price ? String(initialData.price) : '');
   const [payment, setPayment] = useState(initialData?.payment || '');
@@ -76,7 +77,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
 
   const clearForm = () => {
     setSaleType('Export');
-    setCompanyFrom(''); setCompanyTo(''); setProduct(''); setProductId(''); setOrigin(''); setMake(''); setPackaging(''); setPort('');
+    setCompanyFrom(''); setCompanyTo(''); setProduct(''); setProductId(''); setOrigin(''); setMake(''); setPackaging(''); setPort(''); setPortId('');
     setQuantity(''); setPrice(''); setPayment(''); setDeliveryTerm(''); setStorageDays(''); setTransitTolerance(''); setMarketPrice(''); setMarketStatus(''); setMessage('');
     setVesselName(''); setRemarks(''); setSalesPerson(''); setBrokerName('');
     setResult(null);
@@ -111,7 +112,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
         origin,
         make,
         packaging,
-        port,
+        port: portId || port,
         quantity: qty,
         price: priceVal,
         payment,
@@ -210,6 +211,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
           <div className="fg">
             <label className="fl">Port <span className="req">*</span></label>
             <PortAutocompleteInput id="sf-port" value={port} onChange={setPort}
+              onSelect={(id, name) => { setPortId(id); setPort(name); }}
               placeholder="Search or add port…" />
           </div>
           <div className="fg">
