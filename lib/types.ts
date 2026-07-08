@@ -1,3 +1,5 @@
+import type { PortValue } from './api';
+
 export type AvailabilityType = 'Ready' | 'Incoming' | '';
 export type MarketStatusType = string;
 
@@ -125,7 +127,7 @@ export interface SaleEntry {
   price: number;
   payment: string | null;
   deliveryTerm: string | null;
-  port: string | null;
+  port: PortValue;
   marketPrice: number | null;
   marketStatus: string | null;
   storageDays: number | null;

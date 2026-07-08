@@ -6,7 +6,7 @@ import SaleForm from '@/components/SaleForm';
 import SaleDetailModal from '@/components/SaleDetailModal';
 import SaleEditModal from '@/components/SaleEditModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchAllSales, createSale, getProductName } from '@/lib/api';
+import { fetchFeedOptions, fetchAllSales, createSale, getProductName, getPortName } from '@/lib/api';
 import type { SaleEntry, FeedOptions, SaleFormPayload } from '@/lib/types';
 
 const EMPTY_OPTIONS: FeedOptions = {
@@ -193,7 +193,7 @@ export default function SalesPage() {
                         ₹{sale.price.toLocaleString('en-IN')}
                       </td>
                       <td style={{ padding: '16px', fontSize: '14px' }}>{sale.deliveryTerm ?? '—'}</td>
-                      <td style={{ padding: '16px', fontSize: '14px' }}>{sale.port ?? '—'}</td>
+                      <td style={{ padding: '16px', fontSize: '14px' }}>{getPortName(sale.port)}</td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <StatusBadge status={sale.status} />
                       </td>

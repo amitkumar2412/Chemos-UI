@@ -5,7 +5,7 @@ import Modal from '@/components/Modal';
 import SaleEntryCard from '@/components/SaleEntryCard';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchAllPurchases, createPunch, getProductName } from '@/lib/api';
+import { fetchFeedOptions, fetchAllPurchases, createPunch, getProductName, getPortName } from '@/lib/api';
 import type { PurchaseOrder } from '@/lib/api';
 import type { FeedOptions, SalePunchPayload } from '@/lib/types';
 
@@ -155,7 +155,7 @@ export default function PurchasesPage() {
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.quantity?.toLocaleString('en-IN') ?? '—'} MT</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>₹ {entry.priceInr?.toLocaleString('en-IN') ?? '—'}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.deliveryTerm}</td>
-                    <td style={{ padding: '16px', fontSize: '14px' }}>{entry.dischargePorts}</td>
+                    <td style={{ padding: '16px', fontSize: '14px' }}>{getPortName(entry.port)}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <StatusBadge status={entry.status} />
                     </td>

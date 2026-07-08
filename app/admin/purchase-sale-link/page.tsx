@@ -63,7 +63,7 @@ function CompareModal({
 
   const rows: { label: string; p: React.ReactNode; s: React.ReactNode }[] = [
     { label: 'Product',         p: getProductName(purchase.product), s: getProductName(sale.product) },
-    { label: 'Load Port',       p: getPortName(purchase.port), s: sale.port ?? '—' },
+    { label: 'Load Port',       p: getPortName(purchase.port), s: getPortName(sale.port) },
     { label: 'QTY (MT)',        p: <span style={mono}>{purchase.quantity.toLocaleString('en-IN')}</span>, s: <span style={mono}>{sale.quantity.toLocaleString('en-IN')}</span> },
     { label: 'Delivery Term',   p: purchase.deliveryTerm ?? '—', s: sale.deliveryTerm ?? '—' },
     { label: 'Price (FC)',       p: <span style={monoBold}>{purchase.priceFc} {purchase.currency ?? 'USD'}</span>, s: '—' },
@@ -860,7 +860,7 @@ export default function PurchaseSaleLinkPage() {
                                 <MarketStatusBadge status={s.marketStatus} />
                               </td>
                               <td style={{ padding: '12px 14px', fontSize: '13px', color: 'var(--gray)' }}>
-                                {s.port || '—'}
+                                {getPortName(s.port)}
                               </td>
                               <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                                 {linkedCount > 0 && (

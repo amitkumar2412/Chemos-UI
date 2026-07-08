@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
-import { fetchSaleById, getProductName } from '@/lib/api';
+import { fetchSaleById, getProductName, getPortName } from '@/lib/api';
 import type { SaleEntry } from '@/lib/types';
 
 interface Props {
@@ -95,7 +95,7 @@ export default function SaleDetailModal({ saleId, onClose }: Props) {
           <Section title="Shipment & Logistics">
             <Field label="Quantity (MT)" value={`${fmt(order.quantity)} MT`} />
             <Field label="Delivery Term" value={order.deliveryTerm} />
-            <Field label="Port" value={order.port} />
+            <Field label="Port" value={getPortName(order.port)} />
             <Field label="Storage Days" value={order.storageDays} />
             <Field label="Transit Tolerance" value={order.transitTolerance} />
             <Field label="Vessel Name" value={order.vesselName} />

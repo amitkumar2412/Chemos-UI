@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { fetchTodayPunches, fetchTodaySales, getProductName } from '@/lib/api';
+import { fetchTodayPunches, fetchTodaySales, getProductName, getPortName } from '@/lib/api';
 import type { PunchEntry, SaleEntry } from '@/lib/types';
 
 export default function AdminDetailPage() {
@@ -258,7 +258,7 @@ export default function AdminDetailPage() {
 
               <div>
                 <div style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '4px' }}>Port</div>
-                <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.port}</div>
+                <div style={{ fontSize: '16px', fontWeight: '600' }}>{getPortName(saleOrder.port)}</div>
               </div>
 
               <div>
