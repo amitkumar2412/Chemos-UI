@@ -112,7 +112,7 @@ export default function PurchaseDetailModal({ purchaseId, onClose }: Props) {
             <Field label="Shipment" value={order.shipment} />
             <Field label="Delivery Term" value={order.deliveryTerm} />
             <Field label="Port" value={getPortName(order.port)} />
-            <Field label="Discharge Ports" value={order.dischargePorts} />
+            <Field label="Discharge Port" value={getPortName(order.dischargePort)} />
             <Field label="ETD" value={order.etd} />
             <Field label="ETA" value={order.eta} />
           </Section>

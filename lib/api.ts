@@ -188,7 +188,7 @@ export interface PurchaseOrder {
   sws: number;
   add: number;
   otherExpense: number;
-  dischargePorts: string;
+  dischargePort: PortValue;
   priceType: string;
   paymentTerm: PaymentTermValue;
   etd: string;

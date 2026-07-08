@@ -268,10 +268,6 @@ function CompareModal({
 
   const rows: { label: string; render: (o: CompareItem) => React.ReactNode }[] = [
     {
-      label: 'Load Port',
-      render: o => portMap.get(o.id) ?? '—',
-    },
-    {
       label: 'QTY (MT)',
       render: o => <span style={mono}>{(o.quantity ?? 0).toLocaleString()}</span>,
     },
@@ -337,25 +333,39 @@ function CompareModal({
       render: () => null,
     },
     {
+      label: 'Load Port',
+      render: o => portMap.get(o.id) ?? '—',
+    },
+    {
+      label: 'Discharge Port',
+      render: o => getPortName(purchaseMap.get(o.id)?.dischargePort ?? null),
+    },
+    {
       label: 'Voyage Days',
       render: (o: CompareItem) => (
         <span style={mono}>{o.transit_days ?? '—'} days</span>
       ),
     },
     {
+      label: 'Voyage Cost',
+      render: (o: CompareItem) => (
+        <span style={{ ...monoBold, color: '#ed8936' }}>
+          + ₹ {fmt(voyageCost(o))}
+        </span>
+      ),
+    },
+    {
+      label: 'Payment Terms',
+      render: (o: CompareItem) => {
+        const po = purchaseMap.get(o.id);
+        return <span style={mono}>{getPaymentTermName(po?.paymentTerm ?? null)}</span>;
+      },
+    },
+    {
       label: 'Payment Days',
       render: (o: CompareItem) => {
         const po = purchaseMap.get(o.id);
-        return (
-          <span style={mono}>
-            {po?.paymentDays ?? '—'} days
-            {po?.paymentTerm ? (
-              <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--gray)', fontFamily: 'Montserrat,sans-serif', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                {getPaymentTermName(po.paymentTerm)}
-              </span>
-            ) : null}
-          </span>
-        );
+        return <span style={mono}>{po?.paymentDays ?? '—'} days</span>;
       },
     },
     {
@@ -369,14 +379,6 @@ function CompareModal({
           </span>
         );
       },
-    },
-    {
-      label: 'Voyage Cost',
-      render: (o: CompareItem) => (
-        <span style={{ ...monoBold, color: '#ed8936' }}>
-          + ₹ {fmt(voyageCost(o))}
-        </span>
-      ),
     },
     {
       label: 'Total Cost / MT',
@@ -437,6 +439,13 @@ function CompareModal({
                 row.label === '──' ? (
                   <tr key="divider">
                     <td colSpan={purchases.length + 1} style={{ padding: '4px 0', borderBottom: '2px solid var(--border)' }} />
+                  </tr>
+                ) : row.label === 'Total Cost / MT' ? (
+                  <tr key={row.label} style={{ background: 'var(--navy-light)', boxShadow: 'inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border)' }}>
+                    <td style={{ fontWeight: 800 }}>{row.label}</td>
+                    {purchases.map(o => (
+                      <td key={o.id}>{row.render(o)}</td>
+                    ))}
                   </tr>
                 ) : (
                   <tr key={row.label}>

@@ -25,7 +25,7 @@ interface SaleEntryCardProps {
 }
 
 
-const DELIVERY_TERMS = ['CIF', 'CFR', 'FOB'];
+const DELIVERY_TERMS = ['CIF', 'CFR', 'FOB' ,'FOR DELIVERED', 'EX-WORKS' ];
 const PURCHASE_TYPES = ['Import', 'HSS', 'Local', 'Tow'];
 
 

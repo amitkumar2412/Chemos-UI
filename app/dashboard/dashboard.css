@@ -590,9 +590,9 @@
 }
 .db-ctrl-btn:hover { border-color: rgba(255,255,255,.14); color: var(--white); }
 
-/* ICC Table + Rail */
-.db-icc-main { display: grid; grid-template-columns: 1fr 300px; min-height: 0; }
-.db-tbl-region { padding: 0; border-right: 1px solid var(--border); overflow: auto; max-height: 360px; }
+/* ICC Table (full-width; detail rail now opens as a popup — see .db-rail-modal-*) */
+.db-icc-main { display: grid; grid-template-columns: 1fr; min-height: 0; }
+.db-tbl-region { padding: 0; overflow: auto; max-height: 360px; }
 
 table.db-inv { width: 100%; border-collapse: collapse; font-size: 11px; }
 table.db-inv thead th {
@@ -625,9 +625,21 @@ table.db-inv tbody td { padding: 11px 12px; vertical-align: middle; }
 .db-status-pill.warn     { background: rgba(244,162,97,.14); color: var(--gold);  }
 .db-status-pill.critical { background: rgba(230,57,70,.18);  color: var(--red);   }
 
-/* Rail (detail panel) */
+/* Rail (detail panel) — rendered inside a popup modal */
+.db-rail-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500; padding: 24px;
+}
+.db-rail-modal {
+  width: 100%; max-width: 420px; max-height: 88vh;
+  border-radius: 14px; border: 1px solid var(--border-light);
+  box-shadow: 0 24px 64px rgba(0,0,0,.55);
+  animation: cmp-fade-in .2s ease;
+  overflow: hidden;
+}
 .db-rail {
-  padding: 16px 18px; overflow: auto; max-height: 480px;
+  padding: 16px 18px; overflow: auto; max-height: 88vh;
   background: linear-gradient(180deg, var(--navy-light), var(--navy-mid));
 }
 .db-rail-empty {

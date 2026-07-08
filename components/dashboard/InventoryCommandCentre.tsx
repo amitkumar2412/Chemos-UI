@@ -394,19 +394,16 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
               </tbody>
             </table>
           </div>
-
-          {/* Rail */}
-          {selectedItem ? (
-            <DetailRail item={selectedItem} onClose={() => setSelected(null)} />
-          ) : (
-            <div className="db-rail">
-              <div className="db-rail-empty">
-                <div className="db-rail-empty-icon">📋</div>
-                <div className="db-rail-empty-text">Select a row to see pricing and 30-day trend</div>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Detail popup */}
+        {selectedItem && (
+          <div className="db-rail-modal-overlay" onClick={() => setSelected(null)}>
+            <div className="db-rail-modal" onClick={(e) => e.stopPropagation()}>
+              <DetailRail item={selectedItem} onClose={() => setSelected(null)} />
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="db-icc-foot">
