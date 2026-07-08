@@ -57,7 +57,7 @@ export default function DashboardShell() {
             <KpiGrid kpis={MOCK_KPIS} currency={currency} />
 
             {/* Pipeline */}
-            <PipelineSlider stages={MOCK_PIPELINE} />
+            {/* <PipelineSlider stages={MOCK_PIPELINE} /> */}
 
             {/* ICC + Alerts row */}
             <div className="db-grid-icc-alerts">
@@ -66,10 +66,10 @@ export default function DashboardShell() {
             </div>
 
             {/* Revenue + Forecast charts */}
-            <div className="db-grid-2">
+            {/* <div className="db-grid-2">
               <RevenueChartCard data={MOCK_REVENUE} />
               <ForecastChartCard />
-            </div>
+            </div> */}
           </>
         )}
 

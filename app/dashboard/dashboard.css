@@ -592,7 +592,14 @@
 
 /* ICC Table (full-width; detail rail now opens as a popup — see .db-rail-modal-*) */
 .db-icc-main { display: grid; grid-template-columns: 1fr; min-height: 0; }
-.db-tbl-region { padding: 0; overflow: auto; max-height: 360px; }
+.db-tbl-region {
+  padding: 0; overflow: auto; max-height: 360px;
+  scrollbar-width: thin; scrollbar-color: var(--gray-dim) transparent;
+}
+.db-tbl-region::-webkit-scrollbar { width: 8px; height: 8px; }
+.db-tbl-region::-webkit-scrollbar-track { background: transparent; }
+.db-tbl-region::-webkit-scrollbar-thumb { background: var(--gray-dim); border-radius: 4px; }
+.db-tbl-region::-webkit-scrollbar-thumb:hover { background: var(--gray); }
 
 table.db-inv { width: 100%; border-collapse: collapse; font-size: 11px; }
 table.db-inv thead th {
@@ -609,6 +616,23 @@ table.db-inv tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); cursor: 
 table.db-inv tbody tr:hover { background: rgba(255,255,255,.025); }
 table.db-inv tbody tr.selected { background: rgba(46,196,182,.14); border-left: 2px solid var(--teal); }
 table.db-inv tbody td { padding: 11px 12px; vertical-align: middle; }
+
+/* Sticky Product/Port columns — stay pinned while the rest of the table scrolls horizontally */
+table.db-inv th.db-col-sticky,
+table.db-inv td.db-col-sticky {
+  position: sticky;
+  min-width: 150px;
+  max-width: 150px;
+}
+table.db-inv th.db-col-sticky-1,
+table.db-inv td.db-col-sticky-1 { left: 0; }
+table.db-inv th.db-col-sticky-2,
+table.db-inv td.db-col-sticky-2 { left: 150px; }
+table.db-inv th.db-col-sticky { z-index: 6; }
+table.db-inv td.db-col-sticky { z-index: 2; background: var(--navy); }
+table.db-inv td.db-col-sticky-2 { box-shadow: 3px 0 6px -4px rgba(0,0,0,.35); }
+table.db-inv tbody tr:hover td.db-col-sticky { background: var(--navy-light); }
+table.db-inv tbody tr.selected td.db-col-sticky { background: rgba(46,196,182,.14); }
 
 .db-row-name { font-weight: 700; font-size: 11.5px; display: flex; align-items: center; gap: 8px; }
 .db-row-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }

@@ -333,7 +333,6 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                   {([
                     ['item',             'Product'],
                     ['port',             'Port'],
-                    ['company',          'Company'],
                     ['physicalStock',    'Physical Stock '],
                     ['physicalSold',     'Physical Sold'],
                     ['physical',         'Physical Unsold '],
@@ -342,12 +341,14 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                     ['incomingSales',    'Incoming Sales'],
                     ['ready',            'Incoming Balance'],
                     ['totalStock',       'Total Stock'],
+                    ['company',          'Company'],
                   ] as [string, string][]).map(([col, label]) => {
                     const isNum = ['physicalStock','physicalSold','physical','incomingStock','purchaseIncoming','incomingSales','ready','totalStock'].includes(col);
+                    const stickyClass = col === 'item' ? 'db-col-sticky db-col-sticky-1' : col === 'port' ? 'db-col-sticky db-col-sticky-2' : '';
                     return (
                       <th
                         key={col}
-                        className={isNum ? 'num' : ''}
+                        className={[isNum ? 'num' : '', stickyClass].filter(Boolean).join(' ')}
                         onClick={() => toggleSort(col as SortKey)}
                       >
                         {label}
@@ -366,14 +367,13 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                     className={selectedItem?.item === row.item && selectedItem?.port === row.port ? 'selected' : ''}
                     onClick={() => setSelected(selectedItem?.item === row.item && selectedItem?.port === row.port ? null : row)}
                   >
-                    <td>
+                    <td className="db-col-sticky db-col-sticky-1">
                       <div className="db-row-name">
                         <span className={`db-row-dot ${row.status}`} />
                         {row.item}
                       </div>
                     </td>
-                    <td>{row.port}</td>
-                    <td>{row.company}</td>
+                    <td className="db-col-sticky db-col-sticky-2">{row.port}</td>
                     <td className="num">{row.physicalStock ?? '—'}</td>
                     <td className="num">{row.physicalSold ?? '—'}</td>
                     <td className="num">{row.physical}</td>
@@ -382,6 +382,7 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                     <td className="num">{row.incomingSales ?? '—'}</td>
                     <td className="num">{row.ready}</td>
                     <td className="num">{row.totalStock ?? '—'}</td>
+                    <td>{row.company}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (

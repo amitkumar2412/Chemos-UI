@@ -13,25 +13,26 @@ const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','D
 // ─── KPIs ─────────────────────────────────────────────────────────────────
 export const MOCK_KPIS: Kpi[] = [
   {
-    id: 'rev', label: 'Total Revenue', unit: 'currency', baseValue: 1247500000,
+    id: 'rev', label: 'Total Revenue', unit: 'currency', baseValue: 0,
     change: 12.4, direction: 'up', vs: 'vs prev. month',
     details: [['Domestic','98.2 Cr'], ['Export','26.5 Cr'], ['Tolling','0.08 Cr']],
     spark: [85,92,78,95,88,102,110,98,115,108,120,124],
   },
-  {
-    id: 'margin', label: 'Gross Margin', unit: 'percent', baseValue: '34.2%',
-    change: 1.8, direction: 'up', vs: 'vs prev. month',
-    details: [['COGS','82.1 Cr'], ['Material %','52.3%'], ['Labor %','13.5%']],
-    spark: [31,30.5,32,31.8,33,32.5,33.5,34,33.2,34.5,33.8,34.2],
-  },
-  {
-    id: 'orders', label: 'Open Orders', unit: 'count', baseValue: 347,
+   {
+    id: 'orders', label: 'Total Cost', unit: 'count', baseValue: 0,
     change: 8.2, direction: 'up', vs: 'vs prev. month',
     details: [['Domestic','284'], ['Export','63'], ['Avg Value','3.6 L']],
     spark: [280,295,310,290,305,320,315,330,325,340,335,347],
   },
   {
-    id: 'alerts', label: 'Active Alerts', unit: 'count', baseValue: 12,
+    id: 'margin', label: 'Gross Margin', unit: 'percent', baseValue: '0',
+    change: 1.8, direction: 'up', vs: 'vs prev. month',
+    details: [['COGS','82.1 Cr'], ['Material %','52.3%'], ['Labor %','13.5%']],
+    spark: [31,30.5,32,31.8,33,32.5,33.5,34,33.2,34.5,33.8,34.2],
+  },
+ 
+  {
+    id: 'alerts', label: 'CashFlow', unit: 'count', baseValue: 0,
     change: 3, direction: 'down', vs: 'vs yesterday',
     details: [['Critical','3'], ['Warning','5'], ['Watch','4']],
     spark: [18,15,14,16,13,15,12,14,11,13,10,12],

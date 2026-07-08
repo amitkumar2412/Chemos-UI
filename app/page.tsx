@@ -44,15 +44,15 @@ export default function HomePage() {
       {activeModule === 'overview' && (
         <>
           <KpiGrid kpis={MOCK_KPIS} currency={currency} />
-          <PipelineSlider stages={MOCK_PIPELINE} />
+          {/* <PipelineSlider stages={MOCK_PIPELINE} /> */}
           <div className="db-grid-icc-alerts">
             <InventoryCommandCentre items={MOCK_ICC} currency={currency} />
             <AlertsPanel alerts={MOCK_ALERTS} />
           </div>
-          <div className="db-grid-2">
+          {/* <div className="db-grid-2">
             <RevenueChartCard data={MOCK_REVENUE} />
             <ForecastChartCard />
-          </div>
+          </div> */}
         </>
       )}
 
