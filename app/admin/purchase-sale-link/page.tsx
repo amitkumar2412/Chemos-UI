@@ -3,10 +3,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  fetchAllPurchases, fetchAllSales, getPortName, getProductName, getPaymentTermName,
+  fetchAllPurchases, fetchAllSalesComplete, getPortName, getProductName, getPaymentTermName,
   createLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks,
-  getOriginName, getProductId,
-  type PurchaseOrder, type SalePurchaseLink,
+  getOriginName, getProductId, getStatusName, getStatusId,
+  type PurchaseOrder, type SalePurchaseLink, type StatusValue,
 } from '@/lib/api';
 import type { SaleEntry } from '@/lib/types';
 import { useAppSelector } from '@/lib/redux/hooks';
@@ -392,16 +392,16 @@ export default function PurchaseSaleLinkPage() {
 
   useEffect(() => {
     // Fetch all purchases + all sales to build the unified product list
-    Promise.all([fetchAllPurchases(), fetchAllSales(0, 1000)]).then(([pAll, sAll]) => {
+    Promise.all([fetchAllPurchases(), fetchAllSalesComplete()]).then(([pAll, sAll]) => {
       const productsMap = new Map<string, ProductOption>();
-      
+
       pAll.forEach((p) => {
         const id = getProductId(p.product);
         const name = getProductName(p.product);
         if (id && name) productsMap.set(id, { id, name });
       });
-      
-      sAll.content.forEach((s) => {
+
+      sAll.forEach((s) => {
         const id = getProductId(s.product);
         const name = getProductName(s.product);
         if (id && name) productsMap.set(id, { id, name });
@@ -423,10 +423,10 @@ export default function PurchaseSaleLinkPage() {
     try {
       const [pData, sData] = await Promise.all([
         fetchAllPurchases({ status: 'CONFIRMED', product }),
-        fetchAllSales(0, 500),
+        fetchAllSalesComplete(),
       ]);
       setPurchases(pData);
-      setSales(sData.content.filter((s) => getProductId(s.product) === product && s.status?.toUpperCase() === 'CONFIRMED'));
+      setSales(sData.filter((s) => getProductId(s.product) === product && getStatusId(s.status).toUpperCase() === 'CONFIRMED'));
     } catch {
       showToast('Failed to load orders', false);
     } finally {
@@ -1012,21 +1012,22 @@ function Step({ num, label, done }: { num: number; label: string; done: boolean 
   );
 }
 
-function StatusBadge({ status }: { status?: string | null }) {
-  const s = (status ?? 'UNKNOWN').toUpperCase();
+function StatusBadge({ status }: { status?: StatusValue }) {
+  const name = getStatusName(status);
+  const id = (getStatusId(status) || name).toUpperCase();
   const map: Record<string, { bg: string; color: string }> = {
     CONFIRMED:   { bg: 'rgba(72,187,120,0.15)', color: '#48bb78' },
     UNCONFIRMED: { bg: 'rgba(237,137,54,0.15)', color: '#ed8936' },
     CANCELLED:   { bg: 'rgba(245,101,101,0.15)', color: '#f56565' },
   };
-  const style = map[s] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
+  const style = map[id] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
   return (
     <span style={{
       display: 'inline-block', padding: '2px 8px', borderRadius: '999px',
       fontSize: '10px', fontWeight: '700', letterSpacing: '0.05em',
       textTransform: 'uppercase', background: style.bg, color: style.color,
     }}>
-      {s}
+      {name}
     </span>
   );
 }

@@ -6,6 +6,7 @@ import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
+import SalespersonAutocompleteInput from './SalespersonAutocompleteInput';
 import { fetchMarketStatuses } from '@/lib/api';
 import type {
   FeedOptions,
@@ -50,6 +51,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
   const [vesselName, setVesselName] = useState(initialData?.vesselName || '');
   const [remarks, setRemarks] = useState(initialData?.remarks || '');
   const [salesPerson, setSalesPerson] = useState(initialData?.salesPerson || '');
+  const [salesPersonId, setSalesPersonId] = useState('');
   const [brokerName, setBrokerName] = useState(initialData?.brokerName || '');
 
   // UI state
@@ -80,7 +82,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
     setSaleType('Export');
     setCompanyFrom(''); setCompanyTo(''); setProduct(''); setProductId(''); setOrigin(''); setMake(''); setPackaging(''); setPort(''); setPortId('');
     setQuantity(''); setPrice(''); setPayment(''); setDeliveryTerm(''); setStorageDays(''); setTransitTolerance(''); setMarketPrice(''); setMarketStatus(''); setMessage('');
-    setVesselName(''); setRemarks(''); setSalesPerson(''); setBrokerName('');
+    setVesselName(''); setRemarks(''); setSalesPerson(''); setSalesPersonId(''); setBrokerName('');
     setResult(null);
   };
 
@@ -125,7 +127,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
         message,
         vesselName,
         remarks,
-        salesPerson,
+        salesPerson: salesPersonId || salesPerson,
         brokerName,
       });
       setResult({
@@ -278,7 +280,10 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
           </div>
           <div className="fg">
             <label className="fl">Sales Person</label>
-            <input className="fi" value={salesPerson} onChange={e => setSalesPerson(e.target.value)} placeholder="Name" />
+            <SalespersonAutocompleteInput id="sf-sales-person" value={salesPerson}
+              onChange={val => { setSalesPerson(val); setSalesPersonId(''); }}
+              onSelect={(spId) => setSalesPersonId(spId)}
+              placeholder="Search name…" />
           </div>
           <div className="fg">
             <label className="fl">Broker Name</label>

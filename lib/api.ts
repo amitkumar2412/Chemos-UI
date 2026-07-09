@@ -10,6 +10,7 @@ import type {
   MarketStatusOption,
   PaymentTermOption,
   ProductValue,
+  PurchaseFormPayload,
 } from './types';
 import { apiClient, tokenStorage } from './apiClient';
 
@@ -76,8 +77,24 @@ export async function createSale(
   return apiClient.post<CreateSaleResponse>('/sales/create/sales_order', payload);
 }
 
-export async function fetchAllSales(page = 0, size = 10): Promise<SaleListResponse> {
-  return apiClient.get<SaleListResponse>('/sales/allSales', { params: { page, size } });
+export async function fetchAllSales(page = 0, size = 10, status?: string): Promise<SaleListResponse> {
+  const params: Record<string, any> = { page, size };
+  if (status) params.status = status;
+  return apiClient.get<SaleListResponse>('/sales/allSales', { params });
+}
+
+/** Pages through /sales/allSales until the last page, returning every record. */
+export async function fetchAllSalesComplete(status?: string): Promise<SaleEntry[]> {
+  const all: SaleEntry[] = [];
+  let page = 0;
+  const size = 200;
+  while (true) {
+    const data = await fetchAllSales(page, size, status);
+    all.push(...data.content);
+    if (data.last || data.content.length < size) break;
+    page += 1;
+  }
+  return all;
 }
 
 export async function fetchSaleById(id: string): Promise<SaleEntry> {
@@ -108,6 +125,12 @@ export function getPortName(port: PortValue): string {
   if (!port) return '—';
   if (typeof port === 'string') return port || '—';
   return port.displayName || '—';
+}
+
+export function getPortId(port: PortValue): string {
+  if (!port) return '';
+  if (typeof port === 'string') return port;
+  return port.id || '';
 }
 
 export function getProductName(product: ProductValue): string {
@@ -142,6 +165,12 @@ export function getPaymentTermName(term: PaymentTermValue): string {
   return term.paymentTerm || '—';
 }
 
+export function getPaymentTermId(term: PaymentTermValue): string {
+  if (!term) return '';
+  if (typeof term === 'string') return term;
+  return term.id != null ? String(term.id) : '';
+}
+
 // Backend may return origin as a full entity object instead of a plain string
 export interface OriginEntity {
   id: string;
@@ -157,6 +186,32 @@ export function getOriginName(origin: OriginValue): string {
   if (!origin) return '—';
   if (typeof origin === 'string') return origin || '—';
   return origin.displayName || '—';
+}
+
+export function getOriginId(origin: OriginValue): string {
+  if (!origin) return '';
+  if (typeof origin === 'string') return origin;
+  return origin.id || '';
+}
+
+// Backend may return status as a full entity object instead of a plain string
+export interface StatusEntity {
+  id: string;
+  name: string;
+}
+
+export type StatusValue = string | StatusEntity | null;
+
+export function getStatusName(status: StatusValue | undefined): string {
+  if (!status) return 'UNKNOWN';
+  if (typeof status === 'string') return status || 'UNKNOWN';
+  return status.name || status.id || 'UNKNOWN';
+}
+
+export function getStatusId(status: StatusValue | undefined): string {
+  if (!status) return '';
+  if (typeof status === 'string') return status;
+  return status.id || '';
 }
 
 export interface PurchaseOrder {
@@ -193,7 +248,50 @@ export interface PurchaseOrder {
   paymentTerm: PaymentTermValue;
   etd: string;
   eta: string;
-  status?: string | null;
+  status?: StatusValue;
+}
+
+export interface PurchaseListResponse {
+  content: PurchaseOrder[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+/** Fetches a single backend page — use this for UI-driven pagination. */
+export async function fetchPurchasesPage(
+  page = 0,
+  size = 10,
+  params?: { status?: string; product?: string }
+): Promise<PurchaseListResponse> {
+  const query: Record<string, string | number> = { page, size };
+  if (params?.status) query.status = params.status;
+  if (params?.product) query.product = params.product;
+
+  const data = await apiClient.get<PurchaseOrder[] | PurchaseListResponse>(
+    '/purchase/allPurchase',
+    { params: query }
+  );
+
+  if (Array.isArray(data)) {
+    return {
+      content: data,
+      totalElements: data.length,
+      totalPages: 1,
+      number: 0,
+      size: data.length,
+      first: true,
+      last: true,
+      numberOfElements: data.length,
+      empty: data.length === 0,
+    };
+  }
+  return data;
 }
 
 export async function fetchAllPurchases(params?: {
@@ -203,22 +301,63 @@ export async function fetchAllPurchases(params?: {
   const query: Record<string, string> = {};
   if (params?.status) query.status = params.status;
   if (params?.product) query.product = params.product;
-  return apiClient.get<PurchaseOrder[]>(
-    '/purchase/allPurchase',
-    Object.keys(query).length ? { params: query } : undefined
-  );
+
+  // Backend paginates this endpoint (defaults to a small page size when no
+  // page/size is sent), so a single request can silently drop records past
+  // the first page. Page through it here so callers always get everything.
+  const all: PurchaseOrder[] = [];
+  let page = 0;
+  const size = 200;
+  while (true) {
+    const data = await apiClient.get<
+      PurchaseOrder[] | { content: PurchaseOrder[]; totalPages?: number; last?: boolean }
+    >('/purchase/allPurchase', { params: { ...query, page, size } });
+
+    if (Array.isArray(data)) return data;
+
+    const content = data.content ?? [];
+    all.push(...content);
+    if (data.last || content.length < size || (data.totalPages != null && page + 1 >= data.totalPages)) {
+      break;
+    }
+    page += 1;
+  }
+  return all;
 }
 
 export async function fetchPurchaseById(id: string): Promise<PurchaseOrder> {
   return apiClient.get<PurchaseOrder>(`/purchase/${id}`);
 }
 
+export async function updatePurchase(
+  id: string,
+  payload: PurchaseFormPayload & { status?: string | null }
+): Promise<PurchaseOrder> {
+  return apiClient.put<PurchaseOrder>(`/purchase/${id}`, payload);
+}
+
 export async function confirmPurchase(id: string): Promise<PurchaseOrder> {
   return apiClient.patch<PurchaseOrder>(`/purchase/${id}/confirm`);
 }
 
+export async function unconfirmPurchase(id: string): Promise<PurchaseOrder> {
+  return apiClient.patch<PurchaseOrder>(`/purchase/${id}/unconfirm`);
+}
+
+export async function cancelPurchase(id: string): Promise<PurchaseOrder> {
+  return apiClient.patch<PurchaseOrder>(`/purchase/${id}/cancel`);
+}
+
 export async function confirmSale(id: string): Promise<SaleEntry> {
   return apiClient.patch<SaleEntry>(`/sales/${id}/confirm`);
+}
+
+export async function unconfirmSale(id: string): Promise<SaleEntry> {
+  return apiClient.patch<SaleEntry>(`/sales/${id}/unconfirm`);
+}
+
+export async function cancelSale(id: string): Promise<SaleEntry> {
+  return apiClient.patch<SaleEntry>(`/sales/${id}/cancel`);
 }
 
 export interface CompareItem {

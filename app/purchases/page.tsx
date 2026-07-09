@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import Modal from '@/components/Modal';
 import SaleEntryCard from '@/components/SaleEntryCard';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
+import PurchaseEditModal from '@/components/PurchaseEditModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchAllPurchases, createPunch, getProductName, getPortName } from '@/lib/api';
-import type { PurchaseOrder } from '@/lib/api';
+import { fetchFeedOptions, fetchPurchasesPage, createPunch, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
+import type { PurchaseOrder, StatusValue } from '@/lib/api';
 import type { FeedOptions, SalePunchPayload } from '@/lib/types';
 
 const EMPTY_OPTIONS: FeedOptions = {
@@ -20,18 +21,26 @@ const EMPTY_OPTIONS: FeedOptions = {
   shipments: [],
 };
 
+const PAGE_SIZE = 10;
+
 export default function PurchasesPage() {
   const [feedOptions, setFeedOptions] = useState<FeedOptions>(EMPTY_OPTIONS);
   const [entries, setEntries] = useState<PurchaseOrder[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  const loadPurchases = useCallback(async () => {
+  const loadPurchases = useCallback(async (page: number) => {
     setLoading(true);
     try {
-      const data = await fetchAllPurchases();
-      setEntries(data);
+      const data = await fetchPurchasesPage(page, PAGE_SIZE);
+      setEntries(data.content);
+      setTotalPages(data.totalPages);
+      setTotalElements(data.totalElements);
     } catch (error) {
       console.error('Failed to load purchases:', error);
     } finally {
@@ -41,15 +50,23 @@ export default function PurchasesPage() {
 
   useEffect(() => {
     fetchFeedOptions().then(setFeedOptions).catch(() => {});
-    loadPurchases();
+    loadPurchases(0);
   }, [loadPurchases]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    loadPurchases(page);
+  };
 
   const handleSubmitPunch = async (payload: SalePunchPayload) => {
     const data = await createPunch(payload);
     setIsCreateModalOpen(false);
-    await loadPurchases();
+    await loadPurchases(currentPage);
     return data;
   };
+
+  const startEntry = currentPage * PAGE_SIZE + 1;
+  const endEntry = Math.min(currentPage * PAGE_SIZE + entries.length, totalElements);
 
   return (
     <div style={{ padding: '0', height: '100%' }}>
@@ -131,6 +148,7 @@ export default function PurchasesPage() {
             </button>
           </div>
         ) : (
+          <>
           <div className="table-scroll" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead>
@@ -164,6 +182,7 @@ export default function PurchasesPage() {
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <ActionMenu items={[
                         { label: 'View Details', onClick: () => setViewingId(entry.id) },
+                        { label: 'Edit', onClick: () => setEditingId(entry.id) },
                       ]} />
                     </td>
                   </tr>
@@ -171,6 +190,59 @@ export default function PurchasesPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: '16px',
+              padding: '0 4px',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
+            <span style={{ fontSize: '13px', color: 'var(--gray)' }}>
+              Showing {startEntry}–{endEntry} of {totalElements} orders
+            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <PaginationButton label="«" onClick={() => handlePageChange(0)} disabled={currentPage === 0} />
+              <PaginationButton
+                label="‹"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 0}
+              />
+
+              {buildPageRange(currentPage, totalPages).map((item, i) =>
+                item === '...' ? (
+                  <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--gray)', fontSize: '14px' }}>
+                    …
+                  </span>
+                ) : (
+                  <PaginationButton
+                    key={item}
+                    label={String((item as number) + 1)}
+                    onClick={() => handlePageChange(item as number)}
+                    active={item === currentPage}
+                  />
+                )
+              )}
+
+              <PaginationButton
+                label="›"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages - 1}
+              />
+              <PaginationButton
+                label="»"
+                onClick={() => handlePageChange(totalPages - 1)}
+                disabled={currentPage >= totalPages - 1}
+              />
+            </div>
+          </div>
+          </>
         )}
       </div>
 
@@ -178,6 +250,14 @@ export default function PurchasesPage() {
       <PurchaseDetailModal
         purchaseId={viewingId}
         onClose={() => setViewingId(null)}
+      />
+
+      {/* Purchase Edit Modal */}
+      <PurchaseEditModal
+        purchaseId={editingId}
+        feedOptions={feedOptions}
+        onClose={() => setEditingId(null)}
+        onSaved={() => loadPurchases(currentPage)}
       />
 
       {/* Create Modal */}
@@ -198,14 +278,15 @@ export default function PurchasesPage() {
   );
 }
 
-function StatusBadge({ status }: { status?: string | null }) {
-  const s = status ?? 'UNKNOWN';
+function StatusBadge({ status }: { status?: StatusValue }) {
+  const name = getStatusName(status);
+  const id = getStatusId(status) || name;
   const colorMap: Record<string, { bg: string; color: string }> = {
     CONFIRMED:   { bg: 'rgba(72,187,120,0.15)', color: '#48bb78' },
     UNCONFIRMED: { bg: 'rgba(237,137,54,0.15)', color: '#ed8936' },
     CANCELLED:   { bg: 'rgba(245,101,101,0.15)', color: '#f56565' },
   };
-  const style = colorMap[s.toUpperCase()] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
+  const style = colorMap[id.toUpperCase()] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
   return (
     <span
       style={{
@@ -220,7 +301,64 @@ function StatusBadge({ status }: { status?: string | null }) {
         color: style.color,
       }}
     >
-      {s}
+      {name}
     </span>
   );
+}
+
+function PaginationButton({
+  label,
+  onClick,
+  disabled = false,
+  active = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: '34px',
+        height: '34px',
+        padding: '0 8px',
+        border: `1px solid ${active ? 'var(--blue)' : 'var(--border)'}`,
+        borderRadius: '6px',
+        background: active ? 'var(--blue)' : 'var(--card)',
+        color: active ? 'white' : disabled ? 'var(--gray)' : 'var(--text)',
+        fontSize: '13px',
+        fontWeight: active ? '600' : '400',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        transition: 'all 0.15s',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function buildPageRange(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+
+  const pages: (number | '...')[] = [];
+  const addPage = (p: number) => pages.push(p);
+  const addEllipsis = () => {
+    if (pages[pages.length - 1] !== '...') pages.push('...');
+  };
+
+  addPage(0);
+  if (current > 3) addEllipsis();
+
+  const start = Math.max(1, current - 1);
+  const end = Math.min(total - 2, current + 1);
+  for (let i = start; i <= end; i++) addPage(i);
+
+  if (current < total - 4) addEllipsis();
+  addPage(total - 1);
+
+  return pages;
 }

@@ -6,7 +6,8 @@ import SaleForm from '@/components/SaleForm';
 import SaleDetailModal from '@/components/SaleDetailModal';
 import SaleEditModal from '@/components/SaleEditModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchAllSales, createSale, getProductName, getPortName } from '@/lib/api';
+import { fetchFeedOptions, fetchAllSales, createSale, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
+import type { StatusValue } from '@/lib/api';
 import type { SaleEntry, FeedOptions, SaleFormPayload } from '@/lib/types';
 
 const EMPTY_OPTIONS: FeedOptions = {
@@ -302,14 +303,15 @@ export default function SalesPage() {
   );
 }
 
-function StatusBadge({ status }: { status?: string | null }) {
-  const s = status ?? 'UNKNOWN';
+function StatusBadge({ status }: { status?: StatusValue }) {
+  const name = getStatusName(status);
+  const id = getStatusId(status) || name;
   const colorMap: Record<string, { bg: string; color: string }> = {
     CONFIRMED:   { bg: 'rgba(72,187,120,0.15)', color: '#48bb78' },
     UNCONFIRMED: { bg: 'rgba(237,137,54,0.15)', color: '#ed8936' },
     CANCELLED:   { bg: 'rgba(245,101,101,0.15)', color: '#f56565' },
   };
-  const style = colorMap[s.toUpperCase()] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
+  const style = colorMap[id.toUpperCase()] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
   return (
     <span
       style={{
@@ -324,7 +326,7 @@ function StatusBadge({ status }: { status?: string | null }) {
         textTransform: 'uppercase',
       }}
     >
-      {s}
+      {name}
     </span>
   );
 }

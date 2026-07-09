@@ -6,7 +6,8 @@ import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
-import { fetchSaleById, updateSale, fetchMarketStatuses, getProductName, getPortName } from '@/lib/api';
+import SalespersonAutocompleteInput from './SalespersonAutocompleteInput';
+import { fetchSaleById, updateSale, fetchMarketStatuses, getProductName, getPortName, getStatusId } from '@/lib/api';
 import type { SaleEntry, FeedOptions, MarketStatusType, MarketStatusOption } from '@/lib/types';
 
 interface Props {
@@ -44,6 +45,7 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
   const [vesselName, setVesselName] = useState('');
   const [remarks, setRemarks] = useState('');
   const [salesPerson, setSalesPerson] = useState('');
+  const [salesPersonId, setSalesPersonId] = useState('');
   const [brokerName, setBrokerName] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
@@ -85,6 +87,7 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
         setVesselName(data.vesselName || '');
         setRemarks(data.remarks || '');
         setSalesPerson(data.salesPerson || '');
+        setSalesPersonId('');
         setBrokerName(data.brokerName || '');
       })
       .catch(err => setFetchError(err instanceof Error ? err.message : 'Failed to load order'))
@@ -139,9 +142,9 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
         message: message || '',
         vesselName: vesselName || '',
         remarks: remarks || '',
-        salesPerson: salesPerson || '',
+        salesPerson: salesPersonId || salesPerson || '',
         brokerName: brokerName || '',
-        status: sale.status,
+        status: getStatusId(sale.status) || null,
       });
       onSaved();
       onClose();
@@ -338,11 +341,11 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
                 </div>
                 <div className="fg">
                   <label className="fl">Sales Person</label>
-                  <input
-                    className="fi"
+                  <SalespersonAutocompleteInput
                     value={salesPerson}
-                    onChange={e => setSalesPerson(e.target.value)}
-                    placeholder="Name"
+                    onChange={val => { setSalesPerson(val); setSalesPersonId(''); }}
+                    onSelect={(spId) => setSalesPersonId(spId)}
+                    placeholder="Search name…"
                   />
                 </div>
                 <div className="fg">

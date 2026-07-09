@@ -1,4 +1,4 @@
-import type { PortValue } from './api';
+import type { PortValue, StatusValue } from './api';
 
 export type AvailabilityType = 'Ready' | 'Incoming' | '';
 export type MarketStatusType = string;
@@ -140,7 +140,7 @@ export interface SaleEntry {
   remarks: string | null;
   salesPerson?: string | null;
   brokerName?: string | null;
-  status?: string | null;
+  status?: StatusValue;
 }
 
 export interface SaleFormPayload {
@@ -181,4 +181,40 @@ export interface SaleListResponse {
 
 export interface CreateSaleResponse {
   id: number;
+}
+
+// ── Purchase Edit Form ──────────────────────────────────────────────────────
+
+export interface PurchaseFormPayload {
+  purchaseType?: string;
+  companyTo?: string;
+  companyFrom?: string;
+  product?: string;
+  vesselName?: string;
+  quantity?: number;
+  priceFc?: number;
+  currency?: string;
+  offerUsd?: number;
+  exchangeRate?: number;
+  priceInr?: number;
+  deliveryTerm?: string;
+  paymentDays?: number;
+  port?: string;
+  marketPrice?: number;
+  marketStatus?: string;
+  costPrice?: number;
+  replacementCost?: number;
+  make?: string;
+  packaging?: string;
+  origin?: string;
+  expense?: number;
+  customDuty?: number;
+  sws?: number;
+  add?: number;
+  otherExpense?: number;
+  dischargePort?: string;
+  priceType?: string;
+  paymentTerm?: number;
+  etd?: string;
+  eta?: string;
 }
