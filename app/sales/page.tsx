@@ -74,7 +74,7 @@ export default function SalesPage() {
   };
 
   const startEntry = currentPage * PAGE_SIZE + 1;
-  const endEntry = Math.min(currentPage * PAGE_SIZE + entries.length, totalElements);
+  const endEntry = Math.min(currentPage * PAGE_SIZE + (entries?.length || 0), totalElements);
 
   return (
     <div style={{ padding: '0', height: '100%' }}>
@@ -122,7 +122,7 @@ export default function SalesPage() {
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>
             Loading sales orders...
           </div>
-        ) : entries.length === 0 ? (
+        ) : !entries || entries.length === 0 ? (
           <div
             style={{
               textAlign: 'center',
@@ -175,7 +175,7 @@ export default function SalesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {entries.map((sale) => (
+                  {entries && entries.map((sale) => (
                     <tr
                       key={sale.id}
                       style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
@@ -192,10 +192,10 @@ export default function SalesPage() {
                       <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{sale.companyFrom}</td>
                       <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{getProductName(sale.product)}</td>
                       <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>
-                        {sale.quantity.toLocaleString('en-IN')}
+                        {sale.quantity?.toLocaleString('en-IN') ?? '—'}
                       </td>
                       <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right', fontWeight: '600' }}>
-                        ₹{sale.price.toLocaleString('en-IN')}
+                        ₹{sale.price?.toLocaleString('en-IN') ?? '—'}
                       </td>
                       <td style={{ padding: '16px', fontSize: '14px' }}>{sale.deliveryTerm ?? '—'}</td>
                       <td style={{ padding: '16px', fontSize: '14px' }}>{getPortName(sale.port)}</td>

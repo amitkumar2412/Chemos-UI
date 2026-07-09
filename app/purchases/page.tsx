@@ -66,7 +66,7 @@ export default function PurchasesPage() {
   };
 
   const startEntry = currentPage * PAGE_SIZE + 1;
-  const endEntry = Math.min(currentPage * PAGE_SIZE + entries.length, totalElements);
+  const endEntry = Math.min(currentPage * PAGE_SIZE + (entries?.length || 0), totalElements);
 
   return (
     <div style={{ padding: '0', height: '100%' }}>
@@ -114,7 +114,7 @@ export default function PurchasesPage() {
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>
             Loading purchase orders...
           </div>
-        ) : entries.length === 0 ? (
+        ) : !entries || entries.length === 0 ? (
           <div
             style={{
               textAlign: 'center',
@@ -166,7 +166,7 @@ export default function PurchasesPage() {
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry) => (
+                {entries && entries.map((entry) => (
                   <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{entry.id}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.companyFrom}</td>

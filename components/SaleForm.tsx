@@ -267,7 +267,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
             <label className="fl">Market Status</label>
             <select className="fi" value={marketStatus} onChange={e => setMarketStatus(e.target.value)}>
               <option value="">Select…</option>
-              {marketStatusOptions.map(o => (
+              {Array.isArray(marketStatusOptions) && marketStatusOptions.map(o => (
                 <option key={o.id} value={o.id}>{o.name}</option>
               ))}
             </select>
