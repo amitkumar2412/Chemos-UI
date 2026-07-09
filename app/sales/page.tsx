@@ -160,6 +160,7 @@ export default function SalesPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
                 <thead>
                   <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={TH}>Sale ID</th>
                     <th style={TH}>Date</th>
                     <th style={TH}>Company To</th>
                     <th style={TH}>Company From</th>
@@ -180,6 +181,9 @@ export default function SalesPage() {
                       onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                     >
+                      <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>
+                        {sale.id}
+                      </td>
                       <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>
                         {sale.date}
                       </td>

@@ -135,6 +135,7 @@ export default function PurchasesPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
               <thead>
                 <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>PO ID</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Company From</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Product</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Shipment</th>
@@ -149,6 +150,7 @@ export default function PurchasesPage() {
               <tbody>
                 {entries.map((entry) => (
                   <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{entry.id}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.companyFrom}</td>
                     <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{getProductName(entry.product)}</td>
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{entry.shipment}</td>

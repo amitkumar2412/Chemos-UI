@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
@@ -132,6 +133,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
         ok: true,
         detail: `${product} · ${companyTo} ← ${companyFrom} · Port: ${port}${deliveryTerm ? ' · ' + deliveryTerm : ''}`,
       });
+      toast.success('Sales order created successfully');
       clearForm();
     } catch (err: unknown) {
       setResult({ msg: err instanceof Error ? err.message : 'Submission failed', ok: false });
