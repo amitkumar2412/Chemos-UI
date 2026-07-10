@@ -43,7 +43,7 @@ export default function AutocompleteInput({
   };
 
   const handleFocus = () => {
-    if (!value.trim()) return;
+    if (!value || typeof value !== 'string' || !value.trim()) return;
     const opts = getFiltered(value.trim());
     setFiltered(opts);
     setShowList(opts.length > 0);
@@ -76,7 +76,7 @@ export default function AutocompleteInput({
   };
 
   const renderHighlighted = (opt: string) => {
-    const q = value.trim().toLowerCase();
+    const q = value && typeof value === 'string' ? value.trim().toLowerCase() : '';
     if (!q) return opt;
     const lower = opt.toLowerCase();
     const idx = lower.indexOf(q);

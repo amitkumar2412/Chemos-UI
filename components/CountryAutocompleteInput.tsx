@@ -44,7 +44,7 @@ export default function CountryAutocompleteInput({
   const justSelectedRef = useRef(false);
 
   const search = useCallback(async (query: string) => {
-    if (!query.trim()) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
       setSuggestions([]);
       setShowList(false);
       return;
@@ -79,7 +79,7 @@ export default function CountryAutocompleteInput({
   }, [value, search]);
 
   const handleFocus = () => {
-    if (value.trim() && suggestions.length > 0) setShowList(true);
+    if (value && typeof value === 'string' && value.trim() && suggestions.length > 0) setShowList(true);
   };
 
   const handleBlur = () => {
@@ -111,7 +111,7 @@ export default function CountryAutocompleteInput({
   };
 
   const renderHighlighted = (opt: string) => {
-    const q = value.trim().toLowerCase();
+    const q = value && typeof value === 'string' ? value.trim().toLowerCase() : '';
     if (!q) return opt;
     const lower = opt.toLowerCase();
     const idx = lower.indexOf(q);

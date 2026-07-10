@@ -43,7 +43,7 @@ export default function CompanyAutocompleteInput({
   const justSelectedRef = useRef(false);
 
   const search = useCallback(async (query: string) => {
-    if (!query.trim()) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
       setSuggestions([]);
       setShowList(false);
       return;
@@ -82,7 +82,7 @@ export default function CompanyAutocompleteInput({
   };
 
   const handleFocus = () => {
-    if (value.trim() && suggestions.length > 0) setShowList(true);
+    if (value && typeof value === 'string' && value.trim() && suggestions.length > 0) setShowList(true);
   };
 
   const handleBlur = () => {
@@ -97,7 +97,7 @@ export default function CompanyAutocompleteInput({
   };
 
   const handleCreate = async () => {
-    const name = value.trim();
+    const name = value && typeof value === 'string' ? value.trim() : '';
     if (!name) return;
     setCreating(true);
     setError('');
@@ -115,9 +115,9 @@ export default function CompanyAutocompleteInput({
   };
 
   const exactMatch = suggestions.some(
-    (s) => s.toLowerCase() === value.trim().toLowerCase()
+    (s) => value && typeof value === 'string' && s.toLowerCase() === value.trim().toLowerCase()
   );
-  const showCreate = value.trim().length > 0 && !exactMatch && !loading;
+  const showCreate = value && typeof value === 'string' && value.trim().length > 0 && !exactMatch && !loading;
 
   const allItems = suggestions;
 
@@ -143,7 +143,7 @@ export default function CompanyAutocompleteInput({
   };
 
   const renderHighlighted = (opt: string) => {
-    const q = value.trim().toLowerCase();
+    const q = value && typeof value === 'string' ? value.trim().toLowerCase() : '';
     if (!q) return opt;
     const lower = opt.toLowerCase();
     const idx = lower.indexOf(q);

@@ -85,7 +85,7 @@ export default function PortMultiAutocompleteInput({
   };
 
   const handleCreate = async () => {
-    const name = query.trim();
+    const name = query && typeof query === 'string' ? query.trim() : '';
     if (!name) return;
     setCreating(true);
     setError('');
@@ -102,9 +102,9 @@ export default function PortMultiAutocompleteInput({
   };
 
   const exactMatch = suggestions.some(
-    (s) => s.toLowerCase() === query.trim().toLowerCase()
-  ) || value.some((s) => s.toLowerCase() === query.trim().toLowerCase());
-  const showCreate = query.trim().length > 0 && !exactMatch && !loading;
+    (s) => query && typeof query === 'string' && s.toLowerCase() === query.trim().toLowerCase()
+  ) || value.some((s) => query && typeof query === 'string' && s.toLowerCase() === query.trim().toLowerCase());
+  const showCreate = query && typeof query === 'string' && query.trim().length > 0 && !exactMatch && !loading;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !query && value.length > 0) {
@@ -132,7 +132,7 @@ export default function PortMultiAutocompleteInput({
   };
 
   const renderHighlighted = (opt: string) => {
-    const q = query.trim().toLowerCase();
+    const q = query && typeof query === 'string' ? query.trim().toLowerCase() : '';
     if (!q) return opt;
     const lower = opt.toLowerCase();
     const idx = lower.indexOf(q);
@@ -194,7 +194,7 @@ export default function PortMultiAutocompleteInput({
           autoComplete="off"
           placeholder={value.length === 0 ? placeholder : ''}
           onChange={(e) => { setQuery(e.target.value); setError(''); }}
-          onFocus={() => { if (suggestions.length > 0 || query.trim()) setShowList(true); }}
+          onFocus={() => { if (suggestions.length > 0 || (query && typeof query === 'string' && query.trim())) setShowList(true); }}
           onBlur={() => setTimeout(() => setShowList(false), 150)}
           onKeyDown={handleKeyDown}
           style={{

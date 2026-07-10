@@ -45,7 +45,7 @@ export default function SalespersonAutocompleteInput({
   const justSelectedRef = useRef(false);
 
   const search = useCallback(async (query: string) => {
-    if (!query.trim()) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
       setSuggestions([]);
       setShowList(false);
       return;
@@ -78,7 +78,7 @@ export default function SalespersonAutocompleteInput({
   }, [value, search]);
 
   const handleFocus = () => {
-    if (value.trim() && suggestions.length > 0) setShowList(true);
+    if (value && typeof value === 'string' && value.trim() && suggestions.length > 0) setShowList(true);
   };
 
   const handleBlur = () => {
@@ -112,7 +112,7 @@ export default function SalespersonAutocompleteInput({
   };
 
   const renderHighlighted = (text: string) => {
-    const q = value.trim().toLowerCase();
+    const q = value && typeof value === 'string' ? value.trim().toLowerCase() : '';
     if (!q) return text;
     const lower = text.toLowerCase();
     const idx = lower.indexOf(q);
