@@ -113,14 +113,13 @@ function DetailRail({ item, onClose }: { item: IccItem; onClose: () => void }) {
 
 // ─── Main Component ────────────────────────────────────────────────────────
 interface InventoryCommandCentreProps {
-  items: IccItem[];
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   currency: Currency; // reserved for future backend pricing
 }
 
 type SortKey = keyof IccItem;
 
-export default function InventoryCommandCentre({ items }: InventoryCommandCentreProps) {
+export default function InventoryCommandCentre({}: InventoryCommandCentreProps) {
   const [search, setSearch]         = useState('');
   const [portFilter, setPortFilter] = useState<string | null>(null);
   const [coFilter, setCoFilter]     = useState<string | null>(null);
@@ -180,7 +179,7 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
     }));
   }, [byProduct]);
 
-  const tableItems = apiItems ?? items;
+  const tableItems = apiItems ?? [];
 
   const ports    = useMemo(() => [...new Set(tableItems.map((i) => i.port))],    [tableItems]);
 
@@ -388,7 +387,11 @@ export default function InventoryCommandCentre({ items }: InventoryCommandCentre
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
-                      No items match the current filters
+                      {summaryLoading
+                        ? 'Loading inventory data…'
+                        : tableItems.length === 0
+                        ? 'No data found'
+                        : 'No items match the current filters'}
                     </td>
                   </tr>
                 )}

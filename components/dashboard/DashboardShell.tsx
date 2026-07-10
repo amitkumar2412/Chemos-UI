@@ -18,7 +18,7 @@ import FinanceModule     from './modules/FinanceModule';
 import ResearchModule    from './modules/ResearchModule';
 
 import {
-  MOCK_KPIS, MOCK_ALERTS, MOCK_PIPELINE, MOCK_ICC,
+  MOCK_KPIS, MOCK_ALERTS, MOCK_PIPELINE,
   MOCK_VENDORS, MOCK_PORTS, MOCK_PROSPECTS,
   MOCK_TOP_CUSTOMERS, MOCK_TOP_SUPPLIERS,
   MOCK_KPI_DRIVERS, MOCK_CASHFLOW, MOCK_FINANCE_OFFERS,
@@ -61,7 +61,7 @@ export default function DashboardShell() {
 
             {/* ICC + Alerts row */}
             <div className="db-grid-icc-alerts">
-              <InventoryCommandCentre items={MOCK_ICC} currency={currency} />
+              <InventoryCommandCentre currency={currency} />
               <AlertsPanel alerts={MOCK_ALERTS} />
             </div>
 

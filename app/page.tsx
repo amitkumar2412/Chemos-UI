@@ -20,7 +20,6 @@ import {
   MOCK_KPIS,
   MOCK_ALERTS,
   MOCK_PIPELINE,
-  MOCK_ICC,
   MOCK_VENDORS,
   MOCK_PORTS,
   MOCK_PROSPECTS,
@@ -46,7 +45,7 @@ export default function HomePage() {
           <KpiGrid kpis={MOCK_KPIS} currency={currency} />
           {/* <PipelineSlider stages={MOCK_PIPELINE} /> */}
           <div className="db-grid-icc-alerts">
-            <InventoryCommandCentre items={MOCK_ICC} currency={currency} />
+            <InventoryCommandCentre currency={currency} />
             <AlertsPanel alerts={MOCK_ALERTS} />
           </div>
           {/* <div className="db-grid-2">
