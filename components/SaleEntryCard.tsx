@@ -96,16 +96,15 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   // UI state
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false); // synchronous guard — state update alone is too late
-  const [dateValue, setDateValue] = useState('');
   const [dateStamp, setDateStamp] = useState('');
+  const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  // Date/time updater
+  // Live clock for the card header
   useEffect(() => {
     const update = () => {
       const now = new Date();
       const d = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
       const t = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
-      setDateValue(d);
       setDateStamp(`${d}  ·  ${t}`);
     };
     update();
@@ -135,6 +134,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     setEtd('');
     setEta('');
     setAddUsd('');
+    setOrderDate(new Date().toISOString().slice(0, 10));
   };
 
   const handleSubmit = async () => {
@@ -229,7 +229,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           </div>
           <div className="fg">
             <label className="fl">Date</label>
-            <input className="fi locked" value={dateValue} readOnly />
+            <input className="fi" type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} />
           </div>
         </div>
 
