@@ -39,6 +39,10 @@ const CURRENCIES = [
   'MXN', 'IDR', 'TRY', 'SAR', 'PLN', 'TWD', 'VND',
 ];
 const COMPANY_TO_OPTIONS = ['KLJ Resources', 'Sidhe Petrochemical', 'Sidhgun Technologies'];
+const priceTypeReverseMap: Record<string, string> = {
+  FIXED: 'Fixed Price',
+  FORMULA: 'Formula Price',
+};
 
 export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, onSaved }: Props) {
   const [fetching, setFetching] = useState(false);
@@ -129,7 +133,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
         setSws(data.sws != null ? String(data.sws) : '');
         setAdd(data.add != null ? String(data.add) : '');
         setOtherExpense(data.otherExpense != null ? String(data.otherExpense) : '');
-        setPriceType(data.priceType || 'Fixed Price');
+        setPriceType(priceTypeReverseMap[data.priceType || ''] || data.priceType || 'Fixed Price');
         setEtd(data.etd || '');
         setEta(data.eta || '');
       })
