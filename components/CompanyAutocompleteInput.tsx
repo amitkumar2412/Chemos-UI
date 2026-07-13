@@ -41,6 +41,7 @@ export default function CompanyAutocompleteInput({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const justSelectedRef = useRef(false);
+  const isFocusedRef = useRef(false);
 
   const search = useCallback(async (query: string) => {
     if (!query || typeof query !== 'string' || !query.trim()) {
@@ -69,6 +70,7 @@ export default function CompanyAutocompleteInput({
       justSelectedRef.current = false;
       return;
     }
+    if (!isFocusedRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => search(value), 300);
     return () => {
@@ -82,10 +84,12 @@ export default function CompanyAutocompleteInput({
   };
 
   const handleFocus = () => {
-    if (value && typeof value === 'string' && value.trim() && suggestions.length > 0) setShowList(true);
+    isFocusedRef.current = true;
+    if (value && typeof value === 'string' && value.trim()) search(value);
   };
 
   const handleBlur = () => {
+    isFocusedRef.current = false;
     setTimeout(() => setShowList(false), 150);
   };
 

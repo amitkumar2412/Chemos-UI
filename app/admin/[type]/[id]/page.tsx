@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { fetchTodayPunches, fetchTodaySales, getProductName, getPortName } from '@/lib/api';
+import { fetchTodayPunches, fetchTodaySales, getProductName, getPortName, getSalesPersonName } from '@/lib/api';
 import type { PunchEntry, SaleEntry } from '@/lib/types';
 
 export default function AdminDetailPage() {
@@ -274,7 +274,7 @@ export default function AdminDetailPage() {
               {saleOrder.salesPerson && (
                 <div>
                   <div style={{ fontSize: '12px', color: 'var(--gray)', marginBottom: '4px' }}>Sales Person</div>
-                  <div style={{ fontSize: '16px', fontWeight: '600' }}>{saleOrder.salesPerson}</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600' }}>{getSalesPersonName(saleOrder.salesPerson)}</div>
                 </div>
               )}
 

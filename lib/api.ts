@@ -194,6 +194,30 @@ export function getOriginId(origin: OriginValue): string {
   return origin.id || '';
 }
 
+// Backend may return salesPerson as a full entity object instead of a plain string
+export interface SalesPersonEntity {
+  id?: string | number;
+  name?: string;
+  salesPersonName?: string;
+  salespersonName?: string;
+  fullName?: string;
+  displayName?: string;
+}
+
+export type SalesPersonValue = string | SalesPersonEntity | null;
+
+export function getSalesPersonName(sp: SalesPersonValue): string {
+  if (!sp) return '';
+  if (typeof sp === 'string') return sp;
+  return sp.name || sp.salesPersonName || sp.salespersonName || sp.fullName || sp.displayName || '';
+}
+
+export function getSalesPersonId(sp: SalesPersonValue): string {
+  if (!sp) return '';
+  if (typeof sp === 'string') return '';
+  return sp.id != null ? String(sp.id) : '';
+}
+
 // Backend may return status as a full entity object instead of a plain string
 export interface StatusEntity {
   id: string;
