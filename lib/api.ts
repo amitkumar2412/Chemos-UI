@@ -273,6 +273,8 @@ export interface PurchaseOrder {
   etd: string;
   eta: string;
   status?: StatusValue;
+  quantityReceived?: number | null;
+  payDueDate?: string | null;
 }
 
 export interface PurchaseListResponse {
@@ -379,6 +381,13 @@ export async function unconfirmPurchase(id: string): Promise<PurchaseOrder> {
 
 export async function cancelPurchase(id: string): Promise<PurchaseOrder> {
   return apiClient.patch<PurchaseOrder>(`/purchase/${id}/cancel`);
+}
+
+export async function updatePurchaseReceipt(
+  id: string,
+  payload: { quantityReceived: number; payDueDate: string }
+): Promise<PurchaseOrder> {
+  return apiClient.patch<PurchaseOrder>(`/purchase/${id}/receipt`, payload);
 }
 
 export async function confirmSale(id: string): Promise<SaleEntry> {
