@@ -487,6 +487,73 @@ export async function importPhysicalStock(file: File): Promise<ImportPhysicalSto
   return res.json();
 }
 
+export interface PlUpload {
+  uploadId: number;
+  uploadedBy: string;
+  uploadedAt: string;
+  rowCount: number;
+}
+
+/** `/pl/uploads` and `/pl/upload` both wrap their payload in `{ message, data }`. */
+interface PlUploadsEnvelope {
+  message: string;
+  data: PlUpload[];
+}
+
+interface PlUploadEnvelope {
+  message: string;
+  data: PlUpload;
+}
+
+export async function fetchPlUploads(): Promise<PlUpload[]> {
+  const data = await apiClient.get<PlUploadsEnvelope>('/pl/uploads');
+  return data.data;
+}
+
+export interface PlUploadEntry {
+  id: number;
+  particular: string;
+  amount: number;
+  createdBy: string | null;
+}
+
+interface PlUploadEntriesEnvelope {
+  message: string;
+  data: PlUploadEntry[];
+}
+
+export async function fetchPlUploadEntries(uploadId: number, date: string): Promise<PlUploadEntry[]> {
+  const data = await apiClient.get<PlUploadEntriesEnvelope>('/pl/uploads/entries', {
+    params: { uploadId, date },
+  });
+  return data.data;
+}
+
+export async function uploadPlExpense(file: File): Promise<PlUpload> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+
+  const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
+  const formData = new FormData();
+  formData.append('file', csvBlob, file.name);
+
+  const res = await fetch(`${BASE_URL}/pl/upload`, {
+    method: 'POST',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Upload failed (${res.status}): ${msg}`);
+  }
+  const json: PlUploadEnvelope = await res.json();
+  return json.data;
+}
+
 export async function updateSale(
   id: string,
   payload: SaleFormPayload & { status?: string | null }
