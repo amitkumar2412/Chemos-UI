@@ -287,21 +287,15 @@ export interface PurchaseListResponse {
   empty: boolean;
 }
 
-/** Fetches a single backend page — use this for UI-driven pagination. */
-export async function fetchPurchasesPage(
-  page = 0,
-  size = 10,
-  params?: { status?: string; product?: string }
-): Promise<PurchaseListResponse> {
-  const query: Record<string, string | number> = { page, size };
-  if (params?.status) query.status = params.status;
-  if (params?.product) query.product = params.product;
+/** `/purchase/allPurchase` wraps the page in `{ message, data }`. */
+interface PurchasePageEnvelope {
+  message: string;
+  data: PurchaseListResponse;
+}
 
-  const data = await apiClient.get<PurchaseOrder[] | PurchaseListResponse>(
-    '/purchase/allPurchase',
-    { params: query }
-  );
+type PurchasePageResult = PurchaseOrder[] | PurchaseListResponse | PurchasePageEnvelope;
 
+function unwrapPurchasePage(data: PurchasePageResult): PurchaseListResponse {
   if (Array.isArray(data)) {
     return {
       content: data,
@@ -315,7 +309,24 @@ export async function fetchPurchasesPage(
       empty: data.length === 0,
     };
   }
-  return data;
+  if ('content' in data) {
+    return data;
+  }
+  return data.data;
+}
+
+/** Fetches a single backend page — use this for UI-driven pagination. */
+export async function fetchPurchasesPage(
+  page = 0,
+  size = 10,
+  params?: { status?: string; product?: string }
+): Promise<PurchaseListResponse> {
+  const query: Record<string, string | number> = { page, size };
+  if (params?.status) query.status = params.status;
+  if (params?.product) query.product = params.product;
+
+  const data = await apiClient.get<PurchasePageResult>('/purchase/allPurchase', { params: query });
+  return unwrapPurchasePage(data);
 }
 
 export async function fetchAllPurchases(params?: {
@@ -333,15 +344,13 @@ export async function fetchAllPurchases(params?: {
   let page = 0;
   const size = 200;
   while (true) {
-    const data = await apiClient.get<
-      PurchaseOrder[] | { content: PurchaseOrder[]; totalPages?: number; last?: boolean }
-    >('/purchase/allPurchase', { params: { ...query, page, size } });
+    const raw = await apiClient.get<PurchasePageResult>('/purchase/allPurchase', {
+      params: { ...query, page, size },
+    });
+    const data = unwrapPurchasePage(raw);
 
-    if (Array.isArray(data)) return data;
-
-    const content = data.content ?? [];
-    all.push(...content);
-    if (data.last || content.length < size || (data.totalPages != null && page + 1 >= data.totalPages)) {
+    all.push(...data.content);
+    if (data.last || data.content.length < size || (data.totalPages != null && page + 1 >= data.totalPages)) {
       break;
     }
     page += 1;
