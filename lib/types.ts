@@ -1,4 +1,4 @@
-import type { PortValue, StatusValue } from './api';
+import type { PortValue, StatusValue, SalesPersonValue } from './api';
 
 export type AvailabilityType = 'Ready' | 'Incoming' | '';
 export type MarketStatusType = string;
@@ -138,7 +138,7 @@ export interface SaleEntry {
   message: string | null;
   vesselName: string | null;
   remarks: string | null;
-  salesPerson?: string | null;
+  salesPerson?: SalesPersonValue;
   brokerName?: string | null;
   status?: StatusValue;
 }

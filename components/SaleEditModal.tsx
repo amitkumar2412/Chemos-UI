@@ -7,7 +7,7 @@ import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
 import SalespersonAutocompleteInput from './SalespersonAutocompleteInput';
-import { fetchSaleById, updateSale, fetchMarketStatuses, getProductName, getPortName, getStatusId } from '@/lib/api';
+import { fetchSaleById, updateSale, fetchMarketStatuses, getProductName, getPortName, getStatusId, getSalesPersonName, getSalesPersonId } from '@/lib/api';
 import type { SaleEntry, FeedOptions, MarketStatusType, MarketStatusOption } from '@/lib/types';
 
 interface Props {
@@ -86,8 +86,8 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
         setMessage(data.message || '');
         setVesselName(data.vesselName || '');
         setRemarks(data.remarks || '');
-        setSalesPerson(data.salesPerson || '');
-        setSalesPersonId('');
+        setSalesPerson(data.salesPerson ? getSalesPersonName(data.salesPerson) : '');
+        setSalesPersonId(data.salesPerson ? getSalesPersonId(data.salesPerson) : '');
         setBrokerName(data.brokerName || '');
       })
       .catch(err => setFetchError(err instanceof Error ? err.message : 'Failed to load order'))
