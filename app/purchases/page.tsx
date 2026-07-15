@@ -182,7 +182,7 @@ export default function PurchasesPage() {
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <ActionMenu items={[
                         { label: 'View Details', onClick: () => setViewingId(entry.id) },
-                        { label: 'Edit', onClick: () => setEditingId(entry.id) },
+                        ...(isConfirmed(entry.status) ? [] : [{ label: 'Edit', onClick: () => setEditingId(entry.id) }]),
                       ]} />
                     </td>
                   </tr>
@@ -276,6 +276,11 @@ export default function PurchasesPage() {
       </Modal>
     </div>
   );
+}
+
+function isConfirmed(status?: StatusValue): boolean {
+  const id = getStatusId(status) || getStatusName(status);
+  return id.toUpperCase() === 'CONFIRMED';
 }
 
 function StatusBadge({ status }: { status?: StatusValue }) {

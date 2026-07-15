@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -227,7 +228,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
 
           {/* Row 5: Price (₹), Payment, Delivery Term */}
           <div className="fg">
-            <label className="fl">Price (₹) <span className="req">*</span></label>
+            <label className="fl">Price (₹/MT) <span className="req">*</span></label>
             <input className="fi" type="number" min={0} step={0.01} placeholder="145.00"
               value={price} onChange={e => setPrice(e.target.value)} />
           </div>
