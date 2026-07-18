@@ -255,7 +255,7 @@ export default function SaleEditModal({ saleId, feedOptions, onClose, onSaved }:
 
                 {/* Price, Payment, Delivery Term */}
                 <div className="fg">
-                  <label className="fl">Price (₹) <span className="req">*</span></label>
+                  <label className="fl">Price (₹/MT) <span className="req">*</span></label>
                   <input
                     className="fi"
                     type="number"

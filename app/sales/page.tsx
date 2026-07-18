@@ -205,7 +205,7 @@ export default function SalesPage() {
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <ActionMenu items={[
                           { label: 'View Details', onClick: () => setViewingId(sale.id) },
-                          { label: 'Edit', onClick: () => setEditingId(sale.id) },
+                          ...(isConfirmed(sale.status) ? [] : [{ label: 'Edit', onClick: () => setEditingId(sale.id) }]),
                         ]} />
                       </td>
                     </tr>
@@ -301,6 +301,11 @@ export default function SalesPage() {
       </Modal>
     </div>
   );
+}
+
+function isConfirmed(status?: StatusValue): boolean {
+  const id = getStatusId(status) || getStatusName(status);
+  return id.toUpperCase() === 'CONFIRMED';
 }
 
 function StatusBadge({ status }: { status?: StatusValue }) {

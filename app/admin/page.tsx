@@ -24,6 +24,7 @@ import { useAppSelector } from '@/lib/redux/hooks';
 import { ApiError } from '@/lib/apiClient';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
 import PurchaseEditModal from '@/components/PurchaseEditModal';
+import PurchaseReceiptModal from '@/components/PurchaseReceiptModal';
 import SaleDetailModal from '@/components/SaleDetailModal';
 import SaleEditModal from '@/components/SaleEditModal';
 import ActionMenu from '@/components/ActionMenu';
@@ -73,6 +74,7 @@ export default function AdminPage() {
   const [viewingSaleId, setViewingSaleId] = useState<string | null>(null);
   const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [receiptPurchaseId, setReceiptPurchaseId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; ok: boolean; visible: boolean }>({
     message: '', ok: true, visible: false,
   });
@@ -252,6 +254,7 @@ export default function AdminPage() {
               onAction={handlePurchaseAction}
               onView={setViewingPurchaseId}
               onEdit={setEditingPurchaseId}
+              onDataUpdater={setReceiptPurchaseId}
             />
             <PaginationBar
               page={purchasePage}
@@ -288,6 +291,11 @@ export default function AdminPage() {
         onClose={() => setEditingPurchaseId(null)}
         onSaved={loadOrders}
       />
+      <PurchaseReceiptModal
+        purchaseId={receiptPurchaseId}
+        onClose={() => setReceiptPurchaseId(null)}
+        onSaved={loadOrders}
+      />
       <SaleDetailModal saleId={viewingSaleId} onClose={() => setViewingSaleId(null)} />
       <SaleEditModal
         saleId={editingId}
@@ -304,30 +312,36 @@ export default function AdminPage() {
 
 function orderActionItems(
   orderId: string,
+  status: StatusValue | undefined,
   actioning: { id: string; action: OrderAction } | null,
   onAction: (id: string, action: OrderAction) => void
 ) {
   const busyAction = actioning?.id === orderId ? actioning.action : null;
-  return [
-    {
+  const statusId = (getStatusId(status) || getStatusName(status)).toUpperCase();
+  const items = [];
+  if (statusId !== 'CONFIRMED') {
+    items.push({
       label: busyAction === 'confirm' ? 'Confirming…' : 'Confirm Order',
       onClick: () => onAction(orderId, 'confirm'),
       color: '#48bb78',
       disabled: busyAction !== null,
-    },
-    {
+    });
+  }
+  if (statusId !== 'UNCONFIRMED') {
+    items.push({
       label: busyAction === 'unconfirm' ? 'Unconfirming…' : 'Unconfirm Order',
       onClick: () => onAction(orderId, 'unconfirm'),
       color: '#ed8936',
       disabled: busyAction !== null,
-    },
-    {
-      label: busyAction === 'cancel' ? 'Cancelling…' : 'Cancel Order',
-      onClick: () => onAction(orderId, 'cancel'),
-      color: '#f56565',
-      disabled: busyAction !== null,
-    },
-  ];
+    });
+  }
+  items.push({
+    label: busyAction === 'cancel' ? 'Cancelling…' : 'Cancel Order',
+    onClick: () => onAction(orderId, 'cancel'),
+    color: '#f56565',
+    disabled: busyAction !== null,
+  });
+  return items;
 }
 
 // ─── Purchase Table ───────────────────────────────────────────────────────────
@@ -338,12 +352,14 @@ function PurchaseTable({
   onAction,
   onView,
   onEdit,
+  onDataUpdater,
 }: {
   orders: PurchaseOrder[];
   actioning: { id: string; action: OrderAction } | null;
   onAction: (id: string, action: OrderAction) => void;
   onView: (id: string) => void;
   onEdit: (id: string) => void;
+  onDataUpdater: (id: string) => void;
 }) {
   if (orders.length === 0) return <EmptyState label="purchase" />;
   return (
@@ -396,7 +412,10 @@ function PurchaseTable({
                   <ActionMenu items={[
                     { label: 'View Details', onClick: () => onView(o.id) },
                     { label: 'Edit', onClick: () => onEdit(o.id) },
-                    ...orderActionItems(o.id, actioning, onAction),
+                    ...((getStatusId(o.status) || getStatusName(o.status)).toUpperCase() === 'CONFIRMED'
+                      ? [{ label: 'Data-Updater', onClick: () => onDataUpdater(o.id), color: '#4299e1' }]
+                      : []),
+                    ...orderActionItems(o.id, o.status, actioning, onAction),
                   ]} />
                 </td>
               </tr>
@@ -474,7 +493,7 @@ function SaleTable({
                   <ActionMenu items={[
                     { label: 'View Details', onClick: () => onView(o.id) },
                     { label: 'Edit', onClick: () => onEdit(o) },
-                    ...orderActionItems(o.id, actioning, onAction),
+                    ...orderActionItems(o.id, o.status, actioning, onAction),
                   ]} />
                 </td>
               </tr>
