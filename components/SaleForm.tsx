@@ -111,6 +111,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
     try {
       const data = await onSubmit({
         salesType: saleType,
+        date: orderDate,
         companyFrom,
         companyTo,
         product: productId || product,

@@ -145,6 +145,7 @@ export interface SaleEntry {
 
 export interface SaleFormPayload {
   salesType: string;
+  date?: string;
   companyTo: string;
   companyFrom: string;
   product: string;
