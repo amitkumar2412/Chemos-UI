@@ -701,6 +701,7 @@ export interface StockStatsSummary {
 export interface StockStatsByProduct {
   product: string;
   dischargePort: string;
+  physicalReady: number;
   physicalStock: number;
   physicalSold: number;
   physicalUnsold: number;

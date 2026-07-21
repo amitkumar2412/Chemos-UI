@@ -170,6 +170,7 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
       selling:          0,
       trend7d:          [row.physicalStock, row.physicalUnsold],
       status:           row.totalStock <= 0 ? 'critical' : row.physicalUnsold < 50 ? 'warn' : 'ok',
+      physicalReady:    row.physicalReady,
       physicalStock:    row.physicalStock,
       physicalSold:     row.physicalSold,
       incomingStock:    row.incomingStock,
@@ -195,8 +196,9 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
       rows.forEach((r) => {
         const existing = map.get(r.item);
         if (existing) {
-          existing.physical += r.physical;
-          existing.ready    += r.ready;
+          existing.physical     += r.physical;
+          existing.ready        += r.ready;
+          existing.physicalReady = (existing.physicalReady ?? 0) + (r.physicalReady ?? 0);
         } else {
           map.set(r.item, { ...r, port: '—', company: '—' });
         }
@@ -326,12 +328,13 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
         {/* Table + Rail */}
         <div className="db-icc-main">
           <div className="db-tbl-region" style={{ overflowX: 'auto' }}>
-            <table className="db-inv" style={{ minWidth: 1220 }}>
+            <table className="db-inv" style={{ minWidth: 1320 }}>
               <thead>
                 <tr>
                   {([
                     ['item',             'Product'],
                     ['port',             'Port'],
+                    ['physicalReady',    'Physical Ready'],
                     ['physicalStock',    'Physical Stock '],
                     ['physicalSold',     'Physical Sold'],
                     ['physical',         'Physical Unsold '],
@@ -342,7 +345,7 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
                     ['totalStock',       'Total Stock'],
                     ['company',          'Company'],
                   ] as [string, string][]).map(([col, label]) => {
-                    const isNum = ['physicalStock','physicalSold','physical','incomingStock','purchaseIncoming','incomingSales','ready','totalStock'].includes(col);
+                    const isNum = ['physicalReady','physicalStock','physicalSold','physical','incomingStock','purchaseIncoming','incomingSales','ready','totalStock'].includes(col);
                     const stickyClass = col === 'item' ? 'db-col-sticky db-col-sticky-1' : col === 'port' ? 'db-col-sticky db-col-sticky-2' : '';
                     return (
                       <th
@@ -373,6 +376,7 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
                       </div>
                     </td>
                     <td className="db-col-sticky db-col-sticky-2">{row.port}</td>
+                    <td className="num">{row.physicalReady ?? '—'}</td>
                     <td className="num">{row.physicalStock ?? '—'}</td>
                     <td className="num">{row.physicalSold ?? '—'}</td>
                     <td className="num">{row.physical}</td>
@@ -386,7 +390,7 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={11} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
+                    <td colSpan={12} style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-dim)' }}>
                       {summaryLoading
                         ? 'Loading inventory data…'
                         : tableItems.length === 0
