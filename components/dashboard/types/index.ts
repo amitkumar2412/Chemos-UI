@@ -63,6 +63,7 @@ export interface IccItem {
   trend7d: number[];
   status: InventoryStatus;
   // extended API fields (optional — mock data omits them)
+  physicalReady?: number;
   physicalStock?: number;
   physicalSold?: number;
   incomingStock?: number;
