@@ -334,8 +334,9 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
                   {([
                     ['item',             'Product'],
                     ['port',             'Port'],
+                     ['physicalStock',    'Physical Stock '],
                     ['physicalReady',    'Physical Ready'],
-                    ['physicalStock',    'Physical Stock '],
+                   
                     ['physicalSold',     'Physical Sold'],
                     ['physical',         'Physical Unsold '],
                     ['incomingStock',    'Incoming Stock'],
@@ -376,8 +377,9 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
                       </div>
                     </td>
                     <td className="db-col-sticky db-col-sticky-2">{row.port}</td>
-                    <td className="num">{row.physicalReady ?? '—'}</td>
+                    
                     <td className="num">{row.physicalStock ?? '—'}</td>
+                    <td className="num">{row.physicalReady ?? '—'}</td>
                     <td className="num">{row.physicalSold ?? '—'}</td>
                     <td className="num">{row.physical}</td>
                     <td className="num">{row.incomingStock ?? '—'}</td>
