@@ -219,7 +219,7 @@ export default function SaleForm({ feedOptions, onSubmit, initialData }: SaleFor
             <label className="fl">Port <span className="req">*</span></label>
             <PortAutocompleteInput id="sf-port" value={port} onChange={setPort}
               onSelect={(id, name) => { setPortId(id); setPort(name); }}
-              placeholder="Search or add port…" />
+              placeholder="Search port…" />
           </div>
           <div className="fg">
             <label className="fl">Quantity (MT) <span className="req">*</span></label>

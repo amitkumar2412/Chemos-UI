@@ -49,11 +49,10 @@ export default function PortAutocompleteInput({
   const [showList, setShowList] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const justSelectedRef = useRef(false);
   const isFocusedRef = useRef(false);
+  const [selectedValid, setSelectedValid] = useState(() => !!(value && value.trim()));
 
   const search = useCallback(async (query: string) => {
     if (!query || typeof query !== 'string' || !query.trim()) {
@@ -62,7 +61,6 @@ export default function PortAutocompleteInput({
       return;
     }
     setLoading(true);
-    setError('');
     try {
       const raw = await apiClient.get('/ports/suggestions', {
         params: { query: query.trim(), page: 0, size: 10 },
@@ -99,11 +97,18 @@ export default function PortAutocompleteInput({
 
   const handleBlur = () => {
     isFocusedRef.current = false;
-    setTimeout(() => setShowList(false), 150);
+    setTimeout(() => {
+      setShowList(false);
+      if (!selectedValid && value && typeof value === 'string' && value.trim()) {
+        onChange('');
+        if (onSelect) onSelect('', '');
+      }
+    }, 150);
   };
 
   const handlePick = (opt: PortOption) => {
     justSelectedRef.current = true;
+    setSelectedValid(true);
     onChange(opt.displayName);
     if (onSelect && opt.id) {
       onSelect(opt.id, opt.displayName);
@@ -112,36 +117,9 @@ export default function PortAutocompleteInput({
     setHighlight(-1);
   };
 
-  const handleCreate = async () => {
-    const name = value && typeof value === 'string' ? value.trim() : '';
-    if (!name) return;
-    setCreating(true);
-    setError('');
-    try {
-      const raw = await apiClient.post('/ports/createPort', { portName: name });
-      const created = raw as PortResult;
-      const createdName = created?.displayName ?? created?.portName ?? name;
-      const createdId = String(created?.id ?? created?.portId ?? created?.code ?? created?.portCode ?? '');
-      onChange(createdName);
-      if (onSelect && createdId) {
-        onSelect(createdId, createdName);
-      }
-      setShowList(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create port');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const exactMatch = suggestions.some(
-    (s) => value && typeof value === 'string' && s.displayName.toLowerCase() === value.trim().toLowerCase()
-  );
-  const showCreate = value && typeof value === 'string' && value.trim().length > 0 && !exactMatch && !loading;
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showList) return;
-    const total = suggestions.length + (showCreate ? 1 : 0);
+    const total = suggestions.length;
     if (e.key === 'ArrowDown') {
       setHighlight((h) => Math.min(total - 1, h + 1));
       e.preventDefault();
@@ -151,8 +129,6 @@ export default function PortAutocompleteInput({
     } else if (e.key === 'Enter') {
       if (highlight >= 0 && highlight < suggestions.length) {
         handlePick(suggestions[highlight]);
-      } else if (highlight === suggestions.length && showCreate) {
-        handleCreate();
       }
       e.preventDefault();
     } else if (e.key === 'Escape') {
@@ -183,7 +159,7 @@ export default function PortAutocompleteInput({
         value={value}
         autoComplete="off"
         placeholder={placeholder}
-        onChange={(e) => { onChange(e.target.value); setError(''); }}
+        onChange={(e) => { setSelectedValid(false); onChange(e.target.value); }}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
@@ -204,27 +180,11 @@ export default function PortAutocompleteInput({
               {renderHighlighted(opt.displayName)}
             </div>
           ))}
-          {!loading && suggestions.length === 0 && !showCreate && (
+          {!loading && suggestions.length === 0 && (
             <div className="ac-item" style={{ color: 'var(--muted, #888)', cursor: 'default' }}>
               No results
             </div>
           )}
-          {showCreate && (
-            <div
-              className={`ac-item${highlight === suggestions.length ? ' highlight' : ''}`}
-              style={{ borderTop: suggestions.length ? '1px solid var(--border)' : undefined, fontStyle: 'italic' }}
-              onMouseDown={creating ? undefined : handleCreate}
-            >
-              {creating ? 'Creating…' : (
-                <>+ Add &ldquo;<strong>{value.trim()}</strong>&rdquo; as new port</>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-      {error && (
-        <div style={{ fontSize: '11px', color: 'var(--danger, #dc2626)', marginTop: '2px' }}>
-          {error}
         </div>
       )}
     </div>
