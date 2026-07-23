@@ -335,7 +335,7 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
                     ['item',             'Product'],
                     ['port',             'Port'],
                      ['physicalStock',    'Physical Stock '],
-                    ['physicalReady',    'Physical Ready'],
+                    ['physicalReady',    'Purchase Ready'],
                    
                     ['physicalSold',     'Physical Sold'],
                     ['physical',         'Physical Unsold '],
