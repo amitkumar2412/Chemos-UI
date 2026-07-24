@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { IccItem, InventoryStatus, Currency } from './types';
-import { fetchStockStatsSummary, fetchStockStatsByProduct, type StockStatsSummary, type StockStatsByProduct } from '@/lib/api';
+import { fetchStockStatsSummary, fetchStockStatsByProduct, fetchStockStatsLastUpload, type StockStatsSummary, type StockStatsByProduct } from '@/lib/api';
 
 // ─── Inline sparkline ─────────────────────────────────────────────────────
 function MiniSparkline({ data, status }: { data: number[]; status: InventoryStatus }) {
@@ -139,14 +139,26 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
     async function load() {
       setSummaryLoading(true);
       try {
-        const [summaryData, byProductData] = await Promise.allSettled([
+        const [summaryData, byProductData, lastUploadData] = await Promise.allSettled([
           fetchStockStatsSummary(),
           fetchStockStatsByProduct(),
+          fetchStockStatsLastUpload(),
         ]);
         if (!cancelled) {
           if (summaryData.status === 'fulfilled') setSummary(summaryData.value);
           if (byProductData.status === 'fulfilled') setByProduct(byProductData.value);
-          setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+          if (lastUploadData.status === 'fulfilled') {
+            const parsed = new Date(lastUploadData.value.lastCsvUploadedAt);
+            setLastUpdated(
+              isNaN(parsed.getTime())
+                ? 'just now'
+                : parsed.toLocaleString('en-IN', {
+                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                  })
+            );
+          } else {
+            setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+          }
         }
       } finally {
         if (!cancelled) setSummaryLoading(false);
