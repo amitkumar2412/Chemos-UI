@@ -745,3 +745,20 @@ export async function fetchStockStatsSummary(
   if (!res.ok) throw new Error(`Stock stats fetch failed: ${res.status}`);
   return res.json();
 }
+
+export interface StockStatsLastUpload {
+  lastCsvUploadedAt: string;
+}
+
+export async function fetchStockStatsLastUpload(): Promise<StockStatsLastUpload> {
+  const token = tokenStorage.get();
+  const res = await fetch(`${STOCK_STATS_BASE}/stock-stats/last-upload`, {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Stock stats last-upload fetch failed: ${res.status}`);
+  return res.json();
+}
