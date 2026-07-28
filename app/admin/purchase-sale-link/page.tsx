@@ -4,9 +4,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchAllPurchases, fetchAllSalesComplete, getPortName, getProductName, getPaymentTermName,
-  createLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks,
-  getOriginName, getProductId, getStatusName, getStatusId,
-  type PurchaseOrder, type SalePurchaseLink, type StatusValue,
+  createLink, updateLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks, fetchNegativeLinks,
+  fetchNegativeLinkHistory, getOriginName, getProductId, getStatusName, getStatusId,
+  type PurchaseOrder, type SalePurchaseLink, type StatusValue, type NegativeLinkHistoryEntry,
 } from '@/lib/api';
 import type { SaleEntry } from '@/lib/types';
 import { useAppSelector } from '@/lib/redux/hooks';
@@ -17,6 +17,7 @@ interface PSLink {
   saleId: string;
   product: string;
   linkedQuantity: number;
+  negative: boolean;
 }
 
 interface LinkRecord {
@@ -27,8 +28,28 @@ interface LinkRecord {
   purchaseCompany: string;
   saleCompany: string;
   purchaseOriginalQty: number;
+  purchaseAvailableQty: number;
   saleTotalRequired: number;
   saleRemainingQty: number;
+  negative: boolean;
+}
+
+function fmtAvailable(qty: number) {
+  return qty < 0 ? `(${Math.abs(qty).toLocaleString('en-IN')} over)` : qty.toLocaleString('en-IN');
+}
+
+function NegativeBadge({ negative }: { negative: boolean }) {
+  if (!negative) return null;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px',
+      background: 'rgba(245,101,101,0.12)', color: '#f56565',
+      border: '1px solid rgba(245,101,101,0.35)', borderRadius: '999px',
+      fontSize: '10px', fontWeight: '700', letterSpacing: '0.03em', whiteSpace: 'nowrap',
+    }}>
+      ⚠ Over-allocated
+    </span>
+  );
 }
 
 function fmtDate(s: string | null | undefined) {
@@ -208,9 +229,12 @@ function LinkQuantityModal({
     });
   }, [purchase.id, sale.id]);
 
-  const maxQty = Math.min(purchaseAvailable, saleRemaining);
+  // Only the sale side is hard-limited — a link may exceed the purchase's
+  // available quantity, which flags it as over-allocated on the backend.
+  const maxQty = saleRemaining;
   const qtyNum = parseFloat(qty);
   const isValid = !isNaN(qtyNum) && qtyNum > 0 && qtyNum <= maxQty;
+  const willOverAllocate = isValid && qtyNum > purchaseAvailable;
 
   const handleConfirm = async () => {
     if (!isValid || loading) return;
@@ -264,8 +288,12 @@ function LinkQuantityModal({
               <div style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Purchase</div>
               <div title={purchase.companyFrom} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{purchase.companyFrom}</div>
               <div style={{ fontSize: 11, color: 'var(--gray)', marginBottom: 8 }}>#{purchase.id.slice(0, 8)}…</div>
-              <div style={{ fontSize: 16, ...mono, fontWeight: 700 }}>{purchaseAvailable.toLocaleString('en-IN')} MT</div>
-              <div style={{ fontSize: 10, color: 'var(--gray)' }}>available</div>
+              <div style={{ fontSize: 16, ...mono, fontWeight: 700, color: purchaseAvailable < 0 ? '#f56565' : 'var(--text)' }}>
+                {fmtAvailable(purchaseAvailable)} MT
+              </div>
+              <div style={{ fontSize: 10, color: purchaseAvailable < 0 ? '#f56565' : 'var(--gray)' }}>
+                {purchaseAvailable < 0 ? 'already over-allocated' : 'available'}
+              </div>
             </div>
             <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(72,187,120,0.08)', border: '1px solid rgba(72,187,120,0.25)', borderRadius: 8 }}>
               <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Sale</div>
@@ -279,7 +307,7 @@ function LinkQuantityModal({
 
         {/* Quantity input */}
         <label style={{ fontSize: 12, color: 'var(--gray)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
-          Quantity to Link (MT) — max {maxQty.toLocaleString('en-IN')} MT
+          Quantity to Link (MT) — max {maxQty.toLocaleString('en-IN')} MT (sale requirement)
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: error ? 12 : 24 }}>
           <input
@@ -304,6 +332,17 @@ function LinkQuantityModal({
           />
           <span style={{ fontSize: 14, color: 'var(--gray)', fontWeight: 600, minWidth: 28 }}>MT</span>
         </div>
+
+        {willOverAllocate && (
+          <div style={{
+            marginBottom: 16, padding: '8px 12px',
+            background: 'rgba(237,137,54,0.1)', border: '1px solid rgba(237,137,54,0.3)',
+            borderRadius: 6, color: '#ed8936', fontSize: 12, lineHeight: 1.5,
+          }}>
+            ⚠ This exceeds the purchase&apos;s available quantity by{' '}
+            {(qtyNum - purchaseAvailable).toLocaleString('en-IN')} MT. The link will still be created, but flagged as over-allocated.
+          </div>
+        )}
 
         {error && (
           <div style={{
@@ -366,6 +405,211 @@ function LinkQuantityModal({
   );
 }
 
+// ─── Edit Link Quantity Modal ──────────────────────────────────────────────────
+
+interface EditingLink {
+  linkId: string;
+  purchaseId: string;
+  saleId: string;
+  currentQty: number;
+  purchaseCompany: string;
+  saleCompany: string;
+}
+
+function EditLinkQuantityModal({
+  link,
+  onClose,
+  onSuccess,
+}: {
+  link: EditingLink;
+  onClose: () => void;
+  onSuccess: (link: SalePurchaseLink) => void;
+}) {
+  const [qty, setQty] = useState(String(link.currentQty));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [purchaseAvailable, setPurchaseAvailable] = useState(link.currentQty);
+  const [saleRemaining, setSaleRemaining] = useState(link.currentQty);
+
+  useEffect(() => {
+    Promise.allSettled([
+      getPurchaseSummary(link.purchaseId),
+      getSaleSummary(link.saleId),
+    ]).then(([pRes, sRes]) => {
+      // Summaries reflect totals including this link's current contribution,
+      // so add it back to get the ceiling available if this link were removed.
+      if (pRes.status === 'fulfilled') setPurchaseAvailable(pRes.value.availableQuantity + link.currentQty);
+      if (sRes.status === 'fulfilled') setSaleRemaining(sRes.value.remaining + link.currentQty);
+      setSummaryLoading(false);
+    });
+  }, [link.purchaseId, link.saleId, link.currentQty]);
+
+  const maxQty = saleRemaining;
+  const qtyNum = parseFloat(qty);
+  const isValid = !isNaN(qtyNum) && qtyNum > 0 && qtyNum <= maxQty;
+  const willOverAllocate = isValid && qtyNum > purchaseAvailable;
+  const unchanged = qtyNum === link.currentQty;
+
+  const handleConfirm = async () => {
+    if (!isValid || loading || unchanged) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const updated = await updateLink(link.linkId, qtyNum);
+      onSuccess(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update link');
+      setLoading(false);
+    }
+  };
+
+  const mono: React.CSSProperties = { fontFamily: 'JetBrains Mono, monospace' };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.75)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1200,
+      }}
+      onClick={loading ? undefined : onClose}
+    >
+      <div
+        style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: '28px 32px', width: 420,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Edit Linked Quantity</div>
+          <div style={{ fontSize: 12, color: 'var(--gray)', lineHeight: 1.5 }}>
+            Update the quantity (MT) committed from this purchase to this sale.
+          </div>
+        </div>
+
+        {summaryLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--gray)', fontSize: 13 }}>
+            Loading available quantities…
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+            <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(66,153,225,0.08)', border: '1px solid rgba(66,153,225,0.25)', borderRadius: 8 }}>
+              <div style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Purchase</div>
+              <div title={link.purchaseCompany} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{link.purchaseCompany}</div>
+              <div style={{ fontSize: 11, color: 'var(--gray)', marginBottom: 8 }}>#{link.purchaseId.slice(0, 8)}…</div>
+              <div style={{ fontSize: 16, ...mono, fontWeight: 700, color: purchaseAvailable < 0 ? '#f56565' : 'var(--text)' }}>
+                {fmtAvailable(purchaseAvailable)} MT
+              </div>
+              <div style={{ fontSize: 10, color: purchaseAvailable < 0 ? '#f56565' : 'var(--gray)' }}>
+                available if unlinked
+              </div>
+            </div>
+            <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(72,187,120,0.08)', border: '1px solid rgba(72,187,120,0.25)', borderRadius: 8 }}>
+              <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Sale</div>
+              <div title={link.saleCompany} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{link.saleCompany}</div>
+              <div style={{ fontSize: 11, color: 'var(--gray)', marginBottom: 8 }}>#{link.saleId.slice(0, 8)}…</div>
+              <div style={{ fontSize: 16, ...mono, fontWeight: 700 }}>{saleRemaining.toLocaleString('en-IN')} MT</div>
+              <div style={{ fontSize: 10, color: 'var(--gray)' }}>needed if unlinked</div>
+            </div>
+          </div>
+        )}
+
+        <label style={{ fontSize: 12, color: 'var(--gray)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
+          New Quantity (MT) — max {maxQty.toLocaleString('en-IN')} MT (sale requirement)
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: error ? 12 : 24 }}>
+          <input
+            type="number"
+            min={0.01}
+            max={maxQty}
+            step={0.01}
+            value={qty}
+            autoFocus
+            disabled={loading || summaryLoading}
+            onChange={(e) => setQty(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape' && !loading) onClose(); }}
+            style={{
+              flex: 1, padding: '10px 12px',
+              background: 'var(--navy-light)',
+              border: `1px solid ${error ? '#f56565' : !qty ? 'var(--border)' : isValid ? 'var(--blue)' : '#f56565'}`,
+              borderRadius: 8, color: 'var(--text)',
+              fontSize: 20, ...mono, fontWeight: 700, textAlign: 'right',
+              outline: 'none', opacity: (loading || summaryLoading) ? 0.6 : 1,
+            }}
+          />
+          <span style={{ fontSize: 14, color: 'var(--gray)', fontWeight: 600, minWidth: 28 }}>MT</span>
+        </div>
+
+        {willOverAllocate && (
+          <div style={{
+            marginBottom: 16, padding: '8px 12px',
+            background: 'rgba(237,137,54,0.1)', border: '1px solid rgba(237,137,54,0.3)',
+            borderRadius: 6, color: '#ed8936', fontSize: 12, lineHeight: 1.5,
+          }}>
+            ⚠ This exceeds the purchase&apos;s available quantity by{' '}
+            {(qtyNum - purchaseAvailable).toLocaleString('en-IN')} MT. The link will be updated, but flagged as over-allocated.
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            marginBottom: 16, padding: '8px 12px',
+            background: 'rgba(245,101,101,0.1)', border: '1px solid rgba(245,101,101,0.3)',
+            borderRadius: 6, color: '#f56565', fontSize: 12,
+          }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              flex: 1, padding: '10px', background: 'transparent',
+              border: '1px solid var(--border)', borderRadius: 8,
+              color: 'var(--gray)', fontSize: 14, fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              opacity: loading ? 0.5 : 1,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!isValid || loading || summaryLoading || unchanged}
+            style={{
+              flex: 2, padding: '10px',
+              background: (!isValid || summaryLoading || unchanged) ? 'rgba(66,153,225,0.35)' : 'linear-gradient(135deg, var(--blue), var(--teal))',
+              border: 'none', borderRadius: 8, color: 'white',
+              fontSize: 14, fontWeight: 600,
+              cursor: (!isValid || loading || summaryLoading || unchanged) ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(66,153,225,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            {loading ? (
+              <>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14"
+                  style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="8" cy="8" r="6" strokeDasharray="25" strokeDashoffset="8" />
+                </svg>
+                Saving…
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 interface ProductOption {
@@ -386,9 +630,14 @@ export default function PurchaseSaleLinkPage() {
   const [showModal, setShowModal] = useState(false);
   const [showLinkQtyModal, setShowLinkQtyModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; ok: boolean; visible: boolean }>({ message: '', ok: true, visible: false });
-  const [activeTab, setActiveTab] = useState<'link' | 'all-links'>('link');
+  const [activeTab, setActiveTab] = useState<'link' | 'all-links' | 'negative' | 'oversale-history'>('link');
   const [allLinks, setAllLinks] = useState<LinkRecord[]>([]);
   const [allLinksLoading, setAllLinksLoading] = useState(false);
+  const [negativeLinks, setNegativeLinks] = useState<LinkRecord[]>([]);
+  const [negativeLinksLoading, setNegativeLinksLoading] = useState(false);
+  const [editingLink, setEditingLink] = useState<EditingLink | null>(null);
+  const [oversaleHistory, setOversaleHistory] = useState<NegativeLinkHistoryEntry[]>([]);
+  const [oversaleHistoryLoading, setOversaleHistoryLoading] = useState(false);
 
   useEffect(() => {
     // Fetch all purchases + all sales to build the unified product list
@@ -438,36 +687,65 @@ export default function PurchaseSaleLinkPage() {
     if (isAuthenticated) loadData();
   }, [isAuthenticated, loadData]);
 
+  const toLinkRecord = useCallback((lnk: SalePurchaseLink): LinkRecord => {
+    const po = purchases.find((p) => p.id === lnk.purchaseId);
+    const sale = sales.find((s) => s.id === lnk.saleId);
+    return {
+      linkId: lnk.id,
+      purchaseId: lnk.purchaseId,
+      saleId: lnk.saleId,
+      linkedQuantity: lnk.linkedQuantity,
+      purchaseCompany: po?.companyFrom ?? `#${lnk.purchaseId.slice(0, 8)}…`,
+      saleCompany: sale?.companyTo ?? `#${lnk.saleId.slice(0, 8)}…`,
+      purchaseOriginalQty: lnk.purchaseOriginalQuantity,
+      purchaseAvailableQty: lnk.purchaseAvailableQuantity,
+      saleTotalRequired: lnk.saleTotalRequired,
+      saleRemainingQty: lnk.saleRemainingQuantity,
+      negative: lnk.negative,
+    };
+  }, [purchases, sales]);
+
   const loadAllLinks = useCallback(async () => {
     setAllLinksLoading(true);
     try {
       const apiLinks = await fetchMyLinks();
-      const records: LinkRecord[] = apiLinks.map((lnk) => {
-        const po = purchases.find((p) => p.id === lnk.purchaseId);
-        const sale = sales.find((s) => s.id === lnk.saleId);
-        return {
-          linkId: lnk.id,
-          purchaseId: lnk.purchaseId,
-          saleId: lnk.saleId,
-          linkedQuantity: lnk.linkedQuantity,
-          purchaseCompany: po?.companyFrom ?? `#${lnk.purchaseId.slice(0, 8)}…`,
-          saleCompany: sale?.companyTo ?? `#${lnk.saleId.slice(0, 8)}…`,
-          purchaseOriginalQty: lnk.purchaseOriginalQuantity,
-          saleTotalRequired: lnk.saleTotalRequired,
-          saleRemainingQty: lnk.saleRemainingQuantity,
-        };
-      });
-      setAllLinks(records);
+      setAllLinks(apiLinks.map(toLinkRecord));
     } catch {
       setAllLinks([]);
     } finally {
       setAllLinksLoading(false);
     }
-  }, [purchases, sales]);
+  }, [toLinkRecord]);
+
+  const loadNegativeLinks = useCallback(async () => {
+    setNegativeLinksLoading(true);
+    try {
+      const apiLinks = await fetchNegativeLinks();
+      setNegativeLinks(apiLinks.map(toLinkRecord));
+    } catch {
+      setNegativeLinks([]);
+    } finally {
+      setNegativeLinksLoading(false);
+    }
+  }, [toLinkRecord]);
+
+  const loadOversaleHistory = useCallback(async () => {
+    setOversaleHistoryLoading(true);
+    try {
+      const history = await fetchNegativeLinkHistory();
+      setOversaleHistory(history.slice().sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)));
+    } catch {
+      setOversaleHistory([]);
+    } finally {
+      setOversaleHistoryLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'all-links') loadAllLinks();
-  }, [activeTab, loadAllLinks]);
+    if (activeTab === 'negative') loadNegativeLinks();
+    if (activeTab === 'oversale-history') loadOversaleHistory();
+  }, [activeTab, loadAllLinks, loadNegativeLinks, loadOversaleHistory]);
 
   const handleProductChange = (p: string) => {
     setProduct(p);
@@ -503,6 +781,7 @@ export default function PurchaseSaleLinkPage() {
       saleId: apiLink.saleId,
       product: productName,
       linkedQuantity: apiLink.linkedQuantity,
+      negative: apiLink.negative,
     };
     setLinks((prev) => [...prev, newLink]);
     // Also add to allLinks so the "All Links" tab is up to date
@@ -517,10 +796,15 @@ export default function PurchaseSaleLinkPage() {
         purchaseCompany: po.companyFrom,
         saleCompany: sale.companyTo,
         purchaseOriginalQty: apiLink.purchaseOriginalQuantity,
+        purchaseAvailableQty: apiLink.purchaseAvailableQuantity,
         saleTotalRequired: apiLink.saleTotalRequired,
         saleRemainingQty: apiLink.saleRemainingQuantity,
+        negative: apiLink.negative,
       };
       setAllLinks((prev) => [...prev, newRecord]);
+      if (apiLink.negative) {
+        setNegativeLinks((prev) => [...prev, newRecord]);
+      }
     }
     setShowLinkQtyModal(false);
     setShowModal(false);
@@ -529,11 +813,43 @@ export default function PurchaseSaleLinkPage() {
     showToast(`${apiLink.linkedQuantity} MT linked successfully`, true);
   };
 
+  const handleEditSuccess = (updated: SalePurchaseLink) => {
+    setLinks((prev) => prev.map((l) => l.id === updated.id ? { ...l, linkedQuantity: updated.linkedQuantity, negative: updated.negative } : l));
+    setAllLinks((prev) => prev.map((r) => r.linkId === updated.id ? {
+      ...r,
+      linkedQuantity: updated.linkedQuantity,
+      purchaseOriginalQty: updated.purchaseOriginalQuantity,
+      purchaseAvailableQty: updated.purchaseAvailableQuantity,
+      saleTotalRequired: updated.saleTotalRequired,
+      saleRemainingQty: updated.saleRemainingQuantity,
+      negative: updated.negative,
+    } : r));
+    setNegativeLinks((prev) => {
+      const existing = prev.find((r) => r.linkId === updated.id);
+      if (!updated.negative) return prev.filter((r) => r.linkId !== updated.id);
+      const base = existing ?? allLinks.find((r) => r.linkId === updated.id);
+      if (!base) return prev;
+      const merged: LinkRecord = {
+        ...base,
+        linkedQuantity: updated.linkedQuantity,
+        purchaseOriginalQty: updated.purchaseOriginalQuantity,
+        purchaseAvailableQty: updated.purchaseAvailableQuantity,
+        saleTotalRequired: updated.saleTotalRequired,
+        saleRemainingQty: updated.saleRemainingQuantity,
+        negative: true,
+      };
+      return existing ? prev.map((r) => r.linkId === updated.id ? merged : r) : [...prev, merged];
+    });
+    setEditingLink(null);
+    showToast(`Link updated to ${updated.linkedQuantity} MT`, true);
+  };
+
   const handleUnlink = async (linkId: string) => {
     try {
       await deleteLink(linkId);
       setLinks((prev) => prev.filter((l) => l.id !== linkId));
       setAllLinks((prev) => prev.filter((l) => l.linkId !== linkId));
+      setNegativeLinks((prev) => prev.filter((l) => l.linkId !== linkId));
       showToast('Link removed', true);
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Failed to remove link', false);
@@ -578,7 +894,7 @@ export default function PurchaseSaleLinkPage() {
       <div className="page-content">
         {/* ── Tab Bar ── */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-          {(['link', 'all-links'] as const).map((tab) => (
+          {(['link', 'all-links', 'negative', 'oversale-history'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -599,7 +915,7 @@ export default function PurchaseSaleLinkPage() {
                   </svg>
                   Link Orders
                 </>
-              ) : (
+              ) : tab === 'all-links' ? (
                 <>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" style={{ marginRight: 6, verticalAlign: 'middle' }}>
                     <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" />
@@ -608,6 +924,30 @@ export default function PurchaseSaleLinkPage() {
                   {allLinks.length > 0 && (
                     <span style={{ marginLeft: 6, padding: '1px 7px', background: 'var(--blue)', color: '#fff', borderRadius: '999px', fontSize: '10px', fontWeight: '700' }}>
                       {allLinks.length}
+                    </span>
+                  )}
+                </>
+              ) : tab === 'negative' ? (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" style={{ marginRight: 6, verticalAlign: 'middle' }}>
+                    <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Negative Links
+                  {negativeLinks.length > 0 && (
+                    <span style={{ marginLeft: 6, padding: '1px 7px', background: '#f56565', color: '#fff', borderRadius: '999px', fontSize: '10px', fontWeight: '700' }}>
+                      {negativeLinks.length}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" style={{ marginRight: 6, verticalAlign: 'middle' }}>
+                    <path d="M12 8v4l2 2M12 3a9 9 0 1 0 9 9" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Oversale History
+                  {oversaleHistory.length > 0 && (
+                    <span style={{ marginLeft: 6, padding: '1px 7px', background: '#ed8936', color: '#fff', borderRadius: '999px', fontSize: '10px', fontWeight: '700' }}>
+                      {oversaleHistory.length}
                     </span>
                   )}
                 </>
@@ -659,64 +999,91 @@ export default function PurchaseSaleLinkPage() {
                   Refresh
                 </button>
               </div>
-              <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '680px' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
-                      <th style={TH}>Purchase</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>PO Qty</th>
-                      <th style={{ ...TH, textAlign: 'center' }}>Linked MT</th>
-                      <th style={TH}>Sale</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>Sale Req.</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>Remaining</th>
-                      <th style={{ ...TH, textAlign: 'center' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allLinks.map((rec) => (
-                      <tr key={rec.linkId} style={{ borderBottom: '1px solid var(--border)' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ fontWeight: '600', fontSize: '13px' }}>{rec.purchaseCompany}</div>
-                          <div style={{ fontSize: '10px', color: 'var(--blue)', marginTop: 2 }}>#{rec.purchaseId.slice(0, 8)}…</div>
-                        </td>
-                        <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--gray)' }}>
-                          {rec.purchaseOriginalQty.toLocaleString('en-IN')} MT
-                        </td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: 'rgba(72,187,120,0.12)', border: '1px solid rgba(72,187,120,0.3)', borderRadius: '999px', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: '700', color: '#48bb78' }}>
-                            ⟷ {rec.linkedQuantity.toLocaleString('en-IN')}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ fontWeight: '600', fontSize: '13px' }}>{rec.saleCompany}</div>
-                          <div style={{ fontSize: '10px', color: 'var(--teal)', marginTop: 2 }}>#{rec.saleId.slice(0, 8)}…</div>
-                        </td>
-                        <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--gray)' }}>
-                          {rec.saleTotalRequired.toLocaleString('en-IN')} MT
-                        </td>
-                        <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace' }}>
-                          <span style={{ color: rec.saleRemainingQty === 0 ? '#48bb78' : '#ed8936', fontWeight: '700' }}>
-                            {rec.saleRemainingQty.toLocaleString('en-IN')} MT
-                          </span>
-                          {rec.saleRemainingQty === 0 && (
-                            <span style={{ marginLeft: 4, fontSize: '10px', color: '#48bb78' }}>✓</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                          <button
-                            onClick={() => handleUnlink(rec.linkId)}
-                            style={{ padding: '4px 12px', background: 'rgba(245,101,101,0.08)', color: '#f56565', border: '1px solid rgba(245,101,101,0.3)', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
-                          >
-                            Unlink
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <LinksTable records={allLinks} onUnlink={handleUnlink} onEdit={(r) => setEditingLink({ linkId: r.linkId, purchaseId: r.purchaseId, saleId: r.saleId, currentQty: r.linkedQuantity, purchaseCompany: r.purchaseCompany, saleCompany: r.saleCompany })} />
+            </div>
+          )
+        )}
+
+        {/* ── Negative Links Tab ── */}
+        {activeTab === 'negative' && (
+          negativeLinksLoading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>Loading over-allocated links…</div>
+          ) : negativeLinks.length === 0 ? (
+            <div style={{
+              textAlign: 'center', padding: '80px 40px',
+              background: 'var(--card)', borderRadius: '12px',
+              border: '2px dashed var(--border)',
+            }}>
+              <div style={{ fontSize: '42px', marginBottom: '16px' }}>✅</div>
+              <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '8px' }}>No Over-Allocated Purchases</h3>
+              <p style={{ color: 'var(--gray)', maxWidth: '380px', margin: '0 auto', fontSize: '13px' }}>
+                Every linked purchase order currently has enough available quantity to cover its linked sales. Links that draw more than a purchase has available will show up here.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)' }}>
+                  Over-Allocated Purchase Links
+                  <span style={{ marginLeft: 8, fontSize: '11px', color: 'var(--gray)', fontWeight: '500' }}>
+                    {negativeLinks.length} link{negativeLinks.length !== 1 ? 's' : ''} exceeding available PO quantity
+                  </span>
+                </div>
+                <button
+                  onClick={loadNegativeLinks}
+                  disabled={negativeLinksLoading}
+                  style={{ padding: '6px 14px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--gray)', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                    <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  Refresh
+                </button>
               </div>
+              <LinksTable records={negativeLinks} onUnlink={handleUnlink} onEdit={(r) => setEditingLink({ linkId: r.linkId, purchaseId: r.purchaseId, saleId: r.saleId, currentQty: r.linkedQuantity, purchaseCompany: r.purchaseCompany, saleCompany: r.saleCompany })} />
+            </div>
+          )
+        )}
+
+        {/* ── Oversale History Tab ── */}
+        {activeTab === 'oversale-history' && (
+          oversaleHistoryLoading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>Loading oversale history…</div>
+          ) : oversaleHistory.length === 0 ? (
+            <div style={{
+              textAlign: 'center', padding: '80px 40px',
+              background: 'var(--card)', borderRadius: '12px',
+              border: '2px dashed var(--border)',
+            }}>
+              <div style={{ fontSize: '42px', marginBottom: '16px' }}>🕓</div>
+              <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '8px' }}>No Oversale History</h3>
+              <p style={{ color: 'var(--gray)', maxWidth: '380px', margin: '0 auto', fontSize: '13px' }}>
+                No link has ever gone over-allocated. Once a link exceeds its purchase&apos;s available quantity, every create/update/delete touching it is recorded here permanently — even after it&apos;s corrected.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)' }}>
+                  Oversale Audit Log
+                  <span style={{ marginLeft: 8, fontSize: '11px', color: 'var(--gray)', fontWeight: '500' }}>
+                    {oversaleHistory.length} record{oversaleHistory.length !== 1 ? 's' : ''} · permanent, never removed
+                  </span>
+                </div>
+                <button
+                  onClick={loadOversaleHistory}
+                  disabled={oversaleHistoryLoading}
+                  style={{ padding: '6px 14px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--gray)', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                    <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+              <OversaleHistoryTable records={oversaleHistory} />
             </div>
           )
         )}
@@ -922,6 +1289,29 @@ export default function PurchaseSaleLinkPage() {
                             #{link.saleId}{s ? ` · ${s.quantity.toLocaleString('en-IN')} MT · ₹${s.price.toLocaleString('en-IN')}` : ''}
                           </div>
                         </div>
+                        {link.negative && (
+                          <div style={{ flexShrink: 0 }}>
+                            <NegativeBadge negative />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setEditingLink({
+                            linkId: link.id,
+                            purchaseId: link.purchaseId,
+                            saleId: link.saleId,
+                            currentQty: link.linkedQuantity,
+                            purchaseCompany: p?.companyFrom ?? `#${link.purchaseId}`,
+                            saleCompany: s?.companyTo ?? `#${link.saleId}`,
+                          })}
+                          style={{
+                            padding: '5px 12px', background: 'rgba(66,153,225,0.08)',
+                            color: '#63b3ed', border: '1px solid rgba(66,153,225,0.3)',
+                            borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                            cursor: 'pointer', flexShrink: 0,
+                          }}
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={() => handleUnlink(link.id)}
                           style={{
@@ -964,6 +1354,15 @@ export default function PurchaseSaleLinkPage() {
         />
       )}
 
+      {/* ── Edit Link Quantity Modal ── */}
+      {editingLink && (
+        <EditLinkQuantityModal
+          link={editingLink}
+          onClose={() => setEditingLink(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
       {/* Toast */}
       {toast.visible && (
         <div style={{
@@ -980,6 +1379,170 @@ export default function PurchaseSaleLinkPage() {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function LinksTable({ records, onUnlink, onEdit }: { records: LinkRecord[]; onUnlink: (linkId: string) => void; onEdit: (record: LinkRecord) => void }) {
+  return (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '820px' }}>
+        <thead>
+          <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
+            <th style={TH}>Purchase</th>
+            <th style={{ ...TH, textAlign: 'right' }}>PO Qty</th>
+            <th style={{ ...TH, textAlign: 'right' }}>PO Available</th>
+            <th style={{ ...TH, textAlign: 'center' }}>Linked MT</th>
+            <th style={TH}>Sale</th>
+            <th style={{ ...TH, textAlign: 'right' }}>Sale Req.</th>
+            <th style={{ ...TH, textAlign: 'right' }}>Remaining</th>
+            <th style={{ ...TH, textAlign: 'center' }}>Status</th>
+            <th style={{ ...TH, textAlign: 'center' }}>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((rec) => (
+            <tr key={rec.linkId}
+              style={{ borderBottom: '1px solid var(--border)', background: rec.negative ? 'rgba(245,101,101,0.05)' : undefined }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = rec.negative ? 'rgba(245,101,101,0.05)' : ''; }}>
+              <td style={{ padding: '12px 14px' }}>
+                <div style={{ fontWeight: '600', fontSize: '13px' }}>{rec.purchaseCompany}</div>
+                <div style={{ fontSize: '10px', color: 'var(--blue)', marginTop: 2 }}>#{rec.purchaseId.slice(0, 8)}…</div>
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--gray)' }}>
+                {rec.purchaseOriginalQty.toLocaleString('en-IN')} MT
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: rec.purchaseAvailableQty < 0 ? 700 : 400, color: rec.purchaseAvailableQty < 0 ? '#f56565' : 'var(--gray)' }}>
+                {fmtAvailable(rec.purchaseAvailableQty)} MT
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: 'rgba(72,187,120,0.12)', border: '1px solid rgba(72,187,120,0.3)', borderRadius: '999px', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: '700', color: '#48bb78' }}>
+                  ⟷ {rec.linkedQuantity.toLocaleString('en-IN')}
+                </span>
+              </td>
+              <td style={{ padding: '12px 14px' }}>
+                <div style={{ fontWeight: '600', fontSize: '13px' }}>{rec.saleCompany}</div>
+                <div style={{ fontSize: '10px', color: 'var(--teal)', marginTop: 2 }}>#{rec.saleId.slice(0, 8)}…</div>
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--gray)' }}>
+                {rec.saleTotalRequired.toLocaleString('en-IN')} MT
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace' }}>
+                <span style={{ color: rec.saleRemainingQty === 0 ? '#48bb78' : '#ed8936', fontWeight: '700' }}>
+                  {rec.saleRemainingQty.toLocaleString('en-IN')} MT
+                </span>
+                {rec.saleRemainingQty === 0 && (
+                  <span style={{ marginLeft: 4, fontSize: '10px', color: '#48bb78' }}>✓</span>
+                )}
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                {rec.negative ? <NegativeBadge negative /> : <span style={{ fontSize: '11px', color: 'var(--gray)' }}>—</span>}
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                  <button
+                    onClick={() => onEdit(rec)}
+                    style={{ padding: '4px 12px', background: 'rgba(66,153,225,0.08)', color: '#63b3ed', border: '1px solid rgba(66,153,225,0.3)', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onUnlink(rec.linkId)}
+                    style={{ padding: '4px 12px', background: 'rgba(245,101,101,0.08)', color: '#f56565', border: '1px solid rgba(245,101,101,0.3)', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Unlink
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function fmtDateTime(s: string | null | undefined) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function ActionBadge({ action }: { action: string }) {
+  const id = action.toUpperCase();
+  const map: Record<string, { bg: string; color: string }> = {
+    CREATE: { bg: 'rgba(72,187,120,0.15)', color: '#48bb78' },
+    UPDATE: { bg: 'rgba(66,153,225,0.15)', color: '#63b3ed' },
+    DELETE: { bg: 'rgba(245,101,101,0.15)', color: '#f56565' },
+  };
+  const style = map[id] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
+  return (
+    <span style={{
+      display: 'inline-block', padding: '2px 10px', borderRadius: '999px',
+      fontSize: '10px', fontWeight: '700', letterSpacing: '0.05em',
+      textTransform: 'uppercase', background: style.bg, color: style.color,
+    }}>
+      {action}
+    </span>
+  );
+}
+
+function OversaleHistoryTable({ records }: { records: NegativeLinkHistoryEntry[] }) {
+  return (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+        <thead>
+          <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
+            <th style={TH}>Action</th>
+            <th style={TH}>Link</th>
+            <th style={TH}>Purchase</th>
+            <th style={TH}>Sale</th>
+            <th style={{ ...TH, textAlign: 'right' }}>Linked Qty</th>
+            <th style={{ ...TH, textAlign: 'right' }}>PO Original</th>
+            <th style={{ ...TH, textAlign: 'right' }}>PO Available</th>
+            <th style={TH}>Changed By</th>
+            <th style={TH}>Occurred At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((rec) => (
+            <tr key={rec.id}
+              style={{ borderBottom: '1px solid var(--border)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}>
+              <td style={{ padding: '12px 14px' }}>
+                <ActionBadge action={rec.action} />
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '11px', color: 'var(--gray)', fontFamily: 'JetBrains Mono, monospace' }}>
+                #{rec.linkId.slice(0, 8)}…
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '11px', color: 'var(--blue)', fontFamily: 'JetBrains Mono, monospace' }}>
+                #{rec.purchaseId.slice(0, 8)}…
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '11px', color: 'var(--teal)', fontFamily: 'JetBrains Mono, monospace' }}>
+                #{rec.saleId.slice(0, 8)}…
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: '#48bb78' }}>
+                {rec.linkedQuantity.toLocaleString('en-IN')} MT
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--gray)' }}>
+                {rec.purchaseOriginalQuantity.toLocaleString('en-IN')} MT
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: rec.purchaseAvailableQuantity < 0 ? 700 : 400, color: rec.purchaseAvailableQuantity < 0 ? '#f56565' : 'var(--gray)' }}>
+                {fmtAvailable(rec.purchaseAvailableQuantity)} MT
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '13px', fontWeight: 600 }}>
+                {rec.changedByUsername}
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--gray)', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap' }}>
+                {fmtDateTime(rec.occurredAt)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function Section({ title, accent, children }: { title: string; accent: string; children: React.ReactNode }) {
   return (

@@ -617,6 +617,7 @@ export interface SalePurchaseLink {
   purchaseAvailableQuantity: number;
   saleTotalRequired: number;
   saleRemainingQuantity: number;
+  negative: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -665,7 +666,7 @@ export async function updateLink(
   linkId: string,
   linkedQuantity: number
 ): Promise<SalePurchaseLink> {
-  return apiClient.put<SalePurchaseLink>(`/links/${linkId}`, { linkedQuantity });
+  return apiClient.patch<SalePurchaseLink>(`/links/${linkId}`, { linkedQuantity });
 }
 
 export async function deleteLink(linkId: string): Promise<void> {
@@ -682,6 +683,35 @@ export async function getPurchaseSummary(purchaseId: string): Promise<PurchaseSu
 
 export async function fetchMyLinks(): Promise<SalePurchaseLink[]> {
   return apiClient.get<SalePurchaseLink[]>('/links/me');
+}
+
+export async function fetchLinksByUsername(username: string): Promise<SalePurchaseLink[]> {
+  return apiClient.get<SalePurchaseLink[]>(`/links/user/${username}`);
+}
+
+export async function fetchNegativeLinks(): Promise<SalePurchaseLink[]> {
+  return apiClient.get<SalePurchaseLink[]>('/links/negative');
+}
+
+export interface NegativeLinkHistoryEntry {
+  id: string;
+  linkId: string;
+  saleId: string;
+  purchaseId: string;
+  linkedQuantity: number;
+  purchaseOriginalQuantity: number;
+  purchaseAvailableQuantity: number;
+  action: string;
+  changedByUsername: string;
+  occurredAt: string;
+}
+
+export async function fetchNegativeLinkHistory(): Promise<NegativeLinkHistoryEntry[]> {
+  return apiClient.get<NegativeLinkHistoryEntry[]>('/links/negative/history');
+}
+
+export async function fetchNegativeLinkHistoryForLink(linkId: string): Promise<NegativeLinkHistoryEntry[]> {
+  return apiClient.get<NegativeLinkHistoryEntry[]>(`/links/${linkId}/negative/history`);
 }
 
 // ── Stock Stats ───────────────────────────────────────────────────────────────
