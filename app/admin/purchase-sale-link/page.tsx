@@ -5,8 +5,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   fetchAllPurchases, fetchAllSalesComplete, getPortName, getProductName, getPaymentTermName,
   createLink, updateLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks, fetchNegativeLinks,
-  getOriginName, getProductId, getStatusName, getStatusId,
-  type PurchaseOrder, type SalePurchaseLink, type StatusValue,
+  fetchNegativeLinkHistory, getOriginName, getProductId, getStatusName, getStatusId,
+  type PurchaseOrder, type SalePurchaseLink, type StatusValue, type NegativeLinkHistoryEntry,
 } from '@/lib/api';
 import type { SaleEntry } from '@/lib/types';
 import { useAppSelector } from '@/lib/redux/hooks';
@@ -630,12 +630,14 @@ export default function PurchaseSaleLinkPage() {
   const [showModal, setShowModal] = useState(false);
   const [showLinkQtyModal, setShowLinkQtyModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; ok: boolean; visible: boolean }>({ message: '', ok: true, visible: false });
-  const [activeTab, setActiveTab] = useState<'link' | 'all-links' | 'negative'>('link');
+  const [activeTab, setActiveTab] = useState<'link' | 'all-links' | 'negative' | 'oversale-history'>('link');
   const [allLinks, setAllLinks] = useState<LinkRecord[]>([]);
   const [allLinksLoading, setAllLinksLoading] = useState(false);
   const [negativeLinks, setNegativeLinks] = useState<LinkRecord[]>([]);
   const [negativeLinksLoading, setNegativeLinksLoading] = useState(false);
   const [editingLink, setEditingLink] = useState<EditingLink | null>(null);
+  const [oversaleHistory, setOversaleHistory] = useState<NegativeLinkHistoryEntry[]>([]);
+  const [oversaleHistoryLoading, setOversaleHistoryLoading] = useState(false);
 
   useEffect(() => {
     // Fetch all purchases + all sales to build the unified product list
@@ -727,10 +729,23 @@ export default function PurchaseSaleLinkPage() {
     }
   }, [toLinkRecord]);
 
+  const loadOversaleHistory = useCallback(async () => {
+    setOversaleHistoryLoading(true);
+    try {
+      const history = await fetchNegativeLinkHistory();
+      setOversaleHistory(history.slice().sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)));
+    } catch {
+      setOversaleHistory([]);
+    } finally {
+      setOversaleHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'all-links') loadAllLinks();
     if (activeTab === 'negative') loadNegativeLinks();
-  }, [activeTab, loadAllLinks, loadNegativeLinks]);
+    if (activeTab === 'oversale-history') loadOversaleHistory();
+  }, [activeTab, loadAllLinks, loadNegativeLinks, loadOversaleHistory]);
 
   const handleProductChange = (p: string) => {
     setProduct(p);
@@ -879,7 +894,7 @@ export default function PurchaseSaleLinkPage() {
       <div className="page-content">
         {/* ── Tab Bar ── */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-          {(['link', 'all-links', 'negative'] as const).map((tab) => (
+          {(['link', 'all-links', 'negative', 'oversale-history'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -912,7 +927,7 @@ export default function PurchaseSaleLinkPage() {
                     </span>
                   )}
                 </>
-              ) : (
+              ) : tab === 'negative' ? (
                 <>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" style={{ marginRight: 6, verticalAlign: 'middle' }}>
                     <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" strokeLinecap="round" strokeLinejoin="round" />
@@ -921,6 +936,18 @@ export default function PurchaseSaleLinkPage() {
                   {negativeLinks.length > 0 && (
                     <span style={{ marginLeft: 6, padding: '1px 7px', background: '#f56565', color: '#fff', borderRadius: '999px', fontSize: '10px', fontWeight: '700' }}>
                       {negativeLinks.length}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12" style={{ marginRight: 6, verticalAlign: 'middle' }}>
+                    <path d="M12 8v4l2 2M12 3a9 9 0 1 0 9 9" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Oversale History
+                  {oversaleHistory.length > 0 && (
+                    <span style={{ marginLeft: 6, padding: '1px 7px', background: '#ed8936', color: '#fff', borderRadius: '999px', fontSize: '10px', fontWeight: '700' }}>
+                      {oversaleHistory.length}
                     </span>
                   )}
                 </>
@@ -1015,6 +1042,48 @@ export default function PurchaseSaleLinkPage() {
                 </button>
               </div>
               <LinksTable records={negativeLinks} onUnlink={handleUnlink} onEdit={(r) => setEditingLink({ linkId: r.linkId, purchaseId: r.purchaseId, saleId: r.saleId, currentQty: r.linkedQuantity, purchaseCompany: r.purchaseCompany, saleCompany: r.saleCompany })} />
+            </div>
+          )
+        )}
+
+        {/* ── Oversale History Tab ── */}
+        {activeTab === 'oversale-history' && (
+          oversaleHistoryLoading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>Loading oversale history…</div>
+          ) : oversaleHistory.length === 0 ? (
+            <div style={{
+              textAlign: 'center', padding: '80px 40px',
+              background: 'var(--card)', borderRadius: '12px',
+              border: '2px dashed var(--border)',
+            }}>
+              <div style={{ fontSize: '42px', marginBottom: '16px' }}>🕓</div>
+              <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '8px' }}>No Oversale History</h3>
+              <p style={{ color: 'var(--gray)', maxWidth: '380px', margin: '0 auto', fontSize: '13px' }}>
+                No link has ever gone over-allocated. Once a link exceeds its purchase&apos;s available quantity, every create/update/delete touching it is recorded here permanently — even after it&apos;s corrected.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)' }}>
+                  Oversale Audit Log
+                  <span style={{ marginLeft: 8, fontSize: '11px', color: 'var(--gray)', fontWeight: '500' }}>
+                    {oversaleHistory.length} record{oversaleHistory.length !== 1 ? 's' : ''} · permanent, never removed
+                  </span>
+                </div>
+                <button
+                  onClick={loadOversaleHistory}
+                  disabled={oversaleHistoryLoading}
+                  style={{ padding: '6px 14px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--gray)', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                    <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+              <OversaleHistoryTable records={oversaleHistory} />
             </div>
           )
         )}
@@ -1382,6 +1451,90 @@ function LinksTable({ records, onUnlink, onEdit }: { records: LinkRecord[]; onUn
                     Unlink
                   </button>
                 </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function fmtDateTime(s: string | null | undefined) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function ActionBadge({ action }: { action: string }) {
+  const id = action.toUpperCase();
+  const map: Record<string, { bg: string; color: string }> = {
+    CREATE: { bg: 'rgba(72,187,120,0.15)', color: '#48bb78' },
+    UPDATE: { bg: 'rgba(66,153,225,0.15)', color: '#63b3ed' },
+    DELETE: { bg: 'rgba(245,101,101,0.15)', color: '#f56565' },
+  };
+  const style = map[id] ?? { bg: 'rgba(160,174,192,0.15)', color: '#a0aec0' };
+  return (
+    <span style={{
+      display: 'inline-block', padding: '2px 10px', borderRadius: '999px',
+      fontSize: '10px', fontWeight: '700', letterSpacing: '0.05em',
+      textTransform: 'uppercase', background: style.bg, color: style.color,
+    }}>
+      {action}
+    </span>
+  );
+}
+
+function OversaleHistoryTable({ records }: { records: NegativeLinkHistoryEntry[] }) {
+  return (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+        <thead>
+          <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
+            <th style={TH}>Action</th>
+            <th style={TH}>Link</th>
+            <th style={TH}>Purchase</th>
+            <th style={TH}>Sale</th>
+            <th style={{ ...TH, textAlign: 'right' }}>Linked Qty</th>
+            <th style={{ ...TH, textAlign: 'right' }}>PO Original</th>
+            <th style={{ ...TH, textAlign: 'right' }}>PO Available</th>
+            <th style={TH}>Changed By</th>
+            <th style={TH}>Occurred At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((rec) => (
+            <tr key={rec.id}
+              style={{ borderBottom: '1px solid var(--border)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}>
+              <td style={{ padding: '12px 14px' }}>
+                <ActionBadge action={rec.action} />
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '11px', color: 'var(--gray)', fontFamily: 'JetBrains Mono, monospace' }}>
+                #{rec.linkId.slice(0, 8)}…
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '11px', color: 'var(--blue)', fontFamily: 'JetBrains Mono, monospace' }}>
+                #{rec.purchaseId.slice(0, 8)}…
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '11px', color: 'var(--teal)', fontFamily: 'JetBrains Mono, monospace' }}>
+                #{rec.saleId.slice(0, 8)}…
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: '#48bb78' }}>
+                {rec.linkedQuantity.toLocaleString('en-IN')} MT
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--gray)' }}>
+                {rec.purchaseOriginalQuantity.toLocaleString('en-IN')} MT
+              </td>
+              <td style={{ padding: '12px 14px', textAlign: 'right', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: rec.purchaseAvailableQuantity < 0 ? 700 : 400, color: rec.purchaseAvailableQuantity < 0 ? '#f56565' : 'var(--gray)' }}>
+                {fmtAvailable(rec.purchaseAvailableQuantity)} MT
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '13px', fontWeight: 600 }}>
+                {rec.changedByUsername}
+              </td>
+              <td style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--gray)', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap' }}>
+                {fmtDateTime(rec.occurredAt)}
               </td>
             </tr>
           ))}

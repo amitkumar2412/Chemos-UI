@@ -693,6 +693,27 @@ export async function fetchNegativeLinks(): Promise<SalePurchaseLink[]> {
   return apiClient.get<SalePurchaseLink[]>('/links/negative');
 }
 
+export interface NegativeLinkHistoryEntry {
+  id: string;
+  linkId: string;
+  saleId: string;
+  purchaseId: string;
+  linkedQuantity: number;
+  purchaseOriginalQuantity: number;
+  purchaseAvailableQuantity: number;
+  action: string;
+  changedByUsername: string;
+  occurredAt: string;
+}
+
+export async function fetchNegativeLinkHistory(): Promise<NegativeLinkHistoryEntry[]> {
+  return apiClient.get<NegativeLinkHistoryEntry[]>('/links/negative/history');
+}
+
+export async function fetchNegativeLinkHistoryForLink(linkId: string): Promise<NegativeLinkHistoryEntry[]> {
+  return apiClient.get<NegativeLinkHistoryEntry[]>(`/links/${linkId}/negative/history`);
+}
+
 // ── Stock Stats ───────────────────────────────────────────────────────────────
 
 const STOCK_STATS_BASE =
