@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchAllPurchases, fetchAllSalesComplete, getPortName, getProductName, getPaymentTermName,
-  createLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks, fetchNegativeLinks,
+  createLink, updateLink, deleteLink, getSaleSummary, getPurchaseSummary, fetchMyLinks, fetchNegativeLinks,
   getOriginName, getProductId, getStatusName, getStatusId,
   type PurchaseOrder, type SalePurchaseLink, type StatusValue,
 } from '@/lib/api';
@@ -405,6 +405,211 @@ function LinkQuantityModal({
   );
 }
 
+// ─── Edit Link Quantity Modal ──────────────────────────────────────────────────
+
+interface EditingLink {
+  linkId: string;
+  purchaseId: string;
+  saleId: string;
+  currentQty: number;
+  purchaseCompany: string;
+  saleCompany: string;
+}
+
+function EditLinkQuantityModal({
+  link,
+  onClose,
+  onSuccess,
+}: {
+  link: EditingLink;
+  onClose: () => void;
+  onSuccess: (link: SalePurchaseLink) => void;
+}) {
+  const [qty, setQty] = useState(String(link.currentQty));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [purchaseAvailable, setPurchaseAvailable] = useState(link.currentQty);
+  const [saleRemaining, setSaleRemaining] = useState(link.currentQty);
+
+  useEffect(() => {
+    Promise.allSettled([
+      getPurchaseSummary(link.purchaseId),
+      getSaleSummary(link.saleId),
+    ]).then(([pRes, sRes]) => {
+      // Summaries reflect totals including this link's current contribution,
+      // so add it back to get the ceiling available if this link were removed.
+      if (pRes.status === 'fulfilled') setPurchaseAvailable(pRes.value.availableQuantity + link.currentQty);
+      if (sRes.status === 'fulfilled') setSaleRemaining(sRes.value.remaining + link.currentQty);
+      setSummaryLoading(false);
+    });
+  }, [link.purchaseId, link.saleId, link.currentQty]);
+
+  const maxQty = saleRemaining;
+  const qtyNum = parseFloat(qty);
+  const isValid = !isNaN(qtyNum) && qtyNum > 0 && qtyNum <= maxQty;
+  const willOverAllocate = isValid && qtyNum > purchaseAvailable;
+  const unchanged = qtyNum === link.currentQty;
+
+  const handleConfirm = async () => {
+    if (!isValid || loading || unchanged) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const updated = await updateLink(link.linkId, qtyNum);
+      onSuccess(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update link');
+      setLoading(false);
+    }
+  };
+
+  const mono: React.CSSProperties = { fontFamily: 'JetBrains Mono, monospace' };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.75)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1200,
+      }}
+      onClick={loading ? undefined : onClose}
+    >
+      <div
+        style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: '28px 32px', width: 420,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Edit Linked Quantity</div>
+          <div style={{ fontSize: 12, color: 'var(--gray)', lineHeight: 1.5 }}>
+            Update the quantity (MT) committed from this purchase to this sale.
+          </div>
+        </div>
+
+        {summaryLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--gray)', fontSize: 13 }}>
+            Loading available quantities…
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+            <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(66,153,225,0.08)', border: '1px solid rgba(66,153,225,0.25)', borderRadius: 8 }}>
+              <div style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Purchase</div>
+              <div title={link.purchaseCompany} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{link.purchaseCompany}</div>
+              <div style={{ fontSize: 11, color: 'var(--gray)', marginBottom: 8 }}>#{link.purchaseId.slice(0, 8)}…</div>
+              <div style={{ fontSize: 16, ...mono, fontWeight: 700, color: purchaseAvailable < 0 ? '#f56565' : 'var(--text)' }}>
+                {fmtAvailable(purchaseAvailable)} MT
+              </div>
+              <div style={{ fontSize: 10, color: purchaseAvailable < 0 ? '#f56565' : 'var(--gray)' }}>
+                available if unlinked
+              </div>
+            </div>
+            <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(72,187,120,0.08)', border: '1px solid rgba(72,187,120,0.25)', borderRadius: 8 }}>
+              <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Sale</div>
+              <div title={link.saleCompany} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{link.saleCompany}</div>
+              <div style={{ fontSize: 11, color: 'var(--gray)', marginBottom: 8 }}>#{link.saleId.slice(0, 8)}…</div>
+              <div style={{ fontSize: 16, ...mono, fontWeight: 700 }}>{saleRemaining.toLocaleString('en-IN')} MT</div>
+              <div style={{ fontSize: 10, color: 'var(--gray)' }}>needed if unlinked</div>
+            </div>
+          </div>
+        )}
+
+        <label style={{ fontSize: 12, color: 'var(--gray)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
+          New Quantity (MT) — max {maxQty.toLocaleString('en-IN')} MT (sale requirement)
+        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: error ? 12 : 24 }}>
+          <input
+            type="number"
+            min={0.01}
+            max={maxQty}
+            step={0.01}
+            value={qty}
+            autoFocus
+            disabled={loading || summaryLoading}
+            onChange={(e) => setQty(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); if (e.key === 'Escape' && !loading) onClose(); }}
+            style={{
+              flex: 1, padding: '10px 12px',
+              background: 'var(--navy-light)',
+              border: `1px solid ${error ? '#f56565' : !qty ? 'var(--border)' : isValid ? 'var(--blue)' : '#f56565'}`,
+              borderRadius: 8, color: 'var(--text)',
+              fontSize: 20, ...mono, fontWeight: 700, textAlign: 'right',
+              outline: 'none', opacity: (loading || summaryLoading) ? 0.6 : 1,
+            }}
+          />
+          <span style={{ fontSize: 14, color: 'var(--gray)', fontWeight: 600, minWidth: 28 }}>MT</span>
+        </div>
+
+        {willOverAllocate && (
+          <div style={{
+            marginBottom: 16, padding: '8px 12px',
+            background: 'rgba(237,137,54,0.1)', border: '1px solid rgba(237,137,54,0.3)',
+            borderRadius: 6, color: '#ed8936', fontSize: 12, lineHeight: 1.5,
+          }}>
+            ⚠ This exceeds the purchase&apos;s available quantity by{' '}
+            {(qtyNum - purchaseAvailable).toLocaleString('en-IN')} MT. The link will be updated, but flagged as over-allocated.
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            marginBottom: 16, padding: '8px 12px',
+            background: 'rgba(245,101,101,0.1)', border: '1px solid rgba(245,101,101,0.3)',
+            borderRadius: 6, color: '#f56565', fontSize: 12,
+          }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              flex: 1, padding: '10px', background: 'transparent',
+              border: '1px solid var(--border)', borderRadius: 8,
+              color: 'var(--gray)', fontSize: 14, fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+              opacity: loading ? 0.5 : 1,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!isValid || loading || summaryLoading || unchanged}
+            style={{
+              flex: 2, padding: '10px',
+              background: (!isValid || summaryLoading || unchanged) ? 'rgba(66,153,225,0.35)' : 'linear-gradient(135deg, var(--blue), var(--teal))',
+              border: 'none', borderRadius: 8, color: 'white',
+              fontSize: 14, fontWeight: 600,
+              cursor: (!isValid || loading || summaryLoading || unchanged) ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(66,153,225,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            {loading ? (
+              <>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="14" height="14"
+                  style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="8" cy="8" r="6" strokeDasharray="25" strokeDashoffset="8" />
+                </svg>
+                Saving…
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 interface ProductOption {
@@ -430,6 +635,7 @@ export default function PurchaseSaleLinkPage() {
   const [allLinksLoading, setAllLinksLoading] = useState(false);
   const [negativeLinks, setNegativeLinks] = useState<LinkRecord[]>([]);
   const [negativeLinksLoading, setNegativeLinksLoading] = useState(false);
+  const [editingLink, setEditingLink] = useState<EditingLink | null>(null);
 
   useEffect(() => {
     // Fetch all purchases + all sales to build the unified product list
@@ -592,6 +798,37 @@ export default function PurchaseSaleLinkPage() {
     showToast(`${apiLink.linkedQuantity} MT linked successfully`, true);
   };
 
+  const handleEditSuccess = (updated: SalePurchaseLink) => {
+    setLinks((prev) => prev.map((l) => l.id === updated.id ? { ...l, linkedQuantity: updated.linkedQuantity, negative: updated.negative } : l));
+    setAllLinks((prev) => prev.map((r) => r.linkId === updated.id ? {
+      ...r,
+      linkedQuantity: updated.linkedQuantity,
+      purchaseOriginalQty: updated.purchaseOriginalQuantity,
+      purchaseAvailableQty: updated.purchaseAvailableQuantity,
+      saleTotalRequired: updated.saleTotalRequired,
+      saleRemainingQty: updated.saleRemainingQuantity,
+      negative: updated.negative,
+    } : r));
+    setNegativeLinks((prev) => {
+      const existing = prev.find((r) => r.linkId === updated.id);
+      if (!updated.negative) return prev.filter((r) => r.linkId !== updated.id);
+      const base = existing ?? allLinks.find((r) => r.linkId === updated.id);
+      if (!base) return prev;
+      const merged: LinkRecord = {
+        ...base,
+        linkedQuantity: updated.linkedQuantity,
+        purchaseOriginalQty: updated.purchaseOriginalQuantity,
+        purchaseAvailableQty: updated.purchaseAvailableQuantity,
+        saleTotalRequired: updated.saleTotalRequired,
+        saleRemainingQty: updated.saleRemainingQuantity,
+        negative: true,
+      };
+      return existing ? prev.map((r) => r.linkId === updated.id ? merged : r) : [...prev, merged];
+    });
+    setEditingLink(null);
+    showToast(`Link updated to ${updated.linkedQuantity} MT`, true);
+  };
+
   const handleUnlink = async (linkId: string) => {
     try {
       await deleteLink(linkId);
@@ -735,7 +972,7 @@ export default function PurchaseSaleLinkPage() {
                   Refresh
                 </button>
               </div>
-              <LinksTable records={allLinks} onUnlink={handleUnlink} />
+              <LinksTable records={allLinks} onUnlink={handleUnlink} onEdit={(r) => setEditingLink({ linkId: r.linkId, purchaseId: r.purchaseId, saleId: r.saleId, currentQty: r.linkedQuantity, purchaseCompany: r.purchaseCompany, saleCompany: r.saleCompany })} />
             </div>
           )
         )}
@@ -777,7 +1014,7 @@ export default function PurchaseSaleLinkPage() {
                   Refresh
                 </button>
               </div>
-              <LinksTable records={negativeLinks} onUnlink={handleUnlink} />
+              <LinksTable records={negativeLinks} onUnlink={handleUnlink} onEdit={(r) => setEditingLink({ linkId: r.linkId, purchaseId: r.purchaseId, saleId: r.saleId, currentQty: r.linkedQuantity, purchaseCompany: r.purchaseCompany, saleCompany: r.saleCompany })} />
             </div>
           )
         )}
@@ -989,6 +1226,24 @@ export default function PurchaseSaleLinkPage() {
                           </div>
                         )}
                         <button
+                          onClick={() => setEditingLink({
+                            linkId: link.id,
+                            purchaseId: link.purchaseId,
+                            saleId: link.saleId,
+                            currentQty: link.linkedQuantity,
+                            purchaseCompany: p?.companyFrom ?? `#${link.purchaseId}`,
+                            saleCompany: s?.companyTo ?? `#${link.saleId}`,
+                          })}
+                          style={{
+                            padding: '5px 12px', background: 'rgba(66,153,225,0.08)',
+                            color: '#63b3ed', border: '1px solid rgba(66,153,225,0.3)',
+                            borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                            cursor: 'pointer', flexShrink: 0,
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
                           onClick={() => handleUnlink(link.id)}
                           style={{
                             padding: '5px 12px', background: 'rgba(245,101,101,0.08)',
@@ -1030,6 +1285,15 @@ export default function PurchaseSaleLinkPage() {
         />
       )}
 
+      {/* ── Edit Link Quantity Modal ── */}
+      {editingLink && (
+        <EditLinkQuantityModal
+          link={editingLink}
+          onClose={() => setEditingLink(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
       {/* Toast */}
       {toast.visible && (
         <div style={{
@@ -1047,7 +1311,7 @@ export default function PurchaseSaleLinkPage() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function LinksTable({ records, onUnlink }: { records: LinkRecord[]; onUnlink: (linkId: string) => void }) {
+function LinksTable({ records, onUnlink, onEdit }: { records: LinkRecord[]; onUnlink: (linkId: string) => void; onEdit: (record: LinkRecord) => void }) {
   return (
     <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '820px' }}>
@@ -1104,12 +1368,20 @@ function LinksTable({ records, onUnlink }: { records: LinkRecord[]; onUnlink: (l
                 {rec.negative ? <NegativeBadge negative /> : <span style={{ fontSize: '11px', color: 'var(--gray)' }}>—</span>}
               </td>
               <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                <button
-                  onClick={() => onUnlink(rec.linkId)}
-                  style={{ padding: '4px 12px', background: 'rgba(245,101,101,0.08)', color: '#f56565', border: '1px solid rgba(245,101,101,0.3)', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
-                >
-                  Unlink
-                </button>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                  <button
+                    onClick={() => onEdit(rec)}
+                    style={{ padding: '4px 12px', background: 'rgba(66,153,225,0.08)', color: '#63b3ed', border: '1px solid rgba(66,153,225,0.3)', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onUnlink(rec.linkId)}
+                    style={{ padding: '4px 12px', background: 'rgba(245,101,101,0.08)', color: '#f56565', border: '1px solid rgba(245,101,101,0.3)', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Unlink
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

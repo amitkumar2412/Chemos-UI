@@ -666,7 +666,7 @@ export async function updateLink(
   linkId: string,
   linkedQuantity: number
 ): Promise<SalePurchaseLink> {
-  return apiClient.put<SalePurchaseLink>(`/links/${linkId}`, { linkedQuantity });
+  return apiClient.patch<SalePurchaseLink>(`/links/${linkId}`, { linkedQuantity });
 }
 
 export async function deleteLink(linkId: string): Promise<void> {
