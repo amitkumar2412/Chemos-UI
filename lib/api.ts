@@ -617,6 +617,7 @@ export interface SalePurchaseLink {
   purchaseAvailableQuantity: number;
   saleTotalRequired: number;
   saleRemainingQuantity: number;
+  negative: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -682,6 +683,14 @@ export async function getPurchaseSummary(purchaseId: string): Promise<PurchaseSu
 
 export async function fetchMyLinks(): Promise<SalePurchaseLink[]> {
   return apiClient.get<SalePurchaseLink[]>('/links/me');
+}
+
+export async function fetchLinksByUsername(username: string): Promise<SalePurchaseLink[]> {
+  return apiClient.get<SalePurchaseLink[]>(`/links/user/${username}`);
+}
+
+export async function fetchNegativeLinks(): Promise<SalePurchaseLink[]> {
+  return apiClient.get<SalePurchaseLink[]>('/links/negative');
 }
 
 // ── Stock Stats ───────────────────────────────────────────────────────────────
