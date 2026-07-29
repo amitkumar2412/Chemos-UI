@@ -515,7 +515,7 @@ function StockSummaryPanel({
                   style={{ width: `${(qty / maxPortQty) * 100}%` }}
                 />
               </div>
-              <span className="db-sum-port-qty">{qty} MT</span>
+              <span className="db-sum-port-qty">{qty.toFixed(2)} MT</span>
             </div>
           ))}
         </div>
