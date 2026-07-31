@@ -487,6 +487,54 @@ export async function importPhysicalStock(file: File): Promise<ImportPhysicalSto
   return res.json();
 }
 
+export async function exportSalesLiftedCsv(): Promise<string> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+  const res = await fetch(`${BASE_URL}/sales/export`, {
+    method: 'GET',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Export failed');
+  return res.text();
+}
+
+export interface ImportSalesLiftedResult {
+  updated: number;
+  skipped: number;
+  errors: string[];
+}
+
+export async function importSalesLifted(file: File): Promise<ImportSalesLiftedResult> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+
+  // Force text/csv so the backend parses it as CSV regardless of what the
+  // OS/browser MIME registry reports (Windows often tags .csv as application/vnd.ms-excel)
+  const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
+  const formData = new FormData();
+  formData.append('file', csvBlob, file.name);
+
+  const res = await fetch(`${BASE_URL}/sales/import`, {
+    method: 'POST',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Import failed (${res.status}): ${msg}`);
+  }
+  return res.json();
+}
+
 export interface PlUpload {
   uploadId: number;
   uploadedBy: string;

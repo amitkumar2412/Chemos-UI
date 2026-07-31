@@ -349,6 +349,10 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FINANCE}</span>
                 Expense
               </Link>
+              <Link href="/template/sale-lifted" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                <span className="db-sb-secondary-icon">{ICON_SMALL_SCM}</span>
+                Sale Lifted
+              </Link>
             </div>
           )}
         </div>
