@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Period, Currency } from './types';
 import type { DashboardModule } from './DashboardSidebar';
 
@@ -16,6 +16,8 @@ import ProcurementModule from './modules/ProcurementModule';
 import ScmModule         from './modules/ScmModule';
 import FinanceModule     from './modules/FinanceModule';
 import ResearchModule    from './modules/ResearchModule';
+import { useRevenueData } from '@/lib/hooks/useRevenueData';
+import { formatCurrency } from './utils';
 
 import {
   MOCK_KPIS, MOCK_ALERTS, MOCK_PIPELINE,
@@ -30,6 +32,27 @@ export default function DashboardShell() {
   const [currency,     setCurrency] = useState<Currency>('inr');
   const [asOf,         setAsOf]     = useState<string | null>(null);
   const [activeModule, setModule]   = useState<DashboardModule>('overview');
+
+  // Fetch real revenue data from APIs
+  const { totalRevenue, details, loading, error } = useRevenueData();
+
+  // Update KPIs with real revenue data and detailed breakdown
+  const kpis = useMemo(() => {
+    return MOCK_KPIS.map((kpi) => {
+      if (kpi.id === 'rev') {
+        return {
+          ...kpi,
+          baseValue: totalRevenue,
+          details: [
+            ['Export', formatCurrency(details.export, currency)],
+            ['Local', formatCurrency(details.local, currency)],
+            ['Other Revenue', formatCurrency(details.other, currency)],
+          ],
+        };
+      }
+      return kpi;
+    });
+  }, [totalRevenue, details, currency]);
 
   return (
     <div className="db-shell">
@@ -54,7 +77,7 @@ export default function DashboardShell() {
         {activeModule === 'overview' && (
           <>
             {/* KPI cards */}
-            <KpiGrid kpis={MOCK_KPIS} currency={currency} />
+            <KpiGrid kpis={kpis} currency={currency} />
 
             {/* Pipeline */}
             {/* <PipelineSlider stages={MOCK_PIPELINE} /> */}

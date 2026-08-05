@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Currency } from '@/components/dashboard/types';
 
 import { KpiGrid } from '@/components/dashboard/KpiCard';
@@ -15,6 +15,8 @@ import FinanceModule from '@/components/dashboard/modules/FinanceModule';
 import ResearchModule from '@/components/dashboard/modules/ResearchModule';
 import ComingSoonOverlay from '@/components/dashboard/ComingSoonOverlay';
 import { useActiveModule } from '@/lib/activeModuleContext';
+import { useRevenueData } from '@/lib/hooks/useRevenueData';
+import { formatCurrency } from '@/components/dashboard/utils';
 
 import {
   MOCK_KPIS,
@@ -37,12 +39,33 @@ export default function HomePage() {
   const [currency] = useState<Currency>('inr');
   const { activeModule } = useActiveModule();
 
+  // Fetch real revenue data from APIs
+  const { totalRevenue, details, loading, error } = useRevenueData();
+
+  // Update KPIs with real revenue data and detailed breakdown
+  const kpis = useMemo(() => {
+    return MOCK_KPIS.map((kpi) => {
+      if (kpi.id === 'rev') {
+        return {
+          ...kpi,
+          baseValue: totalRevenue,
+          details: [
+            ['Export', formatCurrency(details.export, currency)],
+            ['Local', formatCurrency(details.local, currency)],
+            ['Other Revenue', formatCurrency(details.other, currency)],
+          ],
+        };
+      }
+      return kpi;
+    });
+  }, [totalRevenue, details, currency]);
+
   return (
     <>
       {/* ── Overview module ───────────────────────────────────────── */}
       {activeModule === 'overview' && (
         <>
-          <KpiGrid kpis={MOCK_KPIS} currency={currency} />
+          <KpiGrid kpis={kpis} currency={currency} />
           {/* <PipelineSlider stages={MOCK_PIPELINE} /> */}
           <div className="db-grid-icc-alerts">
             <InventoryCommandCentre currency={currency} />
