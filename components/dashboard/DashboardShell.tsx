@@ -47,7 +47,7 @@ export default function DashboardShell() {
             ['Export', formatCurrency(details.export, currency)],
             ['Local', formatCurrency(details.local, currency)],
             ['Other Revenue', formatCurrency(details.other, currency)],
-          ],
+          ] as [string, string][],
         };
       }
       return kpi;

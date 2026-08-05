@@ -53,7 +53,7 @@ export default function HomePage() {
             ['Export', formatCurrency(details.export, currency)],
             ['Local', formatCurrency(details.local, currency)],
             ['Other Revenue', formatCurrency(details.other, currency)],
-          ],
+          ] as [string, string][],
         };
       }
       return kpi;
