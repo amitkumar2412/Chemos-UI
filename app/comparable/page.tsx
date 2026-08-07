@@ -207,17 +207,32 @@ function InterestRatePrompt({
 }
 
 // ── Compare Modal ─────────────────────────────────────────────────────────────
+const CONDENSED_LABELS = [
+  'ETD',
+  'QTY (MT)',
+  'Price (FC)',
+  'Price (INR) / MT',
+  'Payment Terms',
+  'Delivery Term',
+  'Discharge Port',
+  'Market Price',
+  'Valid Till',
+  'Total Cost / MT',
+];
+
 function CompareModal({
   data,
   portMap,
   purchaseMap,
   interestRate,
+  condensed = false,
   onClose,
 }: {
   data: CompareResponse;
   portMap: Map<string, string>;
   purchaseMap: Map<string, PurchaseOrder>;
   interestRate: number;
+  condensed?: boolean;
   onClose: () => void;
 }) {
   const { purchases, highlights } = data;
@@ -243,6 +258,21 @@ function CompareModal({
 
   function voyageCost(o: CompareItem): number {
     return (o.transit_days ?? 0) * (o.landed_cost_per_mt ?? 0) * dailyRate;
+  }
+
+  function extraDays(o: CompareItem): number {
+    const etd = purchaseMap.get(o.id)?.etd;
+    if (!etd) return 0;
+    const etdDate = new Date(etd);
+    if (isNaN(etdDate.getTime())) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    etdDate.setHours(0, 0, 0, 0);
+    return Math.round((etdDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  function extraCost(o: CompareItem): number {
+    return extraDays(o) * (o.landed_cost_per_mt ?? 0) * dailyRate;
   }
 
   function isAdvance(o: CompareItem): boolean {
@@ -300,6 +330,10 @@ function CompareModal({
       render: o => fmtDate(o.valid_till),
     },
     {
+      label: 'ETD',
+      render: o => fmtDate(purchaseMap.get(o.id)?.etd),
+    },
+    {
       label: 'Expenses (Freight & Insurance)',
       render: o => <span style={mono}>₹ {(o.expense ?? 0).toLocaleString('en-IN')}</span>,
     },
@@ -355,10 +389,35 @@ function CompareModal({
       ),
     },
     {
+      label: 'Extra Days',
+      render: (o: CompareItem) => {
+        const days = extraDays(o);
+        return <span style={monoBold}>{days} days</span>;
+      },
+    },
+    {
+      label: 'Extra Cost',
+      render: (o: CompareItem) => {
+        const ec = extraCost(o);
+        return (
+          <span style={{ ...monoBold, color: ec < 0 ? '#48bb78' : '#ed8936' }}>
+            {ec < 0 ? '− ' : '+ '}₹ {fmt(Math.abs(ec))}
+          </span>
+        );
+      },
+    },
+    {
       label: 'Payment Terms',
       render: (o: CompareItem) => {
         const po = purchaseMap.get(o.id);
         return <span style={mono}>{getPaymentTermName(po?.paymentTerm ?? null)}</span>;
+      },
+    },
+    {
+      label: 'Market Price',
+      render: (o: CompareItem) => {
+        const po = purchaseMap.get(o.id);
+        return <span style={mono}>₹ {(po?.marketPrice ?? 0).toLocaleString('en-IN')}</span>;
       },
     },
     {
@@ -395,14 +454,20 @@ function CompareModal({
     },
   ];
 
+  const displayRows = condensed
+    ? CONDENSED_LABELS.map(label => rows.find(r => r.label === label)).filter(
+        (r): r is typeof rows[number] => !!r
+      )
+    : rows;
+
   return (
     <div className="cmp-modal-overlay" onClick={onClose}>
       <div className="cmp-modal" onClick={e => e.stopPropagation()}>
         <div className="cmp-modal-header">
           <div>
-            <div className="cmp-modal-title">Offer Comparison</div>
+            <div className="cmp-modal-title">{condensed ? 'Offer Summary' : 'Offer Comparison'}</div>
             <div className="cmp-modal-sub">
-              Side-by-side comparison · {purchases.length} offer{purchases.length > 1 ? 's' : ''} selected ·{' '}
+              {condensed ? 'Key fields' : 'Side-by-side comparison'} · {purchases.length} offer{purchases.length > 1 ? 's' : ''} selected ·{' '}
               <span style={{ color: 'var(--green)' }}>Green = best</span>{' '}
               <span style={{ color: 'var(--red)', marginLeft: 6 }}>Red = worst</span>
             </div>
@@ -435,7 +500,7 @@ function CompareModal({
               </tr>
             </thead>
             <tbody>
-              {rows.map(row =>
+              {displayRows.map(row =>
                 row.label === '──' ? (
                   <tr key="divider">
                     <td colSpan={purchases.length + 1} style={{ padding: '4px 0', borderBottom: '2px solid var(--border)' }} />
@@ -449,7 +514,9 @@ function CompareModal({
                   </tr>
                 ) : (
                   <tr key={row.label}>
-                    <td>{row.label}</td>
+                    <td style={row.label === 'Extra Days' || row.label === 'Extra Cost' ? { fontWeight: 700 } : undefined}>
+                      {row.label}
+                    </td>
                     {purchases.map(o => (
                       <td key={o.id}>{row.render(o)}</td>
                     ))}
@@ -477,6 +544,7 @@ export default function ComparablePage() {
   const [showRatePrompt, setShowRatePrompt] = useState(false);
   const [pendingRate, setPendingRate] = useState(12);
   const [confirmedRate, setConfirmedRate] = useState(12);
+  const [condensedView, setCondensedView] = useState(false);
 
   // Fetch all UNCONFIRMED once on mount to populate the product dropdown
   useEffect(() => {
@@ -536,6 +604,13 @@ export default function ComparablePage() {
 
   const handleCompare = () => {
     if (!canCompare) return;
+    setCondensedView(false);
+    setShowRatePrompt(true);
+  };
+
+  const handleView = () => {
+    if (!canCompare) return;
+    setCondensedView(true);
     setShowRatePrompt(true);
   };
 
@@ -615,6 +690,18 @@ export default function ComparablePage() {
               <span className="cmp-compare-badge">{selectedIds.size}</span>
             </>
           )}
+        </button>
+
+        <button
+          className="cmp-compare-btn"
+          disabled={!canCompare || comparing}
+          onClick={handleView}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          View
         </button>
 
         <button className="cmp-export-btn">
@@ -876,6 +963,7 @@ export default function ComparablePage() {
           portMap={portMap}
           purchaseMap={purchaseMap}
           interestRate={confirmedRate}
+          condensed={condensedView}
           onClose={() => setCompareData(null)}
         />
       )}

@@ -602,6 +602,71 @@ export async function uploadPlExpense(file: File): Promise<PlUpload> {
   return json.data;
 }
 
+export interface RevenueUpload {
+  uploadId: number;
+  uploadedBy: string;
+  uploadedAt: string;
+  rowCount: number;
+}
+
+/** `/revenue-csv/uploads` and `/revenue-csv/upload` both wrap their payload in `{ message, data }`. */
+interface RevenueUploadsEnvelope {
+  message: string;
+  data: RevenueUpload[];
+}
+
+interface RevenueUploadEnvelope {
+  message: string;
+  data: RevenueUpload;
+}
+
+export async function fetchRevenueUploads(): Promise<RevenueUpload[]> {
+  const data = await apiClient.get<RevenueUploadsEnvelope>('/revenue-csv/uploads');
+  return data.data;
+}
+
+export interface RevenueUploadEntry {
+  id: number;
+  particular: string;
+  amount: number;
+  createdBy: string | null;
+}
+
+interface RevenueUploadEntriesEnvelope {
+  message: string;
+  data: RevenueUploadEntry[];
+}
+
+export async function fetchRevenueUploadEntries(uploadId: number): Promise<RevenueUploadEntry[]> {
+  const data = await apiClient.get<RevenueUploadEntriesEnvelope>(`/revenue-csv/uploads/${uploadId}/entries`);
+  return data.data;
+}
+
+export async function uploadRevenueCsv(file: File): Promise<RevenueUpload> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+
+  const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
+  const formData = new FormData();
+  formData.append('file', csvBlob, file.name);
+
+  const res = await fetch(`${BASE_URL}/revenue-csv/upload`, {
+    method: 'POST',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Upload failed (${res.status}): ${msg}`);
+  }
+  const json: RevenueUploadEnvelope = await res.json();
+  return json.data;
+}
+
 export async function updateSale(
   id: string,
   payload: SaleFormPayload & { status?: string | null }
