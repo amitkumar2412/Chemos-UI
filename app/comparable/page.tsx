@@ -211,7 +211,7 @@ const CONDENSED_LABELS = [
   'ETD',
   'QTY (MT)',
   'Price (FC)',
-  'Price (INR) / MT',
+  'Landed Cost / MT',
   'Payment Terms',
   'Delivery Term',
   'Discharge Port',
@@ -734,7 +734,7 @@ export default function ComparablePage() {
           }
         />
         <StatCard
-          label="Confirmed Offer"
+          label="Selected Offer"
           value={selectedIds.size}
           sub={selectedIds.size === 0 ? 'No offers confirmed yet' : `${selectedIds.size} offer${selectedIds.size > 1 ? 's' : ''} selected`}
           iconBg="rgba(6,214,160,.12)"
