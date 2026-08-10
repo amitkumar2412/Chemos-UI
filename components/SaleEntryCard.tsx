@@ -62,7 +62,6 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   const [expense, setExpense] = useState('');
   const [customDuty, setCustomDuty] = useState('');
   const [sws, setSws] = useState('');
-  const [add, setAdd] = useState('');
   const [otherExpense, setOtherExpense] = useState('');
   const [addUsd, setAddUsd] = useState(initialData?.add_usd ? String(initialData.add_usd) : '');
 
@@ -86,8 +85,14 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
 
   const bcdAmount = (parseFloat(customDuty) || 0) / 100 * computedPriceInr;
   const swsAmount = bcdAmount * (parseFloat(sws) || 0) / 100;
+  // ADD (₹) = Exchange Rate × ADD ($/MT)
+  const computedAddInr = (parseFloat(exchangeRate) || 0) * (parseFloat(addUsd) || 0);
+  const addInrDisplay =
+    computedAddInr > 0
+      ? computedAddInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '';
   const computedTotalPrice =
-    computedPriceInr + bcdAmount + swsAmount + (parseFloat(add) || 0) + (parseFloat(otherExpense) || 0);
+    computedPriceInr + bcdAmount + swsAmount + computedAddInr + (parseFloat(otherExpense) || 0);
   const totalPriceDisplay =
     computedTotalPrice > 0
       ? computedTotalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -125,7 +130,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     setShipmentStart(''); setShipmentEnd(''); setQuantity(''); setPriceFc(''); setCurrency('USD'); setOfferUsd(''); setExchangeRate('');
     setDeliveryTerm(''); setPaymentDays(''); setPort(''); setMarketPrice('');
     setMarketStatus(''); setCostPrice(''); setReplacementCost(''); setMake('');
-    setExpense(''); setCustomDuty(''); setSws(''); setAdd(''); setOtherExpense('');
+    setExpense(''); setCustomDuty(''); setSws(''); setOtherExpense('');
     setPurchaseType('');
     setPackaging(''); setOrigin(''); setOriginId('');
     setDischargePorts([]);
@@ -190,7 +195,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
         expense: parseFloat(expense) || 0,
         custom_duty: parseFloat(customDuty) || 0,
         sws: parseFloat(sws) || 0,
-        add: parseFloat(add) || 0,
+        add: computedAddInr,
         other_expense: parseFloat(otherExpense) || 0,
         add_usd: parseFloat(addUsd) || 0,
         discharge_ports: dischargePorts.join(', '),
@@ -419,8 +424,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           </div>
           <div className="fg">
             <label className="fl">ADD (₹)</label>
-            <input className="fi" type="number" min={0} step={0.01} placeholder="0.00"
-              value={add} onChange={e => setAdd(e.target.value)} />
+            <input className="fi locked price-computed" value={addInrDisplay} readOnly placeholder="" />
           </div>
           <div className="fg">
             <label className="fl">Other Expense (₹/kg)</label>
