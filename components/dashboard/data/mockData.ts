@@ -19,7 +19,7 @@ export const MOCK_KPIS: Kpi[] = [
     spark: [85,92,78,95,88,102,110,98,115,108,120,124],
   },
    {
-    id: 'orders', label: 'Total Cost', unit: 'count', baseValue: 0,
+    id: 'orders', label: 'Total Cost', unit: 'currency', baseValue: 0,
     change: 8.2, direction: 'up', vs: 'vs prev. month',
     details: [['Domestic','284'], ['Export','63'], ['Avg Value','3.6 L']],
     spark: [280,295,310,290,305,320,315,330,325,340,335,347],

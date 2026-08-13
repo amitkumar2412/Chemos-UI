@@ -16,6 +16,7 @@ import ResearchModule from '@/components/dashboard/modules/ResearchModule';
 import ComingSoonOverlay from '@/components/dashboard/ComingSoonOverlay';
 import { useActiveModule } from '@/lib/activeModuleContext';
 import { useRevenueData } from '@/lib/hooks/useRevenueData';
+import { useCostData } from '@/lib/hooks/useCostData';
 import { formatCurrency } from '@/components/dashboard/utils';
 
 import {
@@ -42,7 +43,10 @@ export default function HomePage() {
   // Fetch real revenue data from APIs
   const { totalRevenue, details, loading, error } = useRevenueData();
 
-  // Update KPIs with real revenue data and detailed breakdown
+  // Fetch real cost data from APIs
+  const { totalCost, details: costDetails } = useCostData();
+
+  // Update KPIs with real revenue/cost data and detailed breakdown
   const kpis = useMemo(() => {
     return MOCK_KPIS.map((kpi) => {
       if (kpi.id === 'rev') {
@@ -56,9 +60,20 @@ export default function HomePage() {
           ] as [string, string][],
         };
       }
+      if (kpi.id === 'orders') {
+        return {
+          ...kpi,
+          baseValue: totalCost,
+          details: [
+            ['Direct Cost', formatCurrency(costDetails.directCost, currency)],
+            ['Indirect Cost', formatCurrency(costDetails.indirectCost, currency)],
+            ['Purchase Value', formatCurrency(costDetails.purchaseValue, currency)],
+          ] as [string, string][],
+        };
+      }
       return kpi;
     });
-  }, [totalRevenue, details, currency]);
+  }, [totalRevenue, details, totalCost, costDetails, currency]);
 
   return (
     <>
