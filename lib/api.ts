@@ -931,18 +931,25 @@ export interface StockStatsSummary {
 }
 
 export interface StockStatsByProduct {
+  vesselName: string;
   product: string;
   dischargePort: string;
   physicalReady: number;
   physicalStock: number;
   physicalSold: number;
   physicalUnsold: number;
+  physicalUnsoldClosing: number;
   incomingStock: number;
   purchaseIncoming: number;
   incomingSales: number;
   incomingBalance: number;
+  incomingUnsoldOpening: number;
   totalStock: number;
   companyName: string;
+  marketPrice: number | null;
+  replacementCost: number | null;
+  date: string | null;
+  vesselDate: string | null;
 }
 
 export async function fetchStockStatsByProduct(): Promise<StockStatsByProduct[]> {
@@ -955,6 +962,31 @@ export async function fetchStockStatsByProduct(): Promise<StockStatsByProduct[]>
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Stock stats by-product fetch failed: ${res.status}`);
+  return res.json();
+}
+
+export interface StockStatsFinancialSummary {
+  product: string;
+  port: string;
+  physicalStock: number;
+  physicalUnsold: number;
+  soldUnlifted: number;
+  quantityReceived: number;
+  companyName: string;
+  averageWeightedCost: number | null;
+  averageWeightedSale: number | null;
+}
+
+export async function fetchStockStatsByProductFinancialSummary(): Promise<StockStatsFinancialSummary[]> {
+  const token = tokenStorage.get();
+  const res = await fetch(`${STOCK_STATS_BASE}/stock-stats/by-product/financial-summary`, {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Stock stats financial summary fetch failed: ${res.status}`);
   return res.json();
 }
 

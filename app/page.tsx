@@ -53,10 +53,11 @@ export default function HomePage() {
         return {
           ...kpi,
           baseValue: totalRevenue,
+          currencyUnit: 'L' as const,
           details: [
-            ['Export', formatCurrency(details.export, currency)],
-            ['Local', formatCurrency(details.local, currency)],
-            ['Other Revenue', formatCurrency(details.other, currency)],
+            ['Export', formatCurrency(details.export, currency, 'L')],
+            ['Local', formatCurrency(details.local, currency, 'L')],
+            ['Other Revenue', formatCurrency(details.other, currency, 'L')],
           ] as [string, string][],
         };
       }
@@ -64,10 +65,26 @@ export default function HomePage() {
         return {
           ...kpi,
           baseValue: totalCost,
+          currencyUnit: 'L' as const,
           details: [
-            ['Direct Cost', formatCurrency(costDetails.directCost, currency)],
-            ['Indirect Cost', formatCurrency(costDetails.indirectCost, currency)],
-            ['Purchase Value', formatCurrency(costDetails.purchaseValue, currency)],
+            ['Direct Cost', formatCurrency(costDetails.directCost, currency, 'L')],
+            ['Indirect Cost', formatCurrency(costDetails.indirectCost, currency, 'L')],
+            ['Purchase Value', formatCurrency(costDetails.purchaseValue, currency, 'L')],
+          ] as [string, string][],
+        };
+      }
+      if (kpi.id === 'margin') {
+        // Revenue excluding "Other Revenue" (CSV) = Export + Local + HSS + TOW
+        const salesRevenue = totalRevenue - details.other;
+        const grossMargin = salesRevenue - (costDetails.purchaseValue + costDetails.directCost);
+        return {
+          ...kpi,
+          baseValue: grossMargin,
+          currencyUnit: 'L' as const,
+          details: [
+            ['Sales Revenue', formatCurrency(salesRevenue, currency, 'L')],
+            ['Purchase Value', formatCurrency(costDetails.purchaseValue, currency, 'L')],
+            ['Direct Cost', formatCurrency(costDetails.directCost, currency, 'L')],
           ] as [string, string][],
         };
       }

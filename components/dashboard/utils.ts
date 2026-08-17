@@ -3,12 +3,14 @@ import type { Currency } from './types';
 const FX: Record<Currency, number> = { inr: 1, usd: 0.012, eur: 0.011 };
 const SYM: Record<Currency, string> = { inr: '₹', usd: '$', eur: '€' };
 
-export function formatCurrency(value: number, currency: Currency): string {
+export function formatCurrency(value: number, currency: Currency, forceUnit?: 'Cr' | 'L'): string {
   const sym = SYM[currency];
   const cv = value * FX[currency];
   if (currency === 'inr') {
+    if (forceUnit === 'Cr') return `${sym}${(cv / 1e7).toFixed(2)}Cr`;
+    if (forceUnit === 'L') return `${sym}${(cv / 1e5).toFixed(2)}L`;
     if (cv >= 1e7) return `${sym}${(cv / 1e7).toFixed(2)}Cr`;
-    if (cv >= 1e5) return `${sym}${(cv / 1e5).toFixed(1)}L`;
+    if (cv >= 1e5) return `${sym}${(cv / 1e5).toFixed(2)}L`;
     return `${sym}${cv.toLocaleString('en-IN')}`;
   }
   if (cv >= 1e6) return `${sym}${(cv / 1e6).toFixed(2)}M`;

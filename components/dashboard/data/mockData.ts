@@ -25,7 +25,7 @@ export const MOCK_KPIS: Kpi[] = [
     spark: [280,295,310,290,305,320,315,330,325,340,335,347],
   },
   {
-    id: 'margin', label: 'Gross Margin', unit: 'percent', baseValue: '0',
+    id: 'margin', label: 'Gross Margin', unit: 'currency', baseValue: 0,
     change: 1.8, direction: 'up', vs: 'vs prev. month',
     details: [['COGS','82.1 Cr'], ['Material %','52.3%'], ['Labor %','13.5%']],
     spark: [31,30.5,32,31.8,33,32.5,33.5,34,33.2,34.5,33.8,34.2],

@@ -2,7 +2,11 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { IccItem, InventoryStatus, Currency } from './types';
-import { fetchStockStatsSummary, fetchStockStatsByProduct, fetchStockStatsLastUpload, type StockStatsSummary, type StockStatsByProduct } from '@/lib/api';
+import {
+  fetchStockStatsSummary, fetchStockStatsByProduct, fetchStockStatsLastUpload,
+  fetchStockStatsByProductFinancialSummary,
+  type StockStatsSummary, type StockStatsByProduct, type StockStatsFinancialSummary,
+} from '@/lib/api';
 
 // ─── Inline sparkline ─────────────────────────────────────────────────────
 function MiniSparkline({ data, status }: { data: number[]; status: InventoryStatus }) {
@@ -41,6 +45,20 @@ function HeadlineStat({
 }
 
 // ─── Detail Rail ──────────────────────────────────────────────────────────
+function fmtDate(v?: string | null) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? v : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function fmtQty(v?: number | null) {
+  return v === null || v === undefined ? '—' : `${v} MT`;
+}
+
+function fmtMoney(v?: number | null) {
+  return v === null || v === undefined ? '—' : `₹ ${v.toLocaleString('en-IN')}`;
+}
+
 function DetailRail({ item, onClose }: { item: IccItem; onClose: () => void }) {
   return (
     <div className="db-rail">
@@ -56,20 +74,20 @@ function DetailRail({ item, onClose }: { item: IccItem; onClose: () => void }) {
         <div className="db-rail-section-title">Stock Overview</div>
         <div className="db-rail-stats">
           <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Physical</div>
-            <div className="db-rail-stat-val green">{item.physical} MT</div>
+            <div className="db-rail-stat-label">Physical Sold</div>
+            <div className="db-rail-stat-val green">{fmtQty(item.physicalSold)}</div>
           </div>
           <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Ready/Unsold</div>
-            <div className="db-rail-stat-val">{item.ready} MT</div>
+            <div className="db-rail-stat-label">Physical Unsold Closing</div>
+            <div className="db-rail-stat-val">{fmtQty(item.physicalUnsoldClosing)}</div>
           </div>
           <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Safety Level</div>
-            <div className="db-rail-stat-val gold">{item.safety} MT</div>
+            <div className="db-rail-stat-label">Incoming Unsold Opening</div>
+            <div className="db-rail-stat-val">{fmtQty(item.incomingUnsoldOpening)}</div>
           </div>
           <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Reorder Point</div>
-            <div className="db-rail-stat-val">{item.reorder} MT</div>
+            <div className="db-rail-stat-label">Total Stock</div>
+            <div className="db-rail-stat-val gold">{fmtQty(item.totalStock)}</div>
           </div>
         </div>
       </div>
@@ -78,33 +96,35 @@ function DetailRail({ item, onClose }: { item: IccItem; onClose: () => void }) {
         <div className="db-rail-section-title">Pricing</div>
         <div className="db-rail-stats">
           <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Market ₹/MT</div>
-            <div className="db-rail-stat-val">{item.market.toLocaleString('en-IN')}</div>
+            <div className="db-rail-stat-label">Market Price</div>
+            <div className="db-rail-stat-val">{fmtMoney(item.marketPrice)}</div>
           </div>
           <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Selling ₹/MT</div>
-            <div className="db-rail-stat-val green">{item.selling.toLocaleString('en-IN')}</div>
+            <div className="db-rail-stat-label">Replacement Cost</div>
+            <div className="db-rail-stat-val green">{fmtMoney(item.replacementCost)}</div>
           </div>
         </div>
       </div>
 
       <div className="db-rail-section">
-        <div className="db-rail-section-title">7-Day Trend</div>
-        <div style={{ background: 'rgba(255,255,255,.025)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg
-            viewBox={`0 0 120 50`}
-            preserveAspectRatio="none"
-            style={{ width: '100%', height: 50 }}
-          >
-            {(() => {
-              const d = item.trend7d;
-              const min = Math.min(...d); const max = Math.max(...d); const range = max - min || 1;
-              const step = 120 / (d.length - 1);
-              const pts = d.map((v, i) => `${i * step},${50 - ((v - min) / range) * 40}`).join(' ');
-              const color = item.status === 'critical' ? 'var(--red)' : item.status === 'warn' ? 'var(--gold)' : 'var(--teal)';
-              return <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />;
-            })()}
-          </svg>
+        <div className="db-rail-section-title">Vessel & Dates</div>
+        <div className="db-rail-stats">
+          <div className="db-rail-stat">
+            <div className="db-rail-stat-label">Vessel Name</div>
+            <div className="db-rail-stat-val">{item.vesselName || '—'}</div>
+          </div>
+          <div className="db-rail-stat">
+            <div className="db-rail-stat-label">Vessel Date</div>
+            <div className="db-rail-stat-val">{fmtDate(item.vesselDate)}</div>
+          </div>
+          <div className="db-rail-stat">
+            <div className="db-rail-stat-label">Date</div>
+            <div className="db-rail-stat-val">{fmtDate(item.date)}</div>
+          </div>
+          <div className="db-rail-stat">
+            <div className="db-rail-stat-label">Company</div>
+            <div className="db-rail-stat-val">{item.company}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -121,7 +141,6 @@ type SortKey = keyof IccItem;
 
 export default function InventoryCommandCentre({}: InventoryCommandCentreProps) {
   const [search, setSearch]         = useState('');
-  const [portFilter, setPortFilter] = useState<string | null>(null);
   const [coFilter, setCoFilter]     = useState<string | null>(null);
   const [statusFilter, setStatus]   = useState<string | null>(null);
   const [selectedItem, setSelected] = useState<IccItem | null>(null);
@@ -133,6 +152,11 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [lastUpdated, setLastUpdated]       = useState<string>('just now');
   const [byProduct, setByProduct]           = useState<StockStatsByProduct[] | null>(null);
+
+  const [finSummaryOpen, setFinSummaryOpen]       = useState(false);
+  const [finSummary, setFinSummary]               = useState<StockStatsFinancialSummary[] | null>(null);
+  const [finSummaryLoading, setFinSummaryLoading] = useState(false);
+  const [finSummaryError, setFinSummaryError]     = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,6 +192,20 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
     return () => { cancelled = true; };
   }, []);
 
+  const openFinancialSummary = async () => {
+    setFinSummaryOpen(true);
+    setFinSummaryLoading(true);
+    setFinSummaryError(null);
+    try {
+      const data = await fetchStockStatsByProductFinancialSummary();
+      setFinSummary(data);
+    } catch (err) {
+      setFinSummaryError(err instanceof Error ? err.message : 'Failed to load financial summary');
+    } finally {
+      setFinSummaryLoading(false);
+    }
+  };
+
   const apiItems = useMemo((): IccItem[] | null => {
     if (!byProduct || byProduct.length === 0) return null;
     return byProduct.map((row) => ({
@@ -189,17 +227,21 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
       purchaseIncoming: row.purchaseIncoming,
       incomingSales:    row.incomingSales,
       totalStock:       row.totalStock,
+      vesselName:            row.vesselName,
+      physicalUnsoldClosing: row.physicalUnsoldClosing,
+      incomingUnsoldOpening: row.incomingUnsoldOpening,
+      marketPrice:           row.marketPrice,
+      replacementCost:       row.replacementCost,
+      date:                  row.date,
+      vesselDate:            row.vesselDate,
     }));
   }, [byProduct]);
 
   const tableItems = apiItems ?? [];
 
-  const ports    = useMemo(() => [...new Set(tableItems.map((i) => i.port))],    [tableItems]);
-
   const filtered = useMemo(() => {
     let rows = tableItems;
     if (search)      rows = rows.filter((r) => r.item.toLowerCase().includes(search.toLowerCase()) || r.company.toLowerCase().includes(search.toLowerCase()) || r.port.toLowerCase().includes(search.toLowerCase()));
-    if (portFilter)  rows = rows.filter((r) => r.port === portFilter);
     if (coFilter)    rows = rows.filter((r) => r.company === coFilter);
     if (statusFilter) rows = rows.filter((r) => r.status === statusFilter);
 
@@ -223,7 +265,18 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
       if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sortDir;
       return String(av).localeCompare(String(bv)) * sortDir;
     });
-  }, [tableItems, search, portFilter, coFilter, statusFilter, aggByItem, sortCol, sortDir]);
+  }, [tableItems, search, coFilter, statusFilter, aggByItem, sortCol, sortDir]);
+
+  const finByProduct = useMemo(() => {
+    if (!finSummary) return [];
+    const map = new Map<string, StockStatsFinancialSummary[]>();
+    finSummary.forEach((row) => {
+      const list = map.get(row.product) ?? [];
+      list.push(row);
+      map.set(row.product, list);
+    });
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [finSummary]);
 
   const toggleSort = (col: SortKey) => {
     if (sortCol === col) setSortDir((d) => (d === 1 ? -1 : 1));
@@ -296,21 +349,10 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
             />
           </div>
 
-          {/* Port chips */}
-          <div className="db-ctrl-group">
-            <span className="db-ctrl-label">Port</span>
-            <div className="db-chips">
-              {ports.map((p) => (
-                <button
-                  key={p}
-                  className={`db-chip${portFilter === p ? ' active' : ''}`}
-                  onClick={() => setPortFilter(portFilter === p ? null : p)}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Financial Summary tab */}
+          <button className="db-ctrl-btn db-fin-summary-tab" onClick={openFinancialSummary}>
+            Inventory Summary
+          </button>
 
           {/* Status chips */}
           <div className="db-ctrl-group">
@@ -423,6 +465,70 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
           <div className="db-rail-modal-overlay" onClick={() => setSelected(null)}>
             <div className="db-rail-modal" onClick={(e) => e.stopPropagation()}>
               <DetailRail item={selectedItem} onClose={() => setSelected(null)} />
+            </div>
+          </div>
+        )}
+
+        {/* Financial Summary popup */}
+        {finSummaryOpen && (
+          <div className="db-rail-modal-overlay" onClick={() => setFinSummaryOpen(false)}>
+            <div className="db-fin-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="db-rail-head">
+                <div>
+                  <div className="db-rail-name">Inventory Summary</div>
+                  <div className="db-rail-ctx">By product · by port</div>
+                </div>
+                <button className="db-rail-close" onClick={() => setFinSummaryOpen(false)}>×</button>
+              </div>
+
+              <div className="db-fin-modal-body">
+                {finSummaryLoading ? (
+                  <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>Loading financial summary…</div>
+                ) : finSummaryError ? (
+                  <div style={{ textAlign: 'center', padding: '60px', color: 'var(--red)' }}>{finSummaryError}</div>
+                ) : finByProduct.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>No financial summary data found.</div>
+                ) : (
+                  finByProduct.map(([product, rows]) => (
+                    <div className="db-rail-section" key={product}>
+                      <div className="db-rail-section-title">{product}</div>
+                      <div className="db-fin-port-grid">
+                        {rows.map((row, i) => (
+                          <div className="db-fin-port-card" key={i}>
+                            <div className="db-fin-port-name">{row.port} · {row.companyName || '—'}</div>
+                            <div className="db-rail-stats">
+                              <div className="db-rail-stat">
+                                <div className="db-rail-stat-label">Physical Stock</div>
+                                <div className="db-rail-stat-val">{fmtQty(row.physicalStock)}</div>
+                              </div>
+                              <div className="db-rail-stat">
+                                <div className="db-rail-stat-label">Physical Unsold</div>
+                                <div className={`db-rail-stat-val${row.physicalUnsold < 0 ? ' red' : ''}`}>{fmtQty(row.physicalUnsold)}</div>
+                              </div>
+                              <div className="db-rail-stat">
+                                <div className="db-rail-stat-label">Sold Unlifted</div>
+                                <div className={`db-rail-stat-val${row.soldUnlifted < 0 ? ' red' : ' green'}`}>{fmtQty(row.soldUnlifted)}</div>
+                              </div>
+                              <div className="db-rail-stat">
+                                <div className="db-rail-stat-label">Qty Received</div>
+                                <div className="db-rail-stat-val">{fmtQty(row.quantityReceived)}</div>
+                              </div>
+                              <div className="db-rail-stat">
+                                <div className="db-rail-stat-label">Avg Weighted Cost</div>
+                                <div className="db-rail-stat-val">{fmtMoney(row.averageWeightedCost)}</div>
+                              </div>
+                              <div className="db-rail-stat">
+                                <div className="db-rail-stat-label">Avg Weighted Sale</div>
+                                <div className="db-rail-stat-val green">{fmtMoney(row.averageWeightedSale)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}
