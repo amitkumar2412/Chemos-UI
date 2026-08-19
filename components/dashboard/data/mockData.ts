@@ -3,7 +3,7 @@
 // Each const corresponds 1-to-1 with the backend entity it will eventually fetch.
 
 import type {
-  Kpi, Alert, PipelineStage, IccItem, Vendor, Port, ProspectSupplier,
+  Kpi, Alert, PipelineStage, Vendor, Port, ProspectSupplier,
   TopPartner, KpiDriver, CashflowItem, FinanceOffer, ShockChemical,
   NewsItem, Notification, RevenueDataset,
 } from '../types';
@@ -64,18 +64,6 @@ export const MOCK_PIPELINE: PipelineStage[] = [
   { label:'FG Stock', icon:'📦', status:'pending', pct:0, vars:['Zone','Aging','Turnover'], insight:'Projected output: 172 MT DOP (95.5% yield). Zone B-04 allocated.' },
   { label:'Sales', icon:'💰', status:'pending', pct:0, vars:['Orders','Pricing','Credit'], insight:'6 pending orders totaling ₹2.4 Cr fulfillable upon production.' },
   { label:'Payment', icon:'✅', status:'pending', pct:0, vars:['DSO','Collection','Aging'], insight:'Expected receivables: ₹2.1 Cr within 30 days, ₹0.3 Cr 60-day terms.' },
-];
-
-// ─── ICC (Inventory Command Centre) ──────────────────────────────────────
-export const MOCK_ICC: IccItem[] = [
-  { item:'Isopropanol',        port:'JNPT',   company:'Deepak Fert.', physical:210, ready:210, safety:40, reorder:80, market:55000, selling:55000, trend7d:[200,205,208,210,212,210,210], status:'ok' },
-  { item:'Acetic Acid (Glacial)', port:'JNPT',company:'Celanese',    physical:185, ready:185, safety:40, reorder:80, market:42500, selling:42500, trend7d:[195,190,188,185,183,185,185], status:'ok' },
-  { item:'2-Ethyl Hexanol',    port:'JNPT',   company:'BASF',        physical:142, ready:142, safety:50, reorder:100,market:98500, selling:98500, trend7d:[150,148,145,143,140,142,142], status:'ok' },
-  { item:'Butyl Acetate',      port:'Kandla', company:'Eastman',     physical:110, ready:110, safety:35, reorder:70, market:88000, selling:88000, trend7d:[115,112,110,108,110,110,110], status:'ok' },
-  { item:'Phthalic Anhydride', port:'JNPT',   company:'Thirumalai',  physical:95,  ready:95,  safety:45, reorder:90, market:72000, selling:72000, trend7d:[100,98,96,94,95,95,95],      status:'warn' },
-  { item:'Maleic Anhydride',   port:'JNPT',   company:'Huntsman',    physical:68,  ready:68,  safety:25, reorder:50, market:82000, selling:82000, trend7d:[72,70,69,68,67,68,68],       status:'ok' },
-  { item:'Benzene',            port:'Paradip',company:'IOCL',        physical:28,  ready:28,  safety:40, reorder:60, market:78200, selling:78200, trend7d:[45,40,36,32,30,28,28],       status:'critical' },
-  { item:'VAM',                port:'Mundra', company:'Celanese',    physical:52,  ready:52,  safety:30, reorder:60, market:115000,selling:115000,trend7d:[58,56,55,54,53,52,52],       status:'warn' },
 ];
 
 // ─── Vendors ──────────────────────────────────────────────────────────────

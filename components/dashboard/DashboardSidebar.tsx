@@ -359,7 +359,7 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
               </Link>
               <Link href="/template/cost" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
                 <span className="db-sb-secondary-icon">{ICON_SMALL_FINANCE}</span>
-                Cost
+                Total Cost
               </Link>
             </div>
           )}

@@ -44,91 +44,12 @@ function HeadlineStat({
   );
 }
 
-// ─── Detail Rail ──────────────────────────────────────────────────────────
-function fmtDate(v?: string | null) {
-  if (!v) return '—';
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? v : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 function fmtQty(v?: number | null) {
   return v === null || v === undefined ? '—' : `${v} MT`;
 }
 
 function fmtMoney(v?: number | null) {
   return v === null || v === undefined ? '—' : `₹ ${v.toLocaleString('en-IN')}`;
-}
-
-function DetailRail({ item, onClose }: { item: IccItem; onClose: () => void }) {
-  return (
-    <div className="db-rail">
-      <div className="db-rail-head">
-        <div>
-          <div className="db-rail-name">{item.item}</div>
-          <div className="db-rail-ctx">{item.port} · {item.company}</div>
-        </div>
-        <button className="db-rail-close" onClick={onClose}>×</button>
-      </div>
-
-      <div className="db-rail-section">
-        <div className="db-rail-section-title">Stock Overview</div>
-        <div className="db-rail-stats">
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Physical Sold</div>
-            <div className="db-rail-stat-val green">{fmtQty(item.physicalSold)}</div>
-          </div>
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Physical Unsold Closing</div>
-            <div className="db-rail-stat-val">{fmtQty(item.physicalUnsoldClosing)}</div>
-          </div>
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Incoming Unsold Opening</div>
-            <div className="db-rail-stat-val">{fmtQty(item.incomingUnsoldOpening)}</div>
-          </div>
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Total Stock</div>
-            <div className="db-rail-stat-val gold">{fmtQty(item.totalStock)}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="db-rail-section">
-        <div className="db-rail-section-title">Pricing</div>
-        <div className="db-rail-stats">
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Market Price</div>
-            <div className="db-rail-stat-val">{fmtMoney(item.marketPrice)}</div>
-          </div>
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Replacement Cost</div>
-            <div className="db-rail-stat-val green">{fmtMoney(item.replacementCost)}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="db-rail-section">
-        <div className="db-rail-section-title">Vessel & Dates</div>
-        <div className="db-rail-stats">
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Vessel Name</div>
-            <div className="db-rail-stat-val">{item.vesselName || '—'}</div>
-          </div>
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Vessel Date</div>
-            <div className="db-rail-stat-val">{fmtDate(item.vesselDate)}</div>
-          </div>
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Date</div>
-            <div className="db-rail-stat-val">{fmtDate(item.date)}</div>
-          </div>
-          <div className="db-rail-stat">
-            <div className="db-rail-stat-label">Company</div>
-            <div className="db-rail-stat-val">{item.company}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────
@@ -143,7 +64,6 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
   const [search, setSearch]         = useState('');
   const [coFilter, setCoFilter]     = useState<string | null>(null);
   const [statusFilter, setStatus]   = useState<string | null>(null);
-  const [selectedItem, setSelected] = useState<IccItem | null>(null);
   const [sortCol, setSortCol]       = useState<SortKey>('item');
   const [sortDir, setSortDir]       = useState<1 | -1>(1);
   const [aggByItem, setAggByItem]   = useState(false);
@@ -419,11 +339,7 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
               </thead>
               <tbody>
                 {filtered.map((row, i) => (
-                  <tr
-                    key={i}
-                    className={selectedItem?.item === row.item && selectedItem?.port === row.port ? 'selected' : ''}
-                    onClick={() => setSelected(selectedItem?.item === row.item && selectedItem?.port === row.port ? null : row)}
-                  >
+                  <tr key={i}>
                     <td className="db-col-sticky db-col-sticky-1">
                       <div className="db-row-name">
                         <span className={`db-row-dot ${row.status}`} />
@@ -459,15 +375,6 @@ export default function InventoryCommandCentre({}: InventoryCommandCentreProps) 
             </table>
           </div>
         </div>
-
-        {/* Detail popup */}
-        {selectedItem && (
-          <div className="db-rail-modal-overlay" onClick={() => setSelected(null)}>
-            <div className="db-rail-modal" onClick={(e) => e.stopPropagation()}>
-              <DetailRail item={selectedItem} onClose={() => setSelected(null)} />
-            </div>
-          </div>
-        )}
 
         {/* Financial Summary popup */}
         {finSummaryOpen && (
