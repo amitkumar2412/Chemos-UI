@@ -27,6 +27,7 @@ import PurchaseEditModal from '@/components/PurchaseEditModal';
 import PurchaseReceiptModal from '@/components/PurchaseReceiptModal';
 import SaleDetailModal from '@/components/SaleDetailModal';
 import SaleEditModal from '@/components/SaleEditModal';
+import SaleLiftedQtyModal from '@/components/SaleLiftedQtyModal';
 import ActionMenu from '@/components/ActionMenu';
 import Toast from '@/components/Toast';
 
@@ -75,6 +76,7 @@ export default function AdminPage() {
   const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [receiptPurchaseId, setReceiptPurchaseId] = useState<string | null>(null);
+  const [liftedQtySaleId, setLiftedQtySaleId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; ok: boolean; visible: boolean }>({
     message: '', ok: true, visible: false,
   });
@@ -272,6 +274,7 @@ export default function AdminPage() {
               onAction={handleSaleAction}
               onView={setViewingSaleId}
               onEdit={(sale) => setEditingId(sale.id)}
+              onLiftedQty={setLiftedQtySaleId}
             />
             <PaginationBar
               page={salePage}
@@ -302,6 +305,14 @@ export default function AdminPage() {
         feedOptions={feedOptions}
         onClose={() => setEditingId(null)}
         onSaved={loadOrders}
+      />
+      <SaleLiftedQtyModal
+        saleId={liftedQtySaleId}
+        onClose={() => setLiftedQtySaleId(null)}
+        onSaved={() => {
+          loadOrders();
+          showToast(`Lifted quantity updated for sale order ${liftedQtySaleId}.`, true);
+        }}
       />
       <Toast message={toast.message} ok={toast.ok} visible={toast.visible} />
     </div>
@@ -435,12 +446,14 @@ function SaleTable({
   onAction,
   onView,
   onEdit,
+  onLiftedQty,
 }: {
   orders: SaleEntry[];
   actioning: { id: string; action: OrderAction } | null;
   onAction: (id: string, action: OrderAction) => void;
   onView: (id: string) => void;
   onEdit: (sale: SaleEntry) => void;
+  onLiftedQty: (id: string) => void;
 }) {
   if (orders.length === 0) return <EmptyState label="sale" />;
   return (
@@ -457,6 +470,7 @@ function SaleTable({
             <th style={TH}>Company To</th>
             <th style={TH}>Company From</th>
             <th style={{ ...TH, textAlign: 'right' }}>Qty (MT)</th>
+            <th style={{ ...TH, textAlign: 'right' }}>Lifted Qty (MT)</th>
             <th style={{ ...TH, textAlign: 'right' }}>Price (₹)</th>
             <th style={TH}>Delivery Term</th>
             <th style={TH}>Port</th>
@@ -481,6 +495,9 @@ function SaleTable({
                 <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>
                   {o.quantity != null ? o.quantity.toLocaleString('en-IN') : '—'}
                 </td>
+                <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right' }}>
+                  {o.liftedQty != null ? o.liftedQty.toLocaleString('en-IN') : '—'}
+                </td>
                 <td style={{ padding: '16px', fontSize: '14px', textAlign: 'right', fontWeight: '600' }}>
                   {o.price != null ? `₹${o.price.toLocaleString('en-IN')}` : '—'}
                 </td>
@@ -493,6 +510,9 @@ function SaleTable({
                   <ActionMenu items={[
                     { label: 'View Details', onClick: () => onView(o.id) },
                     { label: 'Edit', onClick: () => onEdit(o) },
+                    ...((getStatusId(o.status) || getStatusName(o.status)).toUpperCase() === 'CONFIRMED'
+                      ? [{ label: 'Update Lifted Qty', onClick: () => onLiftedQty(o.id), color: '#4299e1' }]
+                      : []),
                     ...orderActionItems(o.id, o.status, actioning, onAction),
                   ]} />
                 </td>

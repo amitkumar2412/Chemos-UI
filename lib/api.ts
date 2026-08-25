@@ -402,6 +402,10 @@ export async function cancelSale(id: string): Promise<SaleEntry> {
   return apiClient.patch<SaleEntry>(`/sales/${id}/cancel`);
 }
 
+export async function updateSaleLiftedQty(id: string, liftedQty: number): Promise<SaleEntry> {
+  return apiClient.patch<SaleEntry>(`/sales/${id}/lifted-qty`, { liftedQty });
+}
+
 export interface CompareItem {
   id: string;
   company_from: string;
