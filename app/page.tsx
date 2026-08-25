@@ -16,6 +16,7 @@ import ResearchModule from '@/components/dashboard/modules/ResearchModule';
 import ComingSoonOverlay from '@/components/dashboard/ComingSoonOverlay';
 import { useActiveModule } from '@/lib/activeModuleContext';
 import { useRevenueData } from '@/lib/hooks/useRevenueData';
+import { useCostData } from '@/lib/hooks/useCostData';
 import { formatCurrency } from '@/components/dashboard/utils';
 
 import {
@@ -42,23 +43,54 @@ export default function HomePage() {
   // Fetch real revenue data from APIs
   const { totalRevenue, details, loading, error } = useRevenueData();
 
-  // Update KPIs with real revenue data and detailed breakdown
+  // Fetch real cost data from APIs
+  const { totalCost, details: costDetails } = useCostData();
+
+  // Update KPIs with real revenue/cost data and detailed breakdown
   const kpis = useMemo(() => {
     return MOCK_KPIS.map((kpi) => {
       if (kpi.id === 'rev') {
         return {
           ...kpi,
           baseValue: totalRevenue,
+          currencyUnit: 'L' as const,
           details: [
-            ['Export', formatCurrency(details.export, currency)],
-            ['Local', formatCurrency(details.local, currency)],
-            ['Other Revenue', formatCurrency(details.other, currency)],
+            ['Export', formatCurrency(details.export, currency, 'L')],
+            ['Local', formatCurrency(details.local, currency, 'L')],
+            ['Other Revenue', formatCurrency(details.other, currency, 'L')],
+          ] as [string, string][],
+        };
+      }
+      if (kpi.id === 'orders') {
+        return {
+          ...kpi,
+          baseValue: totalCost,
+          currencyUnit: 'L' as const,
+          details: [
+            ['Direct Cost', formatCurrency(costDetails.directCost, currency, 'L')],
+            ['Indirect Cost', formatCurrency(costDetails.indirectCost, currency, 'L')],
+            ['Purchase Value', formatCurrency(costDetails.purchaseValue, currency, 'L')],
+          ] as [string, string][],
+        };
+      }
+      if (kpi.id === 'margin') {
+        // Revenue excluding "Other Revenue" (CSV) = Export + Local + HSS + TOW
+        const salesRevenue = totalRevenue - details.other;
+        const grossMargin = salesRevenue - (costDetails.purchaseValue + costDetails.directCost);
+        return {
+          ...kpi,
+          baseValue: grossMargin,
+          currencyUnit: 'L' as const,
+          details: [
+            ['Sales Revenue', formatCurrency(salesRevenue, currency, 'L')],
+            ['Purchase Value', formatCurrency(costDetails.purchaseValue, currency, 'L')],
+            ['Direct Cost', formatCurrency(costDetails.directCost, currency, 'L')],
           ] as [string, string][],
         };
       }
       return kpi;
     });
-  }, [totalRevenue, details, currency]);
+  }, [totalRevenue, details, totalCost, costDetails, currency]);
 
   return (
     <>

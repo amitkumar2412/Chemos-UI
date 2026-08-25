@@ -17,6 +17,7 @@ export interface Kpi {
   label: string;
   unit: KpiUnit;
   baseValue: number | string;
+  currencyUnit?: 'Cr' | 'L';
   change: number;
   direction: 'up' | 'down';
   vs: string;
@@ -70,6 +71,13 @@ export interface IccItem {
   purchaseIncoming?: number;
   incomingSales?: number;
   totalStock?: number;
+  vesselName?: string;
+  physicalUnsoldClosing?: number;
+  incomingUnsoldOpening?: number;
+  marketPrice?: number | null;
+  replacementCost?: number | null;
+  date?: string | null;
+  vesselDate?: string | null;
 }
 
 // ─── Vendor ───────────────────────────────────────────────────────────────

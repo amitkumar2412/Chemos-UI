@@ -76,7 +76,7 @@ export function KpiCard({ kpi, currency }: KpiCardProps) {
 
   const displayValue =
     kpi.unit === 'currency'
-      ? formatCurrency(kpi.baseValue as number, currency)
+      ? formatCurrency(kpi.baseValue as number, currency, kpi.currencyUnit)
       : kpi.unit === 'count'
       ? formatCount(kpi.baseValue as number)
       : String(kpi.baseValue);

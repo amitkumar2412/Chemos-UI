@@ -402,6 +402,10 @@ export async function cancelSale(id: string): Promise<SaleEntry> {
   return apiClient.patch<SaleEntry>(`/sales/${id}/cancel`);
 }
 
+export async function updateSaleLiftedQty(id: string, liftedQty: number): Promise<SaleEntry> {
+  return apiClient.patch<SaleEntry>(`/sales/${id}/lifted-qty`, { liftedQty });
+}
+
 export interface CompareItem {
   id: string;
   company_from: string;
@@ -667,6 +671,95 @@ export async function uploadRevenueCsv(file: File): Promise<RevenueUpload> {
   return json.data;
 }
 
+export interface CostUpload {
+  uploadId: number;
+  uploadedBy: string;
+  uploadedAt: string;
+  rowCount: number;
+}
+
+/** `/cost-csv/uploads` and `/cost-csv/upload` both wrap their payload in `{ message, data }`. */
+interface CostUploadsEnvelope {
+  message: string;
+  data: CostUpload[];
+}
+
+interface CostUploadEnvelope {
+  message: string;
+  data: CostUpload;
+}
+
+export async function fetchCostUploads(): Promise<CostUpload[]> {
+  const data = await apiClient.get<CostUploadsEnvelope>('/cost-csv/uploads');
+  return data.data;
+}
+
+export interface CostUploadEntry {
+  id: number;
+  particular: string;
+  directCost: number;
+  indirectCost: number;
+  createdBy: string | null;
+}
+
+interface CostUploadEntriesEnvelope {
+  message: string;
+  data: CostUploadEntry[];
+}
+
+export async function fetchCostUploadEntries(uploadId: number): Promise<CostUploadEntry[]> {
+  const data = await apiClient.get<CostUploadEntriesEnvelope>(`/cost-csv/uploads/${uploadId}/entries`);
+  return data.data;
+}
+
+export async function fetchCostUploadEntriesByDate(uploadId: number, date: string): Promise<CostUploadEntry[]> {
+  const data = await apiClient.get<CostUploadEntriesEnvelope>('/cost-csv/uploads/entries', {
+    params: { uploadId, date },
+  });
+  return data.data;
+}
+
+export async function uploadCostCsv(file: File): Promise<CostUpload> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+
+  const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
+  const formData = new FormData();
+  formData.append('file', csvBlob, file.name);
+
+  const res = await fetch(`${BASE_URL}/cost-csv/upload`, {
+    method: 'POST',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Upload failed (${res.status}): ${msg}`);
+  }
+  const json: CostUploadEnvelope = await res.json();
+  return json.data;
+}
+
+export async function fetchCostCsvTemplate(): Promise<string> {
+  const BASE_URL =
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  const token = tokenStorage.get();
+  const res = await fetch(`${BASE_URL}/cost-csv/template`, {
+    method: 'GET',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('Template download failed');
+  return res.text();
+}
+
 export async function updateSale(
   id: string,
   payload: SaleFormPayload & { status?: string | null }
@@ -842,18 +935,25 @@ export interface StockStatsSummary {
 }
 
 export interface StockStatsByProduct {
+  vesselName: string;
   product: string;
   dischargePort: string;
   physicalReady: number;
   physicalStock: number;
   physicalSold: number;
   physicalUnsold: number;
+  physicalUnsoldClosing: number;
   incomingStock: number;
   purchaseIncoming: number;
   incomingSales: number;
   incomingBalance: number;
+  incomingUnsoldOpening: number;
   totalStock: number;
   companyName: string;
+  marketPrice: number | null;
+  replacementCost: number | null;
+  date: string | null;
+  vesselDate: string | null;
 }
 
 export async function fetchStockStatsByProduct(): Promise<StockStatsByProduct[]> {
@@ -866,6 +966,31 @@ export async function fetchStockStatsByProduct(): Promise<StockStatsByProduct[]>
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Stock stats by-product fetch failed: ${res.status}`);
+  return res.json();
+}
+
+export interface StockStatsFinancialSummary {
+  product: string;
+  port: string;
+  physicalStock: number;
+  physicalUnsold: number;
+  soldUnlifted: number;
+  quantityReceived: number;
+  companyName: string;
+  averageWeightedCost: number | null;
+  averageWeightedSale: number | null;
+}
+
+export async function fetchStockStatsByProductFinancialSummary(): Promise<StockStatsFinancialSummary[]> {
+  const token = tokenStorage.get();
+  const res = await fetch(`${STOCK_STATS_BASE}/stock-stats/by-product/financial-summary`, {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Stock stats financial summary fetch failed: ${res.status}`);
   return res.json();
 }
 

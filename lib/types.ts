@@ -141,6 +141,7 @@ export interface SaleEntry {
   salesPerson?: SalesPersonValue;
   brokerName?: string | null;
   status?: StatusValue;
+  liftedQty?: number | null;
 }
 
 export interface SaleFormPayload {
