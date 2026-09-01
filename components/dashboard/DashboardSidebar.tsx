@@ -335,6 +335,15 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
                 </span>
                 Audit Trail
               </Link>
+              <Link href="/admin/email-system" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                <span className="db-sb-secondary-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                    <path d="M2 4a1 1 0 011-1h10a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z" />
+                    <path d="M2 4.5l6 4.5 6-4.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                Email System
+              </Link>
             </div>
           )}
 
