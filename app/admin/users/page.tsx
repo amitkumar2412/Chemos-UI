@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { apiClient } from '@/lib/apiClient';
 import { fetchRoles, type Role } from '@/lib/api';
+import { authService } from '@/lib/services/auth';
 import { useAppSelector } from '@/lib/redux/hooks';
 
 interface AppUser {
@@ -43,6 +45,8 @@ export default function UsersPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  const [resetTarget, setResetTarget] = useState<AppUser | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -101,6 +105,20 @@ export default function UsersPage() {
       setSubmitError(e instanceof Error ? e.message : 'Failed to create user');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleReset2fa = async () => {
+    if (!resetTarget) return;
+    setResetting(true);
+    try {
+      await authService.adminReset2fa(resetTarget.username);
+      toast.success(`2FA reset for ${resetTarget.username}`);
+      setResetTarget(null);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to reset 2FA');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -233,7 +251,7 @@ export default function UsersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
-                {['Username', 'Role', 'Status', 'User ID'].map((col) => (
+                {['Username', 'Role', 'Status', 'User ID', 'Actions'].map((col) => (
                   <th
                     key={col}
                     style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.05em' }}
@@ -322,10 +340,100 @@ export default function UsersPage() {
                   <td style={{ padding: '16px 20px', fontSize: '12px', color: 'var(--gray)', fontFamily: 'monospace' }}>
                     {user.id.slice(0, 8)}…
                   </td>
+                  <td style={{ padding: '16px 20px' }}>
+                    <button
+                      onClick={() => setResetTarget(user)}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'transparent',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: 'var(--red)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Reset 2FA
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Reset 2FA Confirm Dialog */}
+      {resetTarget && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget && !resetting) setResetTarget(null); }}
+        >
+          <div
+            style={{
+              background: 'var(--card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border)',
+              width: '100%',
+              maxWidth: '420px',
+              padding: '28px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '10px' }}>Reset 2FA?</h2>
+            <p style={{ fontSize: '13px', color: 'var(--gray)', marginBottom: '24px' }}>
+              This immediately invalidates <strong style={{ color: 'var(--text)' }}>{resetTarget.username}</strong>&apos;s
+              current authenticator and all their backup codes. Their next login will show the QR enrollment screen again.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setResetTarget(null)}
+                disabled={resetting}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: 'var(--text)',
+                  cursor: resetting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleReset2fa}
+                disabled={resetting}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  background: resetting ? 'var(--gray)' : 'var(--red)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: 'white',
+                  cursor: resetting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {resetting ? 'Resetting...' : 'Reset 2FA'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
