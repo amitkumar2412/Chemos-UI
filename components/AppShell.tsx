@@ -2,10 +2,13 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import { initFromStorage } from '@/lib/redux/authSlice';
+import { setPermissions, setPermissionsError, setPermissionsLoading } from '@/lib/redux/permissionsSlice';
 import { authService } from '@/lib/services/auth';
 import { tokenStorage } from '@/lib/apiClient';
+import { findAccessRuleForPath, hasAccess } from '@/lib/permissions/navConfig';
 import DashboardTopbar from './dashboard/DashboardTopbar';
 import DashboardSidebar from './dashboard/DashboardSidebar';
 import { MOCK_NOTIFICATIONS } from './dashboard/data/mockData';
@@ -23,7 +26,8 @@ export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const permissionsState = useAppSelector((state) => state.permissions);
 
   const [hydrated, setHydrated] = useState(false);
   const [period, setPeriod] = useState<Period>('mtd');
@@ -42,15 +46,46 @@ export default function AppShell({ children }: AppShellProps) {
     setHydrated(true);
   }, [dispatch]);
 
+  // Fetch this user's module permissions whenever they become authenticated
+  // (covers both a fresh login and hydration-from-storage, since both flip
+  // isAuthenticated to true).
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    dispatch(setPermissionsLoading());
+    authService
+      .me()
+      .then((data) => {
+        if (!cancelled) dispatch(setPermissions({ permissions: data.permissions, modules: data.modules }));
+      })
+      .catch(() => {
+        if (!cancelled) dispatch(setPermissionsError());
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, dispatch]);
+
   // Route protection — runs after hydration
   useEffect(() => {
     if (!hydrated) return;
     if (isAuthenticated && pathname === '/login') {
       router.replace('/');
-    } else if (!isAuthenticated && !AUTH_ROUTES.includes(pathname)) {
-      router.replace('/login');
+      return;
     }
-  }, [hydrated, isAuthenticated, pathname, router]);
+    if (!isAuthenticated && !AUTH_ROUTES.includes(pathname)) {
+      router.replace('/login');
+      return;
+    }
+    if (isAuthenticated && permissionsState.status === 'loaded') {
+      const rule = findAccessRuleForPath(pathname);
+      const ctx = { modules: permissionsState.modules, permissions: permissionsState.permissions, role: user?.role };
+      if (rule && !hasAccess(rule, ctx)) {
+        toast.error("You don't have access to that section.");
+        router.replace('/');
+      }
+    }
+  }, [hydrated, isAuthenticated, pathname, router, permissionsState, user?.role]);
 
   // Prevent any render until we know auth state
   if (!hydrated) return null;
