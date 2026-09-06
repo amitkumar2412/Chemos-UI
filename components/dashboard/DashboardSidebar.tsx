@@ -173,9 +173,9 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
   const pathname = usePathname();
   const sidebarRef = useRef<HTMLElement>(null);
 
-  const { modules, permissions } = usePermissions();
+  const { modules, permissions, dashboardVisible } = usePermissions();
   const role = useAppSelector((s) => s.auth.user?.role);
-  const accessCtx = { modules, permissions, role };
+  const accessCtx = { modules, permissions, role, dashboardVisible };
 
   const purchaseGroup = NAV_CONFIG.find((g) => g.id === 'purchase')!;
   const salesGroup = NAV_CONFIG.find((g) => g.id === 'sales')!;
@@ -211,22 +211,26 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
       <aside ref={sidebarRef} className={`db-sidebar-wrapper${mobileOpen ? ' mobile-open' : ''}`}>
       {/* Icon-only main column */}
       <div className="db-sb-icon-col">
-        <button 
-          className={`db-sb-icon-btn${activeMain === 'main' ? ' active' : ''}`} 
-          onClick={() => toggleMain('main')}
-          title="Main"
-        >
-          {ICON_OVERVIEW}
-          <span className="db-sb-icon-label">Main</span>
-        </button>
-        <button 
-          className={`db-sb-icon-btn${activeMain === 'intelligence' ? ' active' : ''}`} 
-          onClick={() => toggleMain('intelligence')}
-          title="Intelligence"
-        >
-          {ICON_INTELLIGENCE}
-          <span className="db-sb-icon-label">Intelligence</span>
-        </button>
+        {dashboardVisible && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'main' ? ' active' : ''}`}
+            onClick={() => toggleMain('main')}
+            title="Main"
+          >
+            {ICON_OVERVIEW}
+            <span className="db-sb-icon-label">Main</span>
+          </button>
+        )}
+        {dashboardVisible && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'intelligence' ? ' active' : ''}`}
+            onClick={() => toggleMain('intelligence')}
+            title="Intelligence"
+          >
+            {ICON_INTELLIGENCE}
+            <span className="db-sb-icon-label">Intelligence</span>
+          </button>
+        )}
         {canSeePurchase && (
           <button
             className={`db-sb-icon-btn${activeMain === 'purchase' ? ' active' : ''}`}

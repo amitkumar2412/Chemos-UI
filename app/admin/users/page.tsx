@@ -2,28 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { apiClient } from '@/lib/apiClient';
 import { fetchRoles, type Role } from '@/lib/api';
-import { authService } from '@/lib/services/auth';
+import { authService, type CreateUserPayload, type UpdateUserPayload, type UserResponse } from '@/lib/services/auth';
 import { useAppSelector } from '@/lib/redux/hooks';
 
-interface AppUser {
-  id: string;
-  username: string;
-  isActive: boolean;
-  role: string;
-  roleDisplay: string;
-  name?: string;
-  email?: string;
-}
-
-interface CreateUserPayload {
-  username: string;
-  password: string;
-  roleId: string;
-  name: string;
-  email: string;
-}
+type AppUser = UserResponse;
 
 const EMPTY_FORM: CreateUserPayload = {
   username: '',
@@ -31,6 +14,13 @@ const EMPTY_FORM: CreateUserPayload = {
   roleId: '',
   name: '',
   email: '',
+};
+
+const EMPTY_EDIT_FORM: UpdateUserPayload = {
+  roleId: '',
+  name: '',
+  email: '',
+  newPassword: '',
 };
 
 export default function UsersPage() {
@@ -47,12 +37,20 @@ export default function UsersPage() {
   const [rolesLoading, setRolesLoading] = useState(false);
   const [resetTarget, setResetTarget] = useState<AppUser | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [editTarget, setEditTarget] = useState<AppUser | null>(null);
+  const [editForm, setEditForm] = useState<UpdateUserPayload>(EMPTY_EDIT_FORM);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editRoles, setEditRoles] = useState<Role[]>([]);
+  const [toggleTarget, setToggleTarget] = useState<AppUser | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiClient.get<AppUser[]>('/auth/users');
+      const data = await authService.getUsers();
       setUsers(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load users');
@@ -97,7 +95,7 @@ export default function UsersPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await apiClient.post('/auth/users', form);
+      await authService.createUser(form);
       setSubmitSuccess(true);
       await loadUsers();
       setTimeout(() => closeModal(), 1200);
@@ -119,6 +117,73 @@ export default function UsersPage() {
       toast.error(e instanceof Error ? e.message : 'Failed to reset 2FA');
     } finally {
       setResetting(false);
+    }
+  };
+
+  const openEditModal = async (user: AppUser) => {
+    setEditTarget(user);
+    setEditError(null);
+    setEditForm({ roleId: '', name: user.name ?? '', email: user.email ?? '', newPassword: '' });
+    setEditLoading(true);
+    try {
+      const [fresh, roleList] = await Promise.all([authService.getUserById(user.id), fetchRoles()]);
+      setEditRoles(roleList);
+      const matchedRoleId = roleList.find((r) => r.name === fresh.role)?.id ?? roleList[0]?.id ?? '';
+      setEditForm({ roleId: matchedRoleId, name: fresh.name ?? '', email: fresh.email ?? '', newPassword: '' });
+      setEditTarget(fresh);
+    } catch {
+      // fall back to the row data already on screen; role list may still be empty
+      const matchedRoleId = editRoles.find((r) => r.name === user.role)?.id ?? '';
+      setEditForm((prev) => ({ ...prev, roleId: matchedRoleId }));
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const closeEditModal = () => {
+    setEditTarget(null);
+    setEditError(null);
+  };
+
+  const handleEditFormChange = (field: keyof UpdateUserPayload, value: string) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    setEditSubmitting(true);
+    setEditError(null);
+    try {
+      const payload: UpdateUserPayload = {
+        roleId: editForm.roleId,
+        name: editForm.name,
+        email: editForm.email,
+        ...(editForm.newPassword ? { newPassword: editForm.newPassword } : {}),
+      };
+      await authService.updateUser(editTarget.username, payload);
+      toast.success(`${editTarget.username} updated`);
+      await loadUsers();
+      closeEditModal();
+    } catch (e: unknown) {
+      setEditError(e instanceof Error ? e.message : 'Failed to update user');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleToggleUser = async () => {
+    if (!toggleTarget) return;
+    setToggling(true);
+    try {
+      await authService.toggleUser(toggleTarget.username);
+      toast.success(`${toggleTarget.username} ${toggleTarget.isActive ? 'deactivated' : 'activated'}`);
+      setToggleTarget(null);
+      await loadUsers();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to update user status');
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -341,26 +406,277 @@ export default function UsersPage() {
                     {user.id.slice(0, 8)}…
                   </td>
                   <td style={{ padding: '16px 20px' }}>
-                    <button
-                      onClick={() => setResetTarget(user)}
-                      style={{
-                        padding: '6px 12px',
-                        background: 'transparent',
-                        border: '1px solid var(--border)',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: 'var(--red)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Reset 2FA
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => openEditModal(user)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'transparent',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: 'var(--text)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setToggleTarget(user)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'transparent',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: user.isActive ? 'var(--orange, #d97706)' : 'var(--green)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {user.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        onClick={() => setResetTarget(user)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'transparent',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: 'var(--red)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset 2FA
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Activate/Deactivate Confirm Dialog */}
+      {toggleTarget && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget && !toggling) setToggleTarget(null); }}
+        >
+          <div
+            style={{
+              background: 'var(--card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border)',
+              width: '100%',
+              maxWidth: '420px',
+              padding: '28px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '10px' }}>
+              {toggleTarget.isActive ? 'Deactivate user?' : 'Activate user?'}
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--gray)', marginBottom: '24px' }}>
+              {toggleTarget.isActive ? (
+                <>
+                  <strong style={{ color: 'var(--text)' }}>{toggleTarget.username}</strong> will no longer be able to log in
+                  until reactivated.
+                </>
+              ) : (
+                <>
+                  <strong style={{ color: 'var(--text)' }}>{toggleTarget.username}</strong> will be able to log in again.
+                </>
+              )}
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setToggleTarget(null)}
+                disabled={toggling}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: 'var(--text)',
+                  cursor: toggling ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleUser}
+                disabled={toggling}
+                style={{
+                  flex: 1,
+                  padding: '11px',
+                  background: toggling ? 'var(--gray)' : toggleTarget.isActive ? 'var(--orange, #d97706)' : 'var(--green)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: 'white',
+                  cursor: toggling ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {toggling ? 'Saving...' : toggleTarget.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editTarget && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeEditModal(); }}
+        >
+          <div
+            style={{
+              background: 'var(--card)',
+              borderRadius: '14px',
+              border: '1px solid var(--border)',
+              width: '100%',
+              maxWidth: '480px',
+              padding: '32px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>Edit {editTarget.username}</h2>
+                <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Update details, role, or reset the password</p>
+              </div>
+              <button
+                onClick={closeEditModal}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray)', padding: '4px', display: 'flex', alignItems: 'center' }}
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            {editLoading ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--gray)' }}>Loading…</div>
+            ) : (
+              <form onSubmit={handleEditUser}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: 'var(--text)' }}>
+                      Full Name <span style={{ color: 'var(--red)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.name}
+                      onChange={(e) => handleEditFormChange('name', e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: 'var(--text)' }}>
+                      Email <span style={{ color: 'var(--red)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editForm.email}
+                      onChange={(e) => handleEditFormChange('email', e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: 'var(--text)' }}>
+                      Role <span style={{ color: 'var(--red)' }}>*</span>
+                    </label>
+                    <select
+                      required
+                      value={editForm.roleId}
+                      onChange={(e) => handleEditFormChange('roleId', e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', color: 'var(--text)', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+                    >
+                      {editRoles.length === 0 ? (
+                        <option value="">No roles available</option>
+                      ) : (
+                        editRoles.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.displayName}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: 'var(--text)' }}>
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={editForm.newPassword ?? ''}
+                      onChange={(e) => handleEditFormChange('newPassword', e.target.value)}
+                      placeholder="Leave blank to keep current password"
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', color: 'var(--text)', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                {editError && (
+                  <div style={{ marginTop: '16px', padding: '10px 14px', background: '#dc262615', border: '1px solid #dc262640', borderRadius: '8px', fontSize: '13px', color: 'var(--red)' }}>
+                    {editError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    style={{ flex: 1, padding: '11px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--text)', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editSubmitting}
+                    style={{ flex: 1, padding: '11px', background: editSubmitting ? 'var(--gray)' : 'var(--blue)', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', color: 'white', cursor: editSubmitting ? 'not-allowed' : 'pointer' }}
+                  >
+                    {editSubmitting ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
 

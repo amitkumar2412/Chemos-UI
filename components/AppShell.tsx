@@ -8,7 +8,7 @@ import { initFromStorage } from '@/lib/redux/authSlice';
 import { setPermissions, setPermissionsError, setPermissionsLoading } from '@/lib/redux/permissionsSlice';
 import { authService } from '@/lib/services/auth';
 import { tokenStorage } from '@/lib/apiClient';
-import { findAccessRuleForPath, hasAccess } from '@/lib/permissions/navConfig';
+import { findAccessRuleForPath, getDefaultLandingRoute, hasAccess } from '@/lib/permissions/navConfig';
 import DashboardTopbar from './dashboard/DashboardTopbar';
 import DashboardSidebar from './dashboard/DashboardSidebar';
 import { MOCK_NOTIFICATIONS } from './dashboard/data/mockData';
@@ -56,7 +56,14 @@ export default function AppShell({ children }: AppShellProps) {
     authService
       .me()
       .then((data) => {
-        if (!cancelled) dispatch(setPermissions({ permissions: data.permissions, modules: data.modules }));
+        if (!cancelled)
+          dispatch(
+            setPermissions({
+              permissions: data.permissions,
+              modules: data.modules,
+              dashboardVisible: data.dashboardVisible,
+            })
+          );
       })
       .catch(() => {
         if (!cancelled) dispatch(setPermissionsError());
@@ -78,11 +85,23 @@ export default function AppShell({ children }: AppShellProps) {
       return;
     }
     if (isAuthenticated && permissionsState.status === 'loaded') {
+      const ctx = {
+        modules: permissionsState.modules,
+        permissions: permissionsState.permissions,
+        role: user?.role,
+        dashboardVisible: permissionsState.dashboardVisible,
+      };
+      // '/' is the dashboard and the app's default post-login landing page, so it's
+      // handled separately from the generic rule below instead of via NAV_CONFIG:
+      // redirecting a no-access hit on '/' back to '/' would just loop forever.
+      if (pathname === '/' && !permissionsState.dashboardVisible) {
+        router.replace(getDefaultLandingRoute(ctx));
+        return;
+      }
       const rule = findAccessRuleForPath(pathname);
-      const ctx = { modules: permissionsState.modules, permissions: permissionsState.permissions, role: user?.role };
       if (rule && !hasAccess(rule, ctx)) {
         toast.error("You don't have access to that section.");
-        router.replace('/');
+        router.replace(getDefaultLandingRoute(ctx));
       }
     }
   }, [hydrated, isAuthenticated, pathname, router, permissionsState, user?.role]);

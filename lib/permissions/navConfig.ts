@@ -3,12 +3,14 @@ import type { ModuleAccess } from '@/lib/services/auth';
 export type AccessRule =
   | { type: 'public' }
   | { type: 'module'; module: string; action?: keyof ModuleAccess }
-  | { type: 'role'; roles: string[] }; // temporary fallback for sections the backend doesn't yet return permissions for
+  | { type: 'role'; roles: string[] } // temporary fallback for sections the backend doesn't yet return permissions for
+  | { type: 'dashboard' }; // gated by GET /me's modules.dashboardVisible, not a module entry
 
 export interface AccessContext {
   modules: Record<string, ModuleAccess>;
   permissions: string[];
   role?: string;
+  dashboardVisible?: boolean;
 }
 
 export interface NavItem {
@@ -92,7 +94,26 @@ export function hasAccess(rule: AccessRule, ctx: AccessContext): boolean {
       const upper = ctx.role.toUpperCase();
       return rule.roles.some((keyword) => upper.includes(keyword.toUpperCase()));
     }
+    case 'dashboard':
+      return ctx.dashboardVisible ?? false;
   }
+}
+
+/**
+ * Where to send a user after login / away from '/' when they can't see the
+ * dashboard. Falls back through NAV_CONFIG in order to the first group/item
+ * they actually have access to; '/' itself as a last resort (e.g. a role
+ * with no granted modules at all - a backend config gap, not something the
+ * frontend can route around).
+ */
+export function getDefaultLandingRoute(ctx: AccessContext): string {
+  if (ctx.dashboardVisible) return '/';
+  for (const group of NAV_CONFIG) {
+    if (group.href && hasAccess(group.access, ctx)) return group.href;
+    const firstItem = group.items?.find((item) => hasAccess(item.access, ctx));
+    if (firstItem) return firstItem.href;
+  }
+  return '/';
 }
 
 /** Flattens NAV_CONFIG to find the access rule guarding a given pathname, for route guarding. */

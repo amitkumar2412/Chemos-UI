@@ -11,12 +11,14 @@ export interface ModuleAccess {
 export interface PermissionsState {
   permissions: string[];
   modules: Record<string, ModuleAccess>;
+  dashboardVisible: boolean;
   status: 'idle' | 'loading' | 'loaded' | 'error';
 }
 
 const initialState: PermissionsState = {
   permissions: [],
   modules: {},
+  dashboardVisible: false,
   status: 'idle',
 };
 
@@ -29,10 +31,11 @@ const permissionsSlice = createSlice({
     },
     setPermissions: (
       state,
-      action: PayloadAction<{ permissions: string[]; modules: Record<string, ModuleAccess> }>
+      action: PayloadAction<{ permissions: string[]; modules: Record<string, ModuleAccess>; dashboardVisible: boolean }>
     ) => {
       state.permissions = action.payload.permissions;
       state.modules = action.payload.modules;
+      state.dashboardVisible = action.payload.dashboardVisible;
       state.status = 'loaded';
     },
     setPermissionsError: (state) => {
