@@ -41,6 +41,7 @@ export const NAV_CONFIG: NavGroup[] = [
     access: { type: 'module', module: 'purchases' },
     items: [
       { id: 'purchase-orders', label: 'Purchase Orders', href: '/purchases', access: { type: 'module', module: 'purchases' } },
+      { id: 'purchase-comparable', label: 'Comparable', href: '/comparable', access: { type: 'role', roles: ['ADMIN'] } },
     ],
   },
   {
@@ -52,21 +53,21 @@ export const NAV_CONFIG: NavGroup[] = [
     ],
   },
   {
-    id: 'comparable',
-    label: 'Comparable',
-    href: '/comparable',
+    id: 'order',
+    label: 'Order',
     access: { type: 'role', roles: ['ADMIN'] },
+    items: [
+      { id: 'orders', label: 'Orders Management', href: '/admin', access: { type: 'role', roles: ['ADMIN'] } },
+      { id: 'ps-link', label: 'Purchase-Sale Link', href: '/admin/purchase-sale-link', access: { type: 'role', roles: ['ADMIN'] } },
+    ],
   },
   {
     id: 'admin',
     label: 'Admin',
     access: { type: 'role', roles: ['ADMIN'] },
     items: [
-      { id: 'orders', label: 'Orders Management', href: '/admin', access: { type: 'role', roles: ['ADMIN'] } },
-      { id: 'ps-link', label: 'Purchase-Sale Link', href: '/admin/purchase-sale-link', access: { type: 'role', roles: ['ADMIN'] } },
       { id: 'users', label: 'Users', href: '/admin/users', access: { type: 'role', roles: ['ADMIN'] } },
       { id: 'audit', label: 'Audit Trail', href: '/admin/audit', access: { type: 'role', roles: ['ADMIN'] } },
-      { id: 'email-system', label: 'Email System', href: '/admin/email-system', access: { type: 'role', roles: ['ADMIN'] } },
     ],
   },
   {
@@ -80,6 +81,12 @@ export const NAV_CONFIG: NavGroup[] = [
       { id: 'template-revenue', label: 'Revenue', href: '/template/revenue', access: { type: 'role', roles: ['ADMIN'] } },
       { id: 'template-cost', label: 'Total Cost', href: '/template/cost', access: { type: 'role', roles: ['ADMIN'] } },
     ],
+  },
+  {
+    id: 'email-system',
+    label: 'Email System',
+    href: '/admin/email-system',
+    access: { type: 'role', roles: ['ADMIN'] },
   },
 ];
 

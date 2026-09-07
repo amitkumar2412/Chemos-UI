@@ -206,7 +206,7 @@ export default function AdminPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1>Admin Panel</h1>
+          <h1>Order Management Panel</h1>
           <p>
             {canViewPurchases && canViewSales
               ? 'Manage and review all purchase and sale orders'
