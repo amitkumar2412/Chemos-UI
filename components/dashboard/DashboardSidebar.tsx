@@ -85,6 +85,15 @@ const ICON_EMAIL = (
   </svg>
 );
 
+const ICON_SHIPPING = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+    <path d="M3 17h18l-2 4H5l-2-4z" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5 17V9l7-5 7 5v8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 4v13" strokeLinecap="round" />
+    <circle cx="12" cy="11" r="1.5" />
+  </svg>
+);
+
 // Icons for secondary items
 const ICON_SMALL_OVERVIEW = (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
@@ -199,6 +208,7 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
   const adminGroup = NAV_CONFIG.find((g) => g.id === 'admin')!;
   const templateGroup = NAV_CONFIG.find((g) => g.id === 'template')!;
   const emailSystemGroup = NAV_CONFIG.find((g) => g.id === 'email-system')!;
+  const shippingDataGroup = NAV_CONFIG.find((g) => g.id === 'shipping-data')!;
 
   const canSeePurchase = hasAccess(purchaseGroup.access, accessCtx);
   const canSeeSales = hasAccess(salesGroup.access, accessCtx);
@@ -206,6 +216,7 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
   const canSeeAdmin = hasAccess(adminGroup.access, accessCtx);
   const canSeeTemplate = hasAccess(templateGroup.access, accessCtx);
   const canSeeEmailSystem = hasAccess(emailSystemGroup.access, accessCtx);
+  const canSeeShippingData = hasAccess(shippingDataGroup.access, accessCtx);
 
   const visiblePurchaseItems = purchaseGroup.items?.filter((item) => hasAccess(item.access, accessCtx)) ?? [];
   const visibleOrderItems = orderGroup.items?.filter((item) => hasAccess(item.access, accessCtx)) ?? [];
@@ -319,6 +330,18 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
           >
             {ICON_EMAIL}
             <span className="db-sb-icon-label">Email System</span>
+          </Link>
+        )}
+        {canSeeShippingData && (
+          <Link
+            href="/admin/shipping-data"
+            className={`db-sb-icon-btn${pathname?.startsWith('/admin/shipping-data') ? ' active' : ''}`}
+            title="Shipping Data"
+            onClick={() => setActiveMain(null)}
+            style={{ textDecoration: 'none' }}
+          >
+            {ICON_SHIPPING}
+            <span className="db-sb-icon-label">Shipping Data</span>
           </Link>
         )}
 

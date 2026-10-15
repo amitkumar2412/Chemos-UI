@@ -88,6 +88,12 @@ export const NAV_CONFIG: NavGroup[] = [
     href: '/admin/email-system',
     access: { type: 'role', roles: ['ADMIN'] },
   },
+  {
+    id: 'shipping-data',
+    label: 'Shipping Data',
+    href: '/admin/shipping-data',
+    access: { type: 'role', roles: ['ADMIN'] },
+  },
 ];
 
 export function hasAccess(rule: AccessRule, ctx: AccessContext): boolean {
