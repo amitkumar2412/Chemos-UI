@@ -145,17 +145,18 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   const handleSubmit = async () => {
     if (submittingRef.current) return; // block concurrent submissions synchronously
     const qty = parseFloat(quantity);
-    const fc = parseFloat(priceFc);
-    const exRate = parseFloat(exchangeRate);
+    const fc = parseFloat(priceFc) || 0;
+    const exRate = parseFloat(exchangeRate) || 0;
 
     const missing: string[] = [];
     if (!companyTo) missing.push('Company To');
     if (!companyFrom) missing.push('Company From');
     if (!product) missing.push('Product');
     if (!Number.isFinite(qty) || qty <= 0) missing.push('Quantity');
-    if (!Number.isFinite(fc) || fc <= 0) missing.push('Price (FC)');
-    if (!Number.isFinite(exRate) || exRate <= 0) missing.push('Exchange Rate');
     if (!port) missing.push('Port');
+    if (!origin) missing.push('Origin');
+    if (!marketStatus) missing.push('Market Status');
+    if (!dischargePorts.length) missing.push('Discharge Ports');
     if (missing.length) {
       toast.error('Please fill: ' + missing.join(', '));
       return;
@@ -262,7 +263,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
               placeholder="e.g. VAM (Carbide Base)" />
           </div>
           <div className="fg">
-            <label className="fl">Origin</label>
+            <label className="fl">Origin <span className="req">*</span></label>
             <CountryAutocompleteInput id="f-origin" value={origin}
               onChange={val => { setOrigin(val); setOriginId(''); }}
               onSelect={country => setOriginId(country.id)}
@@ -295,7 +296,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           </div>
 
           <div className="fg">
-            <label className="fl">Discharge Ports</label>
+            <label className="fl">Discharge Ports <span className="req">*</span></label>
             <PortMultiAutocompleteInput value={dischargePorts} onChange={setDischargePorts}
               placeholder="Search or add ports…" />
           </div>
@@ -307,7 +308,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
               options={feedOptions.packagings} placeholder="e.g. Bulk, IBC, Drum" />
           </div>
           <div className="fg">
-            <label className="fl">Market Status</label>
+            <label className="fl">Market Status <span className="req">*</span></label>
             <select className="fi" value={marketStatus} onChange={e => setMarketStatus(e.target.value)}>
               <option value="">Select…</option>
               {marketStatusOptions.map(o => (
@@ -367,7 +368,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
             </select>
           </div>
           <div className="fg">
-            <label className="fl">Exchange Rate (₹/$) <span className="req">*</span></label>
+            <label className="fl">Exchange Rate (₹/$)</label>
             <input className="fi" type="number" min={0} step={0.01} placeholder="84.50"
               value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} />
           </div>
