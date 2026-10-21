@@ -158,17 +158,18 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
     if (!order) return;
     setSubmitError(null);
     const qty = parseFloat(quantity);
-    const fc = parseFloat(priceFc);
-    const exRate = parseFloat(exchangeRate);
+    const fc = parseFloat(priceFc) || 0;
+    const exRate = parseFloat(exchangeRate) || 0;
 
     const missing: string[] = [];
     if (!companyTo) missing.push('Buyer');
     if (!companyFrom) missing.push('Seller');
     if (!product) missing.push('Product');
     if (!Number.isFinite(qty) || qty <= 0) missing.push('Quantity');
-    if (!Number.isFinite(fc) || fc <= 0) missing.push('Price (FC)');
-    if (!Number.isFinite(exRate) || exRate <= 0) missing.push('Exchange Rate');
     if (!port) missing.push('Load Port');
+    if (!origin) missing.push('Origin');
+    if (!marketStatus) missing.push('Market Status');
+    if (!dischargePort) missing.push('Discharge Port');
     if (missing.length) {
       setSubmitError('Please fill required fields: ' + missing.join(', '));
       return;
@@ -280,7 +281,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
                   />
                 </div>
                 <div className="fg">
-                  <label className="fl">Origin</label>
+                  <label className="fl">Origin <span className="req">*</span></label>
                   <CountryAutocompleteInput
                     id="pe-origin"
                     value={origin}
@@ -320,7 +321,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
                   />
                 </div>
                 <div className="fg">
-                  <label className="fl">Discharge Port</label>
+                  <label className="fl">Discharge Port <span className="req">*</span></label>
                   <PortAutocompleteInput
                     id="pe-discharge-port"
                     value={dischargePort}
@@ -341,7 +342,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
                   />
                 </div>
                 <div className="fg">
-                  <label className="fl">Market Status</label>
+                  <label className="fl">Market Status <span className="req">*</span></label>
                   <select className="fi" value={marketStatus} onChange={e => setMarketStatus(e.target.value)}>
                     <option value="">Select…</option>
                     {marketStatusOptions.map(o => (
@@ -362,7 +363,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
                 </div>
 
                 <div className="fg">
-                  <label className="fl">Price (FC) <span className="req">*</span></label>
+                  <label className="fl">Price (FC)</label>
                   <input
                     className="fi"
                     type="number"
@@ -388,7 +389,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
                   </select>
                 </div>
                 <div className="fg">
-                  <label className="fl">Exchange Rate (₹/$) <span className="req">*</span></label>
+                  <label className="fl">Exchange Rate (₹/$)</label>
                   <input
                     className="fi"
                     type="number"

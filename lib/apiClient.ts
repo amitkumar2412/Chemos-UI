@@ -25,7 +25,7 @@
  */
 
 const BASE_URL =
-  (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
 
 const TOKEN_KEY = 'chemos_token';
 const USER_KEY = 'chemos_user';
@@ -95,11 +95,15 @@ async function request<T>(
   if (!res.ok) {
     // Handle 401 Unauthorized - expired or invalid token
     if (res.status === 401) {
-      const isLoginRequest = endpoint === '/auth/login';
-      
-      // If this is NOT the login endpoint, it means a valid session just died
+      // /auth/login (wrong password) and /auth/2fa/** (wrong/expired pre-auth
+      // token or wrong code) authenticate with credentials or a short-lived
+      // pre-auth token, not the stored session token - a 401 there is a normal
+      // "invalid credentials/code" outcome, not a dead session.
+      const isAuthFlowRequest = endpoint === '/auth/login' || endpoint.startsWith('/auth/2fa/');
+
+      // If this is NOT an auth-flow endpoint, it means a valid session just died
       // (expired/invalid/tampered token) - clear auth state and redirect to login
-      if (!isLoginRequest && typeof window !== 'undefined') {
+      if (!isAuthFlowRequest && typeof window !== 'undefined') {
         // Guard against multiple simultaneous redirects (race condition)
         if (!isRedirectingToLogin) {
           isRedirectingToLogin = true;
@@ -116,8 +120,8 @@ async function request<T>(
         throw new ApiError(res.status, 'Session expired. Please log in again.');
       }
       
-      // If this IS the login endpoint, just throw the error normally
-      // (this is a "wrong username/password" case, not an expired session)
+      // If this IS an auth-flow endpoint, just throw the error normally
+      // (wrong password / wrong code / expired pre-auth token, not a dead session)
     }
     
     // For all other errors (including 403 Forbidden for "wrong permissions"),

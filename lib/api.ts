@@ -445,7 +445,7 @@ export async function comparePurchases(purchaseIds: string[]): Promise<CompareRe
 
 export async function exportPhysicalStockCsv(): Promise<string> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
   const res = await fetch(`${BASE_URL}/purchase/export-physical-stock`, {
     method: 'GET',
@@ -467,7 +467,7 @@ export interface ImportPhysicalStockResult {
 
 export async function importPhysicalStock(file: File): Promise<ImportPhysicalStockResult> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
 
   // Force text/csv so the backend parses it as CSV regardless of what the
@@ -493,7 +493,7 @@ export async function importPhysicalStock(file: File): Promise<ImportPhysicalSto
 
 export async function exportSalesLiftedCsv(): Promise<string> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
   const res = await fetch(`${BASE_URL}/sales/export`, {
     method: 'GET',
@@ -515,7 +515,7 @@ export interface ImportSalesLiftedResult {
 
 export async function importSalesLifted(file: File): Promise<ImportSalesLiftedResult> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
 
   // Force text/csv so the backend parses it as CSV regardless of what the
@@ -583,7 +583,7 @@ export async function fetchPlUploadEntries(uploadId: number, date: string): Prom
 
 export async function uploadPlExpense(file: File): Promise<PlUpload> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
 
   const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
@@ -648,7 +648,7 @@ export async function fetchRevenueUploadEntries(uploadId: number): Promise<Reven
 
 export async function uploadRevenueCsv(file: File): Promise<RevenueUpload> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
 
   const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
@@ -721,7 +721,7 @@ export async function fetchCostUploadEntriesByDate(uploadId: number, date: strin
 
 export async function uploadCostCsv(file: File): Promise<CostUpload> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
 
   const csvBlob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
@@ -746,7 +746,7 @@ export async function uploadCostCsv(file: File): Promise<CostUpload> {
 
 export async function fetchCostCsvTemplate(): Promise<string> {
   const BASE_URL =
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
   const token = tokenStorage.get();
   const res = await fetch(`${BASE_URL}/cost-csv/template`, {
     method: 'GET',
@@ -924,7 +924,7 @@ export async function fetchNegativeLinkHistoryForLink(linkId: string): Promise<N
 
 const STOCK_STATS_BASE =
   (process.env.NEXT_PUBLIC_STOCK_STATS_URL ??
-    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082')) +
+    (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082')) +
   '/api/v1';
 
 export interface StockStatsSummary {

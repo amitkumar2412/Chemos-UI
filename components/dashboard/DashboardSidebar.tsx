@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useEffect } from 'react';
+import { ReactNode, useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAppSelector } from '@/lib/redux/hooks';
+import { usePermissions } from '@/lib/permissions/usePermissions';
+import { NAV_CONFIG, hasAccess } from '@/lib/permissions/navConfig';
 
 export type DashboardModule = 'overview' | 'procurement' | 'scm' | 'finance' | 'research';
 
@@ -13,7 +16,7 @@ interface DashboardSidebarProps {
   onMobileClose?: () => void;
 }
 
-type MainCategory = 'main' | 'intelligence' | 'purchase' | 'sales' | 'inventory' | 'comparable' | 'admin' | 'template' | null;
+type MainCategory = 'main' | 'intelligence' | 'purchase' | 'sales' | 'inventory' | 'order' | 'admin' | 'template' | null;
 
 const ICON_OVERVIEW = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
@@ -57,12 +60,12 @@ const ICON_INVENTORY = (
   </svg>
 );
 
-const ICON_COMPARABLE = (
+const ICON_ORDER = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
-    <rect x="2" y="3" width="8" height="18" rx="1" />
-    <rect x="14" y="3" width="8" height="18" rx="1" />
-    <line x1="6" y1="8" x2="6" y2="8.01" strokeWidth="2.5" strokeLinecap="round" />
-    <line x1="18" y1="8" x2="18" y2="8.01" strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M9 2H15a1 1 0 011 1v2H8V3a1 1 0 011-1z" />
+    <path d="M6 5h12a1 1 0 011 1v14a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1z" />
+    <line x1="8" y1="11" x2="16" y2="11" />
+    <line x1="8" y1="15" x2="13" y2="15" />
   </svg>
 );
 
@@ -72,6 +75,22 @@ const ICON_TEMPLATE = (
     <polyline points="14 2 14 8 20 8" />
     <line x1="8" y1="13" x2="16" y2="13" />
     <line x1="8" y1="17" x2="12" y2="17" />
+  </svg>
+);
+
+const ICON_EMAIL = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="M2 6l10 7 10-7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ICON_SHIPPING = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+    <path d="M3 17h18l-2 4H5l-2-4z" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M5 17V9l7-5 7 5v8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 4v13" strokeLinecap="round" />
+    <circle cx="12" cy="11" r="1.5" />
   </svg>
 );
 
@@ -117,10 +136,92 @@ const ICON_SMALL_FORM = (
   </svg>
 );
 
+const ICON_SMALL_PS_LINK = (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+    <path d="M2 8h3M11 8h3M5 5l-2 3 2 3M11 5l2 3-2 3" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="5" cy="8" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="11" cy="8" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const ICON_SMALL_USERS = (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+    <circle cx="8" cy="5" r="3" />
+    <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+  </svg>
+);
+
+const ICON_SMALL_AUDIT = (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+    <path d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1z" />
+    <line x1="4" y1="6" x2="12" y2="6" />
+    <line x1="4" y1="9" x2="9" y2="9" />
+    <circle cx="12" cy="11" r="2" />
+    <line x1="13.4" y1="12.4" x2="15" y2="14" />
+  </svg>
+);
+
+const ICON_SMALL_COMPARABLE = (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+    <rect x="1.5" y="2" width="5.5" height="12" rx="1" />
+    <rect x="9" y="2" width="5.5" height="12" rx="1" />
+    <line x1="4.25" y1="6" x2="4.25" y2="6.01" strokeWidth="2" strokeLinecap="round" />
+    <line x1="11.75" y1="6" x2="11.75" y2="6.01" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const PURCHASE_ITEM_ICONS: Record<string, ReactNode> = {
+  'purchase-orders': ICON_SMALL_PROCUREMENT,
+  'purchase-comparable': ICON_SMALL_COMPARABLE,
+};
+
+const ORDER_ITEM_ICONS: Record<string, ReactNode> = {
+  orders: ICON_SMALL_FORM,
+  'ps-link': ICON_SMALL_PS_LINK,
+};
+
+const ADMIN_ITEM_ICONS: Record<string, ReactNode> = {
+  users: ICON_SMALL_USERS,
+  audit: ICON_SMALL_AUDIT,
+};
+
+const TEMPLATE_ITEM_ICONS: Record<string, ReactNode> = {
+  'template-purchase': ICON_SMALL_PROCUREMENT,
+  'template-expense': ICON_SMALL_FINANCE,
+  'template-sale-lifted': ICON_SMALL_SCM,
+  'template-revenue': ICON_SMALL_FINANCE,
+  'template-cost': ICON_SMALL_FINANCE,
+};
+
 export default function DashboardSidebar({ activeModule, onModuleChange, mobileOpen, onMobileClose }: DashboardSidebarProps) {
   const [activeMain, setActiveMain] = useState<MainCategory>(null);
   const pathname = usePathname();
   const sidebarRef = useRef<HTMLElement>(null);
+
+  const { modules, permissions, dashboardVisible } = usePermissions();
+  const role = useAppSelector((s) => s.auth.user?.role);
+  const accessCtx = { modules, permissions, role, dashboardVisible };
+
+  const purchaseGroup = NAV_CONFIG.find((g) => g.id === 'purchase')!;
+  const salesGroup = NAV_CONFIG.find((g) => g.id === 'sales')!;
+  const orderGroup = NAV_CONFIG.find((g) => g.id === 'order')!;
+  const adminGroup = NAV_CONFIG.find((g) => g.id === 'admin')!;
+  const templateGroup = NAV_CONFIG.find((g) => g.id === 'template')!;
+  const emailSystemGroup = NAV_CONFIG.find((g) => g.id === 'email-system')!;
+  const shippingDataGroup = NAV_CONFIG.find((g) => g.id === 'shipping-data')!;
+
+  const canSeePurchase = hasAccess(purchaseGroup.access, accessCtx);
+  const canSeeSales = hasAccess(salesGroup.access, accessCtx);
+  const canSeeOrder = hasAccess(orderGroup.access, accessCtx);
+  const canSeeAdmin = hasAccess(adminGroup.access, accessCtx);
+  const canSeeTemplate = hasAccess(templateGroup.access, accessCtx);
+  const canSeeEmailSystem = hasAccess(emailSystemGroup.access, accessCtx);
+  const canSeeShippingData = hasAccess(shippingDataGroup.access, accessCtx);
+
+  const visiblePurchaseItems = purchaseGroup.items?.filter((item) => hasAccess(item.access, accessCtx)) ?? [];
+  const visibleOrderItems = orderGroup.items?.filter((item) => hasAccess(item.access, accessCtx)) ?? [];
+  const visibleAdminItems = adminGroup.items?.filter((item) => hasAccess(item.access, accessCtx)) ?? [];
+  const visibleTemplateItems = templateGroup.items?.filter((item) => hasAccess(item.access, accessCtx)) ?? [];
 
   const toggleMain = (id: MainCategory) => setActiveMain((s) => (s === id ? null : id));
 
@@ -141,38 +242,46 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
       <aside ref={sidebarRef} className={`db-sidebar-wrapper${mobileOpen ? ' mobile-open' : ''}`}>
       {/* Icon-only main column */}
       <div className="db-sb-icon-col">
-        <button 
-          className={`db-sb-icon-btn${activeMain === 'main' ? ' active' : ''}`} 
-          onClick={() => toggleMain('main')}
-          title="Main"
-        >
-          {ICON_OVERVIEW}
-          <span className="db-sb-icon-label">Main</span>
-        </button>
-        <button 
-          className={`db-sb-icon-btn${activeMain === 'intelligence' ? ' active' : ''}`} 
-          onClick={() => toggleMain('intelligence')}
-          title="Intelligence"
-        >
-          {ICON_INTELLIGENCE}
-          <span className="db-sb-icon-label">Intelligence</span>
-        </button>
-        <button 
-          className={`db-sb-icon-btn${activeMain === 'purchase' ? ' active' : ''}`} 
-          onClick={() => toggleMain('purchase')}
-          title="Purchase"
-        >
-          {ICON_PURCHASE}
-          <span className="db-sb-icon-label">Purchase</span>
-        </button>
-        <button 
-          className={`db-sb-icon-btn${activeMain === 'sales' ? ' active' : ''}`} 
-          onClick={() => toggleMain('sales')}
-          title="Sales"
-        >
-          {ICON_SALES}
-          <span className="db-sb-icon-label">Sales</span>
-        </button>
+        {dashboardVisible && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'main' ? ' active' : ''}`}
+            onClick={() => toggleMain('main')}
+            title="Main"
+          >
+            {ICON_OVERVIEW}
+            <span className="db-sb-icon-label">Main</span>
+          </button>
+        )}
+        {dashboardVisible && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'intelligence' ? ' active' : ''}`}
+            onClick={() => toggleMain('intelligence')}
+            title="Intelligence"
+          >
+            {ICON_INTELLIGENCE}
+            <span className="db-sb-icon-label">Intelligence</span>
+          </button>
+        )}
+        {canSeePurchase && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'purchase' ? ' active' : ''}`}
+            onClick={() => toggleMain('purchase')}
+            title="Purchase"
+          >
+            {ICON_PURCHASE}
+            <span className="db-sb-icon-label">Purchase</span>
+          </button>
+        )}
+        {canSeeSales && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'sales' ? ' active' : ''}`}
+            onClick={() => toggleMain('sales')}
+            title="Sales"
+          >
+            {ICON_SALES}
+            <span className="db-sb-icon-label">Sales</span>
+          </button>
+        )}
         {/* <button
           className={`db-sb-icon-btn${activeMain === 'inventory' ? ' active' : ''}`}
           onClick={() => toggleMain('inventory')}
@@ -181,32 +290,60 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
           {ICON_INVENTORY}
           <span className="db-sb-icon-label">Inventory</span>
         </button> */}
-        <Link
-          href="/comparable"
-          className={`db-sb-icon-btn${pathname === '/comparable' ? ' active' : ''}`}
-          title="Comparable"
-          onClick={() => setActiveMain(null)}
-          style={{ textDecoration: 'none' }}
-        >
-          {ICON_COMPARABLE}
-          <span className="db-sb-icon-label">Comparable</span>
-        </Link>
-        <button
-          className={`db-sb-icon-btn${activeMain === 'admin' ? ' active' : ''}`}
-          onClick={() => toggleMain('admin')}
-          title="Admin"
-        >
-          {ICON_ADMIN}
-          <span className="db-sb-icon-label">Admin</span>
-        </button>
-        <button
-          className={`db-sb-icon-btn${activeMain === 'template' ? ' active' : ''}`}
-          onClick={() => toggleMain('template')}
-          title="Template"
-        >
-          {ICON_TEMPLATE}
-          <span className="db-sb-icon-label">Template</span>
-        </button>
+        {canSeeOrder && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'order' ? ' active' : ''}`}
+            onClick={() => toggleMain('order')}
+            title="Order"
+          >
+            {ICON_ORDER}
+            <span className="db-sb-icon-label">Order</span>
+          </button>
+        )}
+        {canSeeAdmin && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'admin' ? ' active' : ''}`}
+            onClick={() => toggleMain('admin')}
+            title="Admin"
+          >
+            {ICON_ADMIN}
+            <span className="db-sb-icon-label">Admin</span>
+          </button>
+        )}
+        {canSeeTemplate && (
+          <button
+            className={`db-sb-icon-btn${activeMain === 'template' ? ' active' : ''}`}
+            onClick={() => toggleMain('template')}
+            title="Template"
+          >
+            {ICON_TEMPLATE}
+            <span className="db-sb-icon-label">Template</span>
+          </button>
+        )}
+        {canSeeEmailSystem && (
+          <Link
+            href="/admin/email-system"
+            className={`db-sb-icon-btn${pathname?.startsWith('/admin/email-system') ? ' active' : ''}`}
+            title="Email System"
+            onClick={() => setActiveMain(null)}
+            style={{ textDecoration: 'none' }}
+          >
+            {ICON_EMAIL}
+            <span className="db-sb-icon-label">Email System</span>
+          </Link>
+        )}
+        {canSeeShippingData && (
+          <Link
+            href="/admin/shipping-data"
+            className={`db-sb-icon-btn${pathname?.startsWith('/admin/shipping-data') ? ' active' : ''}`}
+            title="Shipping Data"
+            onClick={() => setActiveMain(null)}
+            style={{ textDecoration: 'none' }}
+          >
+            {ICON_SHIPPING}
+            <span className="db-sb-icon-label">Shipping Data</span>
+          </Link>
+        )}
 
         <div className="db-sb-spacer" />
         
@@ -269,21 +406,19 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
             </div>
           )}
 
-          {activeMain === 'purchase' && (
+          {activeMain === 'purchase' && canSeePurchase && (
             <div className="db-sb-secondary-content">
               <div className="db-sb-secondary-header">Purchase</div>
-              {/* <Link href="/enquiry" className="db-sb-secondary-item">
-                <span className="db-sb-secondary-icon">{ICON_SMALL_FORM}</span>
-                Purchase Enquiries
-              </Link> */}
-              <Link href="/purchases" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">{ICON_SMALL_PROCUREMENT}</span>
-                Purchase Orders
-              </Link>
+              {visiblePurchaseItems.map((item) => (
+                <Link key={item.id} href={item.href} className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                  <span className="db-sb-secondary-icon">{PURCHASE_ITEM_ICONS[item.id]}</span>
+                  {item.label}
+                </Link>
+              ))}
             </div>
           )}
 
-          {activeMain === 'sales' && (
+          {activeMain === 'sales' && canSeeSales && (
             <div className="db-sb-secondary-content">
               <div className="db-sb-secondary-header">Sales</div>
               {/* <Link href="/sale-enquiry" className="db-sb-secondary-item">
@@ -297,70 +432,39 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
             </div>
           )}
 
-          {activeMain === 'admin' && (
+          {activeMain === 'order' && canSeeOrder && (
             <div className="db-sb-secondary-content">
-              <div className="db-sb-secondary-header">Admin</div>
-              <Link href="/admin" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">{ICON_SMALL_FORM}</span>
-                Orders Management
-              </Link>
-              <Link href="/admin/purchase-sale-link" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-                    <path d="M2 8h3M11 8h3M5 5l-2 3 2 3M11 5l2 3-2 3" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="5" cy="8" r="1.5" fill="currentColor" stroke="none" />
-                    <circle cx="11" cy="8" r="1.5" fill="currentColor" stroke="none" />
-                  </svg>
-                </span>
-                Purchase-Sale Link
-              </Link>
-              <Link href="/admin/users" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-                    <circle cx="8" cy="5" r="3" />
-                    <path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-                  </svg>
-                </span>
-                Users
-              </Link>
-              <Link href="/admin/audit" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
-                    <path d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1z" />
-                    <line x1="4" y1="6" x2="12" y2="6" />
-                    <line x1="4" y1="9" x2="9" y2="9" />
-                    <circle cx="12" cy="11" r="2" />
-                    <line x1="13.4" y1="12.4" x2="15" y2="14" />
-                  </svg>
-                </span>
-                Audit Trail
-              </Link>
+              <div className="db-sb-secondary-header">Order</div>
+              {visibleOrderItems.map((item) => (
+                <Link key={item.id} href={item.href} className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                  <span className="db-sb-secondary-icon">{ORDER_ITEM_ICONS[item.id]}</span>
+                  {item.label}
+                </Link>
+              ))}
             </div>
           )}
 
-          {activeMain === 'template' && (
+          {activeMain === 'admin' && canSeeAdmin && (
+            <div className="db-sb-secondary-content">
+              <div className="db-sb-secondary-header">Admin</div>
+              {visibleAdminItems.map((item) => (
+                <Link key={item.id} href={item.href} className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                  <span className="db-sb-secondary-icon">{ADMIN_ITEM_ICONS[item.id]}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {activeMain === 'template' && canSeeTemplate && (
             <div className="db-sb-secondary-content">
               <div className="db-sb-secondary-header">Template</div>
-              <Link href="/template/purchase" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">{ICON_SMALL_PROCUREMENT}</span>
-                Purchase
-              </Link>
-              <Link href="/template/expense" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">{ICON_SMALL_FINANCE}</span>
-                Expense
-              </Link>
-              <Link href="/template/sale-lifted" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">{ICON_SMALL_SCM}</span>
-                Sale Lifted
-              </Link>
-              <Link href="/template/revenue" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">{ICON_SMALL_FINANCE}</span>
-                Revenue
-              </Link>
-              <Link href="/template/cost" className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
-                <span className="db-sb-secondary-icon">{ICON_SMALL_FINANCE}</span>
-                Total Cost
-              </Link>
+              {visibleTemplateItems.map((item) => (
+                <Link key={item.id} href={item.href} className="db-sb-secondary-item" onClick={() => setActiveMain(null)}>
+                  <span className="db-sb-secondary-icon">{TEMPLATE_ITEM_ICONS[item.id]}</span>
+                  {item.label}
+                </Link>
+              ))}
             </div>
           )}
         </div>
