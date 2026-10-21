@@ -25,7 +25,7 @@
  */
 
 const BASE_URL =
-  (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://35.154.133.62:8082') + '/api/v1';
+  (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://13.206.139.250:8082') + '/api/v1';
 
 const TOKEN_KEY = 'chemos_token';
 const USER_KEY = 'chemos_user';
