@@ -1,3 +1,4 @@
+import { apiClient } from '@/lib/apiClient';
 import type { Vessel } from './data';
 
 interface ApiShipRow {
@@ -189,14 +190,31 @@ export function mapApiRowToVessel(row: ApiShipRow): Vessel {
   };
 }
 
+// The backend caps `limit` at 10, so the full fleet is fetched page by page.
+const PAGE_SIZE = 10;
+
+async function fetchPage(offset: number): Promise<ApiResponse> {
+  return apiClient.get<ApiResponse>('/mainshipdata', {
+    params: { limit: PAGE_SIZE, offset },
+  });
+}
+
 export async function fetchShippingData(signal?: AbortSignal): Promise<Vessel[]> {
-  const res = await fetch('/api/mainshipdata', { signal, cache: 'no-store' });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error ?? `Request failed with status ${res.status}`);
+  const first = await fetchPage(0);
+  const rows = [...(Array.isArray(first?.data) ? first.data : [])];
+  const total = first?.total ?? rows.length;
+
+  const offsets: number[] = [];
+  for (let o = PAGE_SIZE; o < total; o += PAGE_SIZE) offsets.push(o);
+
+  // Fetch remaining pages in small concurrent batches.
+  const BATCH = 5;
+  for (let i = 0; i < offsets.length && !signal?.aborted; i += BATCH) {
+    const pages = await Promise.all(offsets.slice(i, i + BATCH).map(fetchPage));
+    for (const p of pages) if (Array.isArray(p?.data)) rows.push(...p.data);
   }
-  const payload = (await res.json()) as ApiResponse;
-  const rows = Array.isArray(payload?.data) ? payload.data : [];
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
   const vessels = rows
     .map(mapApiRowToVessel)
     .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lng) && (v.lat !== 0 || v.lng !== 0));

@@ -1,3 +1,5 @@
+import { apiClient } from '@/lib/apiClient';
+
 export interface ShipInventoryRow {
   ship_id: number;
   vessel_name: string | null;
@@ -22,7 +24,7 @@ export interface ShipInventoryResponse {
 
 interface ShipInventorySearchResponse extends ShipInventoryResponse {
   query: string;
-  data: (ShipInventoryRow & { score: number })[];
+  data: ShipInventoryRow[];
 }
 
 // The backend rejects any `limit` above 10 (FastAPI validation: le=10), so we
@@ -47,13 +49,8 @@ async function fetchShipInventoryPage(
   limit: number,
   signal?: AbortSignal
 ): Promise<ShipInventoryResponse> {
-  const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  const res = await fetch(`/api/ship-inventory?${qs.toString()}`, { signal, cache: 'no-store' });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error ?? `Request failed with status ${res.status}`);
-  }
-  return res.json();
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  return apiClient.get<ShipInventoryResponse>('/ship-inventory', { params: { limit, offset } });
 }
 
 export async function searchShipInventory(query: string, signal?: AbortSignal): Promise<ShipInventoryRow[]> {
@@ -75,11 +72,8 @@ async function searchShipInventoryPage(
   limit: number,
   signal?: AbortSignal
 ): Promise<ShipInventorySearchResponse> {
-  const qs = new URLSearchParams({ q: query, limit: String(limit), offset: String(offset) });
-  const res = await fetch(`/api/ship-inventory/search?${qs.toString()}`, { signal, cache: 'no-store' });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error ?? `Request failed with status ${res.status}`);
-  }
-  return res.json();
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  return apiClient.get<ShipInventorySearchResponse>('/ship-inventory/search', {
+    params: { q: query, limit, offset },
+  });
 }
