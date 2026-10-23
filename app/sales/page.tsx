@@ -9,6 +9,7 @@ import ActionMenu from '@/components/ActionMenu';
 import { fetchFeedOptions, fetchAllSales, createSale, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
 import type { StatusValue } from '@/lib/api';
 import type { SaleEntry, FeedOptions, SaleFormPayload } from '@/lib/types';
+import { usePermissions } from '@/lib/permissions/usePermissions';
 
 const EMPTY_OPTIONS: FeedOptions = {
   products: [],
@@ -32,6 +33,7 @@ const TH: React.CSSProperties = {
 const PAGE_SIZE = 10;
 
 export default function SalesPage() {
+  const { can } = usePermissions();
   const [feedOptions, setFeedOptions] = useState<FeedOptions>(EMPTY_OPTIONS);
   const [entries, setEntries] = useState<SaleEntry[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -84,7 +86,7 @@ export default function SalesPage() {
           <h1>Sales Orders</h1>
           <p>Manage and track all sales orders and transactions</p>
         </div>
-        <button
+        {can('sales', 'canCreate') && <button
           onClick={() => setIsCreateModalOpen(true)}
           style={{
             padding: '12px 24px',
@@ -113,7 +115,7 @@ export default function SalesPage() {
         >
           <span style={{ fontSize: '18px' }}>+</span>
           Create Order
-        </button>
+        </button>}
       </div>
 
       {/* Content Area */}
@@ -205,7 +207,7 @@ export default function SalesPage() {
                       <td style={{ padding: '16px', textAlign: 'center' }}>
                         <ActionMenu items={[
                           { label: 'View Details', onClick: () => setViewingId(sale.id) },
-                          ...(isConfirmed(sale.status) ? [] : [{ label: 'Edit', onClick: () => setEditingId(sale.id) }]),
+                          ...(!can('sales', 'canEdit') || isConfirmed(sale.status) ? [] : [{ label: 'Edit', onClick: () => setEditingId(sale.id) }]),
                         ]} />
                       </td>
                     </tr>
@@ -281,7 +283,7 @@ export default function SalesPage() {
 
       {/* Edit Modal */}
       <SaleEditModal
-        saleId={editingId}
+        saleId={can('sales', 'canEdit') ? editingId : null}
         feedOptions={feedOptions}
         onClose={() => setEditingId(null)}
         onSaved={() => loadSales(currentPage)}

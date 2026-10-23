@@ -100,6 +100,7 @@ export default function AppShell({ children }: AppShellProps) {
       }
       const rule = findAccessRuleForPath(pathname);
       if (rule && !hasAccess(rule, ctx)) {
+        if (rule.type === 'permission') return;
         toast.error("You don't have access to that section.");
         router.replace(getDefaultLandingRoute(ctx));
       }
@@ -117,6 +118,11 @@ export default function AppShell({ children }: AppShellProps) {
 
   // Protected area — redirect in progress
   if (!isAuthenticated) return null;
+
+  const accessRule = findAccessRuleForPath(pathname);
+  const permissionDenied = accessRule?.type === 'permission' &&
+    permissionsState.status === 'loaded' &&
+    !permissionsState.permissions.includes(accessRule.permission);
 
   return (
     <div className="db-shell">
@@ -142,7 +148,7 @@ export default function AppShell({ children }: AppShellProps) {
 
       {/* Main content */}
       <ActiveModuleContext.Provider value={{ activeModule }}>
-        <main className="db-main">{children}</main>
+        <main className="db-main">{permissionDenied ? <div role="alert" style={{ padding: 32 }}>Not authorized</div> : children}</main>
       </ActiveModuleContext.Provider>
     </div>
   );

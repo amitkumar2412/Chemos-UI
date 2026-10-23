@@ -1,4 +1,71 @@
-# Permission System Spec — Backend Changes Needed
+# Permission System Spec
+
+## Current implementation
+
+The admin screen is available at **Admin > Roles & Permissions** (`/admin/permissions`).
+Both the menu entry and page require the exact `ROLE_MANAGEMENT` permission from
+the existing `/api/v1/auth/me` configuration response. A role name alone does not
+grant access to this screen.
+
+- **Role Permissions** loads the permission catalog and roles from `/auth/permissions`
+  and `/auth/roles`, then loads the selected role from `/auth/roles/{roleId}/permissions`.
+  Parent options follow a fixed hierarchy (by role name): Purchase Manager and Sales
+  Manager → Admin; Purchase Executive → Purchase Manager; Sales Executive → Sales Manager.
+  Other roles may choose any non-super role that doesn't create a cycle. "None" is always
+  available. Admin is a super role, so with Admin as parent the inheritance mode is
+  locked to None (the backend rejects ALL/SELECTED from a super role).
+  Changing the parent fetches its current direct permissions and removes invalid selections.
+  `NONE` inherits nothing, `ALL` inherits only parent direct grants, and `SELECTED`
+  inherits the selected subset of those direct grants. Grandparent grants never flow down.
+- Saving shows an effective-grant additions/removals confirmation, then sends a full
+  `PUT /auth/roles/{roleId}/permissions` with `parentRoleId` (null for no parent),
+  `inheritanceMode`, `permissions`, and `selectedInheritedPermissions`.
+  The selected list is empty outside `SELECTED` mode. The returned role is authoritative.
+- **User Permissions** searches `/auth/users` by name, username or role. Selecting a
+  user fetches `/auth/users/{username}/permissions`. The user can check **Allow**
+  or **Deny** for a permission; leave both unchecked to use the role default.
+  Checking Allow/Deny sends `PUT /auth/users/{username}/permission-overrides/{permissionCode}`
+  with an optional reason; unchecking the active override sends DELETE only when one exists.
+  The two choices are mutually exclusive.
+  Every successful mutation refetches the user's breakdown before displaying effective access.
+  If that refresh fails after a successful write, the editor requires a reload rather than
+  showing stale grants as current.
+- Standard permissions appear in a matrix with modules as rows and View, Create,
+  Edit and Approve as columns. Standard cells display only checkboxes, without cards,
+  permission names/codes, or access-status text. The Module column is 105px wide
+  (90px on mobile). Permission names/codes are available on hover, and each checkbox
+  has an accessible name. Role checkboxes edit direct grants; a second checkbox in
+  SELECTED mode edits inheritance, while ALL shows inherited grants as read-only
+  checked boxes. User cells have Allow then Deny checkboxes; the explanation above
+  the table describes their order. Other permissions use the same compact style:
+  a narrow table with Module, Permission name and an Access checkbox column.
+  Dashboard, management and multi-part codes such as `STOCK_STATS_VIEW`
+  appear in a separate Other permissions section.
+- Permission codes and labels come from the catalog, never permission IDs. Each
+  permission is rendered individually, including multiple permissions with the same
+  action and module.
+- Super roles and their users show all catalog permissions as granted and cannot be edited.
+- Requests use the existing API client's bearer token handling. A 401 clears the session
+  and redirects to login; a 403 displays **Not authorized**. Other errors show the
+  backend message when available.
+
+Backend changes take effect on the next request. Menus and buttons refresh when the
+affected user logs in again or reloads configuration; a save notice explains this.
+The existing `user`, `permissions`, and `modules` configuration shape is unchanged.
+Purchase/sales Create and Edit controls use the corresponding module flags;
+the order-management screen also gates Confirm/Unconfirm/Cancel with `canApprove`
+and editing/data-update actions with `canEdit`, including confirmed orders.
+Existing status-based editing restrictions on the purchase/sales lists remain in place.
+
+Run `npm run test:permissions` for catalog grouping, inheritance, parent-cycle prevention,
+effective diffs, access gating, full replacement payloads, encoded endpoints, and HTTP
+error/session handling checks. Run `npx tsc --noEmit` and `npm run build` for type/build validation.
+
+## Historical proposal (superseded)
+
+The proposal below predates the implemented backend contract. Its dotted permission
+keys and proposed login/me payloads are not the current API. Current permission codes
+are used exactly as returned by the backend catalog.
 
 ## Context
 
