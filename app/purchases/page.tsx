@@ -9,6 +9,7 @@ import ActionMenu from '@/components/ActionMenu';
 import { fetchFeedOptions, fetchPurchasesPage, createPunch, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
 import type { PurchaseOrder, StatusValue } from '@/lib/api';
 import type { FeedOptions, SalePunchPayload } from '@/lib/types';
+import { usePermissions } from '@/lib/permissions/usePermissions';
 
 const EMPTY_OPTIONS: FeedOptions = {
   products: [],
@@ -24,6 +25,7 @@ const EMPTY_OPTIONS: FeedOptions = {
 const PAGE_SIZE = 10;
 
 export default function PurchasesPage() {
+  const { can } = usePermissions();
   const [feedOptions, setFeedOptions] = useState<FeedOptions>(EMPTY_OPTIONS);
   const [entries, setEntries] = useState<PurchaseOrder[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -76,7 +78,7 @@ export default function PurchasesPage() {
           <h1>Purchase Orders</h1>
           <p>Manage and track all purchase orders and transactions</p>
         </div>
-        <button
+        {can('purchases', 'canCreate') && <button
           onClick={() => setIsCreateModalOpen(true)}
           style={{
             padding: '12px 24px',
@@ -105,7 +107,7 @@ export default function PurchasesPage() {
         >
           <span style={{ fontSize: '18px' }}>+</span>
           Create Order
-        </button>
+        </button>}
       </div>
 
       {/* Content Area */}
@@ -182,7 +184,7 @@ export default function PurchasesPage() {
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <ActionMenu items={[
                         { label: 'View Details', onClick: () => setViewingId(entry.id) },
-                        ...(isConfirmed(entry.status) ? [] : [{ label: 'Edit', onClick: () => setEditingId(entry.id) }]),
+                        ...(!can('purchases', 'canEdit') || isConfirmed(entry.status) ? [] : [{ label: 'Edit', onClick: () => setEditingId(entry.id) }]),
                       ]} />
                     </td>
                   </tr>
@@ -254,7 +256,7 @@ export default function PurchasesPage() {
 
       {/* Purchase Edit Modal */}
       <PurchaseEditModal
-        purchaseId={editingId}
+        purchaseId={can('purchases', 'canEdit') ? editingId : null}
         feedOptions={feedOptions}
         onClose={() => setEditingId(null)}
         onSaved={() => loadPurchases(currentPage)}

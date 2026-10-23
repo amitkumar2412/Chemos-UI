@@ -2,6 +2,7 @@ import type { ModuleAccess } from '@/lib/services/auth';
 
 export type AccessRule =
   | { type: 'public' }
+  | { type: 'permission'; permission: string }
   | { type: 'module'; module: string; action?: keyof ModuleAccess }
   | { type: 'role'; roles: string[] } // temporary fallback for sections the backend doesn't yet return permissions for
   | { type: 'dashboard' }; // gated by GET /me's modules.dashboardVisible, not a module entry
@@ -67,6 +68,7 @@ export const NAV_CONFIG: NavGroup[] = [
     access: { type: 'role', roles: ['ADMIN'] },
     items: [
       { id: 'users', label: 'Users', href: '/admin/users', access: { type: 'role', roles: ['ADMIN'] } },
+      { id: 'permissions', label: 'Roles & Permissions', href: '/admin/permissions', access: { type: 'permission', permission: 'ROLE_MANAGEMENT' } },
       { id: 'audit', label: 'Audit Trail', href: '/admin/audit', access: { type: 'role', roles: ['ADMIN'] } },
     ],
   },
@@ -100,6 +102,8 @@ export function hasAccess(rule: AccessRule, ctx: AccessContext): boolean {
   switch (rule.type) {
     case 'public':
       return true;
+    case 'permission':
+      return ctx.permissions.includes(rule.permission);
     case 'module':
       return ctx.modules[rule.module]?.[rule.action ?? 'canView'] ?? false;
     case 'role': {
