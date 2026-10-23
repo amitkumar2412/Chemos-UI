@@ -6,7 +6,7 @@ import { ReduxProvider } from '@/components/ReduxProvider';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: 'ChemOS',
+  title: 'Sumairo-OS',
   description: 'Record and track chemical sales, purchases, and business intelligence in real time.',
 };
 

@@ -29,7 +29,7 @@ export default function Header() {
         <div className="logo">S</div>
         <div>
           <div className="brand">
-            Sumairo <span>ChemOS™</span>
+            Sumairo <span>Sumairo-OS™</span>
           </div>
           <div className="brand-sub">Punch-in Form</div>
         </div>
