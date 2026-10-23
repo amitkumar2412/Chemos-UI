@@ -74,6 +74,34 @@ function InfoCard({ label, value, accent }: { label: string; value: string | num
   );
 }
 
+function CompactHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontSize: '10px',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        color: 'var(--gray-dim)',
+        margin: '14px 0 6px',
+        paddingBottom: '4px',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function KV({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '3px 0', fontSize: '12px' }}>
+      <span style={{ color: 'var(--gray)' }}>{label}</span>
+      <span style={{ fontWeight: 600, color: 'var(--white)', textAlign: 'right' }}>{value || '—'}</span>
+    </div>
+  );
+}
+
 /* ── Voyage route visual ─────────────────────────────────────────── */
 
 function VoyageRoute({ vessel }: { vessel: Vessel }) {
@@ -447,8 +475,8 @@ export default function ShippingDataPage() {
         </select>
       </div>
 
-      {/* Map + fleet list */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '16px', marginBottom: '24px' }}>
+      {/* Map + vessel detail */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 3fr)', gap: '16px', marginBottom: '24px' }}>
         <div
           style={{
             background: 'var(--card)',
@@ -460,212 +488,93 @@ export default function ShippingDataPage() {
         >
           <ShipMap vessels={filtered} selectedMmsi={selectedMmsi} onSelect={setSelectedMmsi} />
         </div>
-        <div
-          style={{
-            background: 'var(--card)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            padding: '14px',
-            height: '540px',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--white)' }}>
-              Fleet
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--gray)' }}>
-              {filtered.length} of {vessels.length}
-            </div>
-          </div>
-          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
-            {filtered.length === 0 && (
-              <div style={{ padding: '32px 12px', textAlign: 'center', color: 'var(--gray)', fontSize: '13px' }}>
-                {loading
-                  ? 'Loading vessels…'
-                  : vessels.length === 0
-                  ? 'No vessels returned from the shipping API.'
-                  : 'No vessels match your filters.'}
-              </div>
-            )}
-            {filtered.map((v) => {
-              const active = v.mmsi === selectedMmsi;
-              return (
-                <button
-                  key={v.mmsi}
-                  onClick={() => setSelectedMmsi(v.mmsi)}
-                  style={{
-                    textAlign: 'left',
-                    padding: '12px 14px',
-                    borderRadius: '10px',
-                    background: active ? 'var(--blue-dim)' : 'var(--navy-light)',
-                    border: `1px solid ${active ? 'var(--blue)' : 'var(--border)'}`,
-                    cursor: 'pointer',
-                    color: 'var(--white)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 700 }}>{v.vessel_name}</span>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '20px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                        background: `${colorForStatus(v.status)}22`,
-                        color: colorForStatus(v.status),
-                      }}
-                    >
-                      {v.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--gray)' }}>
-                    {v.vessel_subtype} · {v.flag}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--gray-dim)' }}>
-                    {v.voyage_departure_port_name} → {v.voyage_arrival_port_name} · {v.speed_kn} kn
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Vessel Detail Dashboard ───────────────────────────────── */}
-      {selected ? (
+            {selected ? (
         <div
           style={{
             background: 'var(--card)',
             border: '1px solid var(--border)',
             borderRadius: '14px',
-            padding: '24px',
-            marginBottom: '24px',
+            padding: '16px',
+            height: '540px',
+            overflowY: 'auto',
+            boxSizing: 'border-box',
           }}
         >
-          {/* Vessel header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
-            <div>
-              <div style={{ fontSize: '12px', color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-                Vessel Tracking
-              </div>
-              <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px' }}>{selected.vessel_name}</h2>
-              <div style={{ fontSize: '13px', color: 'var(--gray)' }}>
-                IMO {selected.imo} · MMSI {selected.mmsi} · {selected.callsign}
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{ fontSize: '17px', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{selected.vessel_name}</h2>
+              <div style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '2px' }}>
+                IMO {selected.imo} · MMSI {selected.mmsi}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  background: `${colorForStatus(selected.status)}22`,
-                  color: colorForStatus(selected.status),
-                }}
-              >
-                {selected.navigational_status}
-              </span>
-            </div>
-          </div>
-
-          {/* Summary strips */}
-          {selected.vessel_summary_position && (
-            <div
+            <span
               style={{
-                background: 'var(--navy-light)',
-                border: '1px solid var(--border)',
-                borderRadius: '10px',
-                padding: '14px 18px',
-                marginBottom: '12px',
-                color: 'var(--gray)',
-                fontSize: '13px',
-                lineHeight: 1.6,
+                padding: '3px 10px',
+                borderRadius: '20px',
+                fontSize: '10px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                background: `${colorForStatus(selected.status)}22`,
+                color: colorForStatus(selected.status),
               }}
             >
-              {renderBold(selected.vessel_summary_position)}
-            </div>
-          )}
-          {selected.vessel_summary_particulars && (
-            <div
-              style={{
-                background: 'var(--navy-light)',
-                border: '1px solid var(--border)',
-                borderRadius: '10px',
-                padding: '14px 18px',
-                marginBottom: '22px',
-                color: 'var(--gray)',
-                fontSize: '13px',
-                lineHeight: 1.6,
-              }}
-            >
-              {renderBold(selected.vessel_summary_particulars)}
-            </div>
-          )}
-
-          {/* ── Section A: Voyage Route ───────────────────────────── */}
-          <SectionHeading>Voyage Route</SectionHeading>
-          <VoyageRoute vessel={selected} />
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-            <InfoCard label="ETA (UTC)" value={formatUtc(selected.voyage_eta_utc)} />
-            <InfoCard
-              label="ETA Timezone"
-              value={selected.voyage_eta_timezone !== 0 ? `UTC${selected.voyage_eta_timezone > 0 ? '+' : ''}${selected.voyage_eta_timezone}` : 'UTC'}
-            />
-            <InfoCard label="Reported Destination" value={selected.voyage_reported_destination} />
-            <InfoCard label="Load Condition" value={selected.voyage_load_condition} />
-            {selected.voyage_distance_travelled != null && (
-              <InfoCard label="Distance Travelled" value={`${selected.voyage_distance_travelled} nm`} />
-            )}
-            {selected.voyage_distance_to_go != null && (
-              <InfoCard label="Distance To Go" value={`${selected.voyage_distance_to_go} nm`} />
-            )}
+              {selected.navigational_status}
+            </span>
           </div>
 
-          {/* ── Section B: Live Position ──────────────────────────── */}
-          <SectionHeading>Live Position</SectionHeading>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-            <InfoCard label="Current Area" value={`${selected.current_area} (${selected.area_code})`} />
-            <InfoCard label="Position (UTC)" value={formatUtc(selected.position_position_utc)} />
-            <InfoCard
-              label="Vessel Local Time"
-              value={new Date(selected.position_vessel_local_time).toLocaleString()}
-            />
-            <InfoCard
-              label="Timezone"
-              value={selected.position_timezone !== 0 ? `UTC${selected.position_timezone > 0 ? '+' : ''}${selected.position_timezone}` : 'UTC'}
-            />
-            <InfoCard label="AIS Source" value={selected.position_station_type} />
+          {/* Voyage */}
+          <CompactHeading>Voyage</CompactHeading>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '13px', fontWeight: 700 }}>
+            <span>{selected.voyage_departure_port_name}</span>
+            <span style={{ color: 'var(--gray)' }}>→</span>
+            <span style={{ textAlign: 'right' }}>{selected.voyage_arrival_port_name}</span>
           </div>
+          <style>{`@keyframes liveBlink { 0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 0.25; transform: translate(-50%, -50%) scale(0.8); } }`}</style>
+          {(() => {
+            const pct = Math.min(100, Math.max(0, selected.voyage_progress));
+            const color = pct >= 100 ? '#06d6a0' : '#4895ef';
+            return (
+              <div style={{ position: 'relative', height: '4px', borderRadius: '2px', background: 'var(--border)', margin: '10px 0 6px' }}>
+                <div style={{ width: `${pct}%`, height: '100%', borderRadius: '2px', background: color }} />
+                <svg
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill={color}
+                  style={{
+                    position: 'absolute',
+                    left: `${pct}%`,
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    animation: 'liveBlink 1.2s ease-in-out infinite',
+                    filter: `drop-shadow(0 0 3px ${color})`,
+                  }}
+                >
+                  <path d="M4 4 L20 12 L4 20 L8 12 Z" />
+                </svg>
+              </div>
+            );
+          })()}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--gray)', marginBottom: '6px' }}>
+            <span>{Math.round(selected.voyage_progress * 10) / 10}% complete</span>
+            <span>{selected.voyage_arrival_label} {formatUtc(selected.voyage_arrival_label === 'ATA' ? selected.voyage_arrival_utc : selected.voyage_eta_utc)}</span>
+          </div>
+          {selected.voyage_distance_to_go != null && <KV label="Distance to go" value={`${selected.voyage_distance_to_go} nm`} />}
+          <KV label="Load condition" value={selected.voyage_load_condition} />
 
-          {/* ── Section C: Vessel Particulars ─────────────────────── */}
-          <SectionHeading>Vessel Particulars</SectionHeading>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-            <InfoCard label="Type" value={selected.vessel_type} />
-            <InfoCard label="Subtype" value={selected.vessel_subtype} />
-            <InfoCard label="Flag" value={`${selected.vessel_country} (${selected.flag})`} />
-            <InfoCard label="Callsign" value={selected.callsign} />
-            <InfoCard label="Market" value={selected.market_name} />
-          </div>
+          {/* Position */}
+          <CompactHeading>Position</CompactHeading>
+          <KV label="Area" value={`${selected.current_area} (${selected.area_code})`} />
+          <KV label="Updated (UTC)" value={formatUtc(selected.position_position_utc)} />
+          <KV label="AIS source" value={selected.position_station_type} />
 
-          {/* ── Section D: Tracking History ───────────────────────── */}
-          <SectionHeading>Tracking History</SectionHeading>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <InfoCard label="Vessel First Seen" value={formatUtc(selected.vessel_first_seen_at)} />
-            <InfoCard label="Vessel Last Updated" value={formatUtc(selected.vessel_updated_at)} />
-            <InfoCard label="Voyage First Seen" value={formatUtc(selected.voyage_first_seen_at)} />
-            <InfoCard label="Voyage Last Seen" value={formatUtc(selected.voyage_last_seen_at)} />
-            <InfoCard label="Position Scraped At" value={formatUtc(selected.position_scraped_at)} />
-            <InfoCard label="Last Synced" value={formatUtc(selected.synced_at)} />
-          </div>
+          {/* Particulars */}
+          <CompactHeading>Particulars</CompactHeading>
+          <KV label="Type" value={selected.vessel_subtype || selected.vessel_type} />
+          <KV label="Flag" value={`${selected.vessel_country} (${selected.flag})`} />
+          <KV label="Callsign" value={selected.callsign} />
+          <KV label="Market" value={selected.market_name} />
         </div>
       ) : (
         <div
@@ -674,7 +583,11 @@ export default function ShippingDataPage() {
             border: '2px dashed var(--border)',
             borderRadius: '14px',
             padding: '48px',
-            marginBottom: '24px',
+            height: '540px',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             textAlign: 'center',
             color: 'var(--gray)',
             fontSize: '14px',
@@ -683,6 +596,7 @@ export default function ShippingDataPage() {
           {loading ? 'Loading vessel data…' : 'Select a vessel to see detailed voyage information.'}
         </div>
       )}
+      </div>
 
       {/* ── Ship Inventory Table ─────────────────────────────────── */}
       <ShipInventoryTable />

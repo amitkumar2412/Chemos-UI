@@ -147,7 +147,7 @@ export default function ComingSoonOverlay({
 
           {/* Footer note */}
           <p style={{ fontSize: '11px', color: 'var(--gray)', marginTop: '20px', opacity: 0.7 }}>
-            ChemOS™ Enterprise · Contact your administrator for ETA
+            Sumairo-OS™ Enterprise · Contact your administrator for ETA
           </p>
         </div>
       </div>

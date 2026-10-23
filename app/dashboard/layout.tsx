@@ -2,7 +2,7 @@ import './dashboard.css';
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'ChemOS™ Dashboard',
+  title: 'Sumairo-OS™ Dashboard',
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
