@@ -8,6 +8,9 @@ import { formatUtc } from './format';
 
 const ShipMap = dynamic(() => import('./_components/ShipMap'), { ssr: false });
 const ShipInventoryTable = dynamic(() => import('./_components/ShipInventoryTable'), { ssr: false });
+const ProductIntelligence = dynamic(() => import('./_components/ProductIntelligence'), { ssr: false });
+
+type Tab = 'live' | 'product';
 
 function renderBold(text: string) {
   if (!text) return null;
@@ -233,6 +236,7 @@ function VoyageRoute({ vessel }: { vessel: Vessel }) {
 /* ── Main Page ───────────────────────────────────────────────────── */
 
 export default function ShippingDataPage() {
+  const [tab, setTab] = useState<Tab>('live');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | Vessel['status']>('All');
   const [vessels, setVessels] = useState<Vessel[]>([]);
@@ -373,6 +377,44 @@ export default function ShippingDataPage() {
         </div>
       )}
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid var(--border)' }}>
+        {([
+          { id: 'live', label: 'Live Tracking' },
+          { id: 'product', label: 'Product Intelligence' },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            style={{
+              padding: '10px 16px',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: `2px solid ${tab === t.id ? '#4895ef' : 'transparent'}`,
+              marginBottom: '-1px',
+              color: tab === t.id ? 'var(--white)' : 'var(--gray)',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'product' ? (
+        <ProductIntelligence
+          vessels={vessels}
+          onLocateVessel={(mmsi) => {
+            setQuery('');
+            setStatusFilter('All');
+            setSelectedMmsi(mmsi);
+            setTab('live');
+          }}
+        />
+      ) : (
+      <>
       {/* Stat strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
         {([
@@ -600,6 +642,8 @@ export default function ShippingDataPage() {
 
       {/* ── Ship Inventory Table ─────────────────────────────────── */}
       <ShipInventoryTable />
+      </>
+      )}
     </div>
   );
 }

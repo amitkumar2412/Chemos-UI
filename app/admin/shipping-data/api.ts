@@ -124,6 +124,7 @@ function iso(v: string | null | undefined, fallback?: string): string {
 export function mapApiRowToVessel(row: ApiShipRow): Vessel {
   return {
     // Vessel Particulars
+    ship_id: row.vessel_ship_id ?? null,
     mmsi: str(row.vessel_mmsi, `ship-${row.vessel_ship_id ?? row.id}`),
     imo: str(row.vessel_imo, '—'),
     vessel_name: str(row.vessel_name ?? row.vessel_ais_name, 'Unknown Vessel'),

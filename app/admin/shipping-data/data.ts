@@ -1,5 +1,7 @@
 export interface Vessel {
   // — Vessel Particulars —
+  /** Provider ship id; joins to `ship_id` in the product shipping summaries. */
+  ship_id: number | null;
   mmsi: string;
   imo: string;
   vessel_name: string;
