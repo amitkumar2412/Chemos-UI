@@ -557,7 +557,6 @@ export default function UsersPage() {
             zIndex: 1000,
             padding: '20px',
           }}
-          onClick={(e) => { if (e.target === e.currentTarget) closeEditModal(); }}
         >
           <div
             style={{
@@ -766,7 +765,6 @@ export default function UsersPage() {
             zIndex: 1000,
             padding: '20px',
           }}
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
         >
           <div
             style={{
