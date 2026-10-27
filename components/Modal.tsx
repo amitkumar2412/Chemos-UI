@@ -8,9 +8,15 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   size?: 'small' | 'medium' | 'large' | 'xlarge';
+  /**
+   * When true, clicking the dark backdrop closes the modal. Off by default so a
+   * form is only dismissed via the × button (an accidental outside click while
+   * filling it out won't discard the work).
+   */
+  closeOnBackdrop?: boolean;
 }
 
-export default function Modal({ isOpen, onClose, title, children, size = 'xlarge' }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, size = 'xlarge', closeOnBackdrop = false }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -34,7 +40,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'xlarge
   return (
     <div
       className="modal-overlay"
-      onClick={onClose}
+      onClick={closeOnBackdrop ? onClose : undefined}
       style={{
         position: 'fixed',
         top: 0,
