@@ -30,6 +30,7 @@ import SaleEditModal from '@/components/SaleEditModal';
 import SaleLiftedQtyModal from '@/components/SaleLiftedQtyModal';
 import ActionMenu from '@/components/ActionMenu';
 import Toast from '@/components/Toast';
+import { usePermissions } from '@/lib/permissions/usePermissions';
 
 const EMPTY_OPTIONS: FeedOptions = {
   products: [], ports: [], companies: [], makes: [], packagings: [], origins: [], payments: [], shipments: [],
@@ -54,13 +55,8 @@ const TH: React.CSSProperties = {
   color: 'var(--gray)',
 };
 
-function hasRole(role: string | undefined, ...keywords: string[]): boolean {
-  if (!role) return false;
-  const r = role.toUpperCase();
-  return keywords.some((k) => r.includes(k.toUpperCase()));
-}
-
 export default function AdminPage() {
+  const { can } = usePermissions();
   const router = useRouter();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const [filter, setFilter] = useState<FilterType>('purchase');
@@ -86,8 +82,8 @@ export default function AdminPage() {
     setTimeout(() => setToast((t) => ({ ...t, visible: false })), 3000);
   };
 
-  const canViewPurchases = hasRole(user?.role, 'ADMIN', 'PURCHASE');
-  const canViewSales = hasRole(user?.role, 'ADMIN', 'SALES');
+  const canViewPurchases = can('purchases');
+  const canViewSales = can('sales');
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -289,25 +285,25 @@ export default function AdminPage() {
 
       <PurchaseDetailModal purchaseId={viewingPurchaseId} onClose={() => setViewingPurchaseId(null)} />
       <PurchaseEditModal
-        purchaseId={editingPurchaseId}
+        purchaseId={can('purchases', 'canEdit') ? editingPurchaseId : null}
         feedOptions={feedOptions}
         onClose={() => setEditingPurchaseId(null)}
         onSaved={loadOrders}
       />
       <PurchaseReceiptModal
-        purchaseId={receiptPurchaseId}
+        purchaseId={can('purchases', 'canEdit') ? receiptPurchaseId : null}
         onClose={() => setReceiptPurchaseId(null)}
         onSaved={loadOrders}
       />
       <SaleDetailModal saleId={viewingSaleId} onClose={() => setViewingSaleId(null)} />
       <SaleEditModal
-        saleId={editingId}
+        saleId={can('sales', 'canEdit') ? editingId : null}
         feedOptions={feedOptions}
         onClose={() => setEditingId(null)}
         onSaved={loadOrders}
       />
       <SaleLiftedQtyModal
-        saleId={liftedQtySaleId}
+        saleId={can('sales', 'canEdit') ? liftedQtySaleId : null}
         onClose={() => setLiftedQtySaleId(null)}
         onSaved={() => {
           loadOrders();
@@ -372,6 +368,7 @@ function PurchaseTable({
   onEdit: (id: string) => void;
   onDataUpdater: (id: string) => void;
 }) {
+  const { can } = usePermissions();
   if (orders.length === 0) return <EmptyState label="purchase" />;
   return (
     <div
@@ -422,11 +419,11 @@ function PurchaseTable({
                 <td style={{ padding: '16px', textAlign: 'center' }}>
                   <ActionMenu items={[
                     { label: 'View Details', onClick: () => onView(o.id) },
-                    { label: 'Edit', onClick: () => onEdit(o.id) },
-                    ...((getStatusId(o.status) || getStatusName(o.status)).toUpperCase() === 'CONFIRMED'
+                    ...(can('purchases', 'canEdit') ? [{ label: 'Edit', onClick: () => onEdit(o.id) }] : []),
+                    ...(can('purchases', 'canEdit') && (getStatusId(o.status) || getStatusName(o.status)).toUpperCase() === 'CONFIRMED'
                       ? [{ label: 'Data-Updater', onClick: () => onDataUpdater(o.id), color: '#4299e1' }]
                       : []),
-                    ...orderActionItems(o.id, o.status, actioning, onAction),
+                    ...(can('purchases', 'canApprove') ? orderActionItems(o.id, o.status, actioning, onAction) : []),
                   ]} />
                 </td>
               </tr>
@@ -455,6 +452,7 @@ function SaleTable({
   onEdit: (sale: SaleEntry) => void;
   onLiftedQty: (id: string) => void;
 }) {
+  const { can } = usePermissions();
   if (orders.length === 0) return <EmptyState label="sale" />;
   return (
     <div
@@ -509,11 +507,11 @@ function SaleTable({
                 <td style={{ padding: '16px', textAlign: 'center' }}>
                   <ActionMenu items={[
                     { label: 'View Details', onClick: () => onView(o.id) },
-                    { label: 'Edit', onClick: () => onEdit(o) },
-                    ...((getStatusId(o.status) || getStatusName(o.status)).toUpperCase() === 'CONFIRMED'
+                    ...(can('sales', 'canEdit') ? [{ label: 'Edit', onClick: () => onEdit(o) }] : []),
+                    ...(can('sales', 'canEdit') && (getStatusId(o.status) || getStatusName(o.status)).toUpperCase() === 'CONFIRMED'
                       ? [{ label: 'Update Lifted Qty', onClick: () => onLiftedQty(o.id), color: '#4299e1' }]
                       : []),
-                    ...orderActionItems(o.id, o.status, actioning, onAction),
+                    ...(can('sales', 'canApprove') ? orderActionItems(o.id, o.status, actioning, onAction) : []),
                   ]} />
                 </td>
               </tr>

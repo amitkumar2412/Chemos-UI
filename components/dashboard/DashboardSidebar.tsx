@@ -182,6 +182,7 @@ const ORDER_ITEM_ICONS: Record<string, ReactNode> = {
 
 const ADMIN_ITEM_ICONS: Record<string, ReactNode> = {
   users: ICON_SMALL_USERS,
+  permissions: ICON_SMALL_AUDIT,
   audit: ICON_SMALL_AUDIT,
 };
 
@@ -213,7 +214,7 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
   const canSeePurchase = hasAccess(purchaseGroup.access, accessCtx);
   const canSeeSales = hasAccess(salesGroup.access, accessCtx);
   const canSeeOrder = hasAccess(orderGroup.access, accessCtx);
-  const canSeeAdmin = hasAccess(adminGroup.access, accessCtx);
+  const canSeeAdmin = adminGroup.items?.some((item) => hasAccess(item.access, accessCtx)) ?? false;
   const canSeeTemplate = hasAccess(templateGroup.access, accessCtx);
   const canSeeEmailSystem = hasAccess(emailSystemGroup.access, accessCtx);
   const canSeeShippingData = hasAccess(shippingDataGroup.access, accessCtx);
