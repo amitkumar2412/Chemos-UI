@@ -34,7 +34,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       }}>
         {title}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
         {children}
       </div>
     </div>

@@ -1,97 +1,121 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import EmailSystemTabs from '../_components/EmailSystemTabs';
-import { CHEMICALS, CHEMICAL_CATEGORIES } from '../data';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import Modal from '@/components/Modal';
+import { friendlyError, isStatus } from '../_lib/api/client';
+import { productsApi } from '../_lib/api/resources';
+import { useQuery } from '../_lib/hooks';
+import { formatDateTime } from '../_lib/logic';
+import { EmptyState, ErrorState, Field, SkeletonRows, inputStyle, primaryButton, secondaryButton, tdStyle, thStyle } from '../_components/ui';
 
 export default function ChemicalsPage() {
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return CHEMICALS.filter((c) => {
-      const matchesQuery = !q || c.name.toLowerCase().includes(q);
-      const matchesCategory = category === 'All' || c.category === category;
-      return matchesQuery && matchesCategory;
-    });
-  }, [query, category]);
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [open, setOpen] = useState(false);
+  const { data, error, loading, reload } = useQuery(() => productsApi.list(activeOnly), [activeOnly]);
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1200px' }}>
-      <div style={{ marginBottom: '8px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '6px' }}>Email System</h1>
-        <p style={{ color: 'var(--gray)', fontSize: '14px' }}>Chemical catalog used when building campaign offers.</p>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+        <label style={{ fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input type="checkbox" checked={activeOnly} onChange={(e) => setActiveOnly(e.target.checked)} /> Active only
+        </label>
+        <button style={primaryButton} onClick={() => setOpen(true)}>Add chemical</button>
       </div>
 
-      <EmailSystemTabs />
-
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '18px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Search chemicals…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{
-            flex: '1 1 260px', padding: '10px 14px', background: 'var(--navy-light)', border: '1px solid var(--border)',
-            borderRadius: '8px', fontSize: '14px', color: 'var(--white)', outline: 'none',
-          }}
-        />
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          style={{
-            padding: '10px 14px', background: 'var(--navy-light)', border: '1px solid var(--border)',
-            borderRadius: '8px', fontSize: '14px', color: 'var(--white)', outline: 'none', cursor: 'pointer',
-          }}
-        >
-          <option value="All">All Categories</option>
-          {CHEMICAL_CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-      </div>
-
-      <div style={{ fontSize: '13px', color: 'var(--gray)', marginBottom: '12px' }}>
-        {filtered.length} of {CHEMICALS.length} chemicals
-      </div>
-
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
-        <div style={{ maxHeight: '640px', overflowY: 'auto' }}>
+      {error && !data ? (
+        <ErrorState error={error} onRetry={reload} />
+      ) : loading && !data ? (
+        <SkeletonRows />
+      ) : data && data.length === 0 ? (
+        <EmptyState title="No chemicals yet" text="Add the chemicals you sell so you can attach them to campaigns." action={<button style={primaryButton} onClick={() => setOpen(true)}>Add chemical</button>} />
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0 }}>
-                {['Chemical', 'Category', 'Grade', 'Packing', 'Ref. Price (₹/MT)'].map((col) => (
-                  <th
-                    key={col}
-                    style={{ padding: '12px 20px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--gray)', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--navy-light)' }}
-                  >
-                    {col}
-                  </th>
-                ))}
+              <tr>
+                {['ID', 'Name', 'HS code', 'CAS no.', 'Active', 'Created'].map((h) => <th key={h} style={thStyle}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c, idx) => (
-                <tr key={c.id} style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <td style={{ padding: '13px 20px', fontSize: '14px', fontWeight: 600 }}>{c.name}</td>
-                  <td style={{ padding: '13px 20px', fontSize: '13px', color: 'var(--gray)' }}>{c.category}</td>
-                  <td style={{ padding: '13px 20px', fontSize: '13px', color: 'var(--gray)' }}>{c.grade}</td>
-                  <td style={{ padding: '13px 20px', fontSize: '13px', color: 'var(--gray)' }}>{c.packing}</td>
-                  <td style={{ padding: '13px 20px', fontSize: '13px', fontWeight: 600 }}>₹{c.refPrice.toLocaleString('en-IN')}</td>
+              {data?.map((p) => (
+                <tr key={p.id}>
+                  <td style={{ ...tdStyle, fontFamily: 'monospace' }}>{p.id}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{p.name}</td>
+                  <td style={tdStyle}>{p.hsCode || '—'}</td>
+                  <td style={tdStyle}>{p.casNo || '—'}</td>
+                  <td style={tdStyle}>{p.isActive ? 'Yes' : 'No'}</td>
+                  <td style={tdStyle}>{formatDateTime(p.createdAt)}</td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--gray)', fontSize: '14px' }}>
-                    No chemicals match your search.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
-      </div>
+      )}
+
+      <AddChemicalDialog open={open} onClose={() => setOpen(false)} onCreated={reload} />
     </div>
+  );
+}
+
+function AddChemicalDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  const [id, setId] = useState('');
+  const [name, setName] = useState('');
+  const [hsCode, setHsCode] = useState('');
+  const [casNo, setCasNo] = useState('');
+  const [errors, setErrors] = useState<{ id?: string; name?: string }>({});
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const next: typeof errors = {};
+    if (!id.trim()) next.id = 'ID is required';
+    else if (id.trim().length > 255) next.id = 'ID must be 255 characters or fewer';
+    if (!name.trim()) next.name = 'Name is required';
+    else if (name.trim().length > 255) next.name = 'Name must be 255 characters or fewer';
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setSaving(true);
+    try {
+      await productsApi.create({
+        id: id.trim(),
+        name: name.trim(),
+        ...(hsCode.trim() ? { hsCode: hsCode.trim() } : {}),
+        ...(casNo.trim() ? { casNo: casNo.trim() } : {}),
+      });
+      toast.success('Chemical added');
+      setId(''); setName(''); setHsCode(''); setCasNo('');
+      onCreated();
+      onClose();
+    } catch (err) {
+      if (isStatus(err, 400)) setErrors({ id: 'A chemical with this ID already exists, or the values are invalid.' });
+      else toast.error(friendlyError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={open} onClose={onClose} title="Add chemical" size="small">
+      <form onSubmit={submit}>
+        <Field label="ID" hint="Chosen by you and cannot be changed later. Suggested format: UPPERCASE-HYPHEN, e.g. UREA-46." error={errors.id}>
+          <input style={inputStyle} value={id} onChange={(e) => setId(e.target.value)} maxLength={255} placeholder="UREA-46" />
+        </Field>
+        <Field label="Name" error={errors.name}>
+          <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} maxLength={255} />
+        </Field>
+        <Field label="HS code (optional)">
+          <input style={inputStyle} value={hsCode} onChange={(e) => setHsCode(e.target.value)} />
+        </Field>
+        <Field label="CAS number (optional)">
+          <input style={inputStyle} value={casNo} onChange={(e) => setCasNo(e.target.value)} />
+        </Field>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button type="button" style={secondaryButton} onClick={onClose}>Cancel</button>
+          <button type="submit" style={primaryButton} disabled={saving}>{saving ? 'Saving…' : 'Add chemical'}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }

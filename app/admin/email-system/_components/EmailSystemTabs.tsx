@@ -9,13 +9,14 @@ const TABS = [
   { href: '/admin/email-system/customers', label: 'Customers', match: (p: string) => p.startsWith('/admin/email-system/customers') },
   { href: '/admin/email-system/templates', label: 'Templates', match: (p: string) => p.startsWith('/admin/email-system/templates') },
   { href: '/admin/email-system/campaigns', label: 'Campaigns', match: (p: string) => p.startsWith('/admin/email-system/campaigns') },
+  { href: '/admin/email-system/mailbox', label: 'Mailbox', match: (p: string) => p.startsWith('/admin/email-system/mailbox') },
 ];
 
 export default function EmailSystemTabs() {
   const pathname = usePathname();
 
   return (
-    <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border)', marginBottom: '28px' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', borderBottom: '1px solid var(--border)', marginBottom: '28px' }}>
       {TABS.map((tab) => {
         const active = tab.match(pathname);
         return (

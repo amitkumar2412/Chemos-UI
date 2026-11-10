@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:permissions": "node --test tests/permissions.test.mjs"
+    "test:permissions": "node --test tests/permissions.test.mjs",
+    "test:email": "node --test tests/email-system.test.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",

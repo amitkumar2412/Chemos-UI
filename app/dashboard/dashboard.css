@@ -1320,6 +1320,7 @@ input[type='range'].db-range::-webkit-slider-thumb {
   .db-notif-panel { left: 8px; right: 8px; width: auto; }
   .db-icc-head { flex-direction: column; align-items: flex-start; gap: 10px; }
   .db-headline { grid-template-columns: repeat(2, 1fr); }
+  .db-fin-modal { width: 96vw; height: 92vh; }
 }
 
 @media (max-width: 480px) {
@@ -1446,7 +1447,7 @@ input[type='range'].db-range::-webkit-slider-thumb {
 /* Table */
 .cmp-table-wrap {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 12px; overflow: hidden; margin-bottom: 12px;
+  border-radius: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 12px;
 }
 .cmp-table-header { padding: 14px 18px; border-bottom: 1px solid var(--border); }
 .cmp-table-title { font-size: 13px; font-weight: 700; color: var(--white); }

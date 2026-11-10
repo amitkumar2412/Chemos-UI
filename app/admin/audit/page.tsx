@@ -263,7 +263,7 @@ function DiffModal({ log, onClose }: DiffModalProps) {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '80px 1fr 1fr 1fr',
+            gridTemplateColumns: 'minmax(48px, 80px) repeat(3, minmax(0, 1fr))',
             padding: '8px 24px',
             borderBottom: '1px solid var(--border)',
             flexShrink: 0,
@@ -290,7 +290,8 @@ function DiffModal({ log, onClose }: DiffModalProps) {
                   key={key}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '80px 1fr 1fr 1fr',
+                    gridTemplateColumns: 'minmax(48px, 80px) repeat(3, minmax(0, 1fr))',
+                    overflowWrap: 'anywhere',
                     padding: '10px 24px',
                     borderBottom: '1px solid var(--border)',
                     background: ds.row,

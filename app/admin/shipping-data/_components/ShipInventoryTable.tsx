@@ -13,7 +13,12 @@ function departureBadgeColor(label: string | null) {
   return label === 'ATD' ? { bg: 'rgba(6,214,160,0.15)', fg: '#06d6a0' } : { bg: 'rgba(72,149,239,0.15)', fg: '#4895ef' };
 }
 
-export default function ShipInventoryTable() {
+interface ShipInventoryTableProps {
+  selectedShipId?: number | null;
+  onSelectShip?: (shipId: number) => void;
+}
+
+export default function ShipInventoryTable({ selectedShipId = null, onSelectShip }: ShipInventoryTableProps) {
   const [rows, setRows] = useState<ShipInventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -233,8 +238,17 @@ export default function ShipInventoryTable() {
           <tbody>
             {paged.map((row) => {
               const badge = departureBadgeColor(row.voyage_departure_label);
+              const isSelected = selectedShipId === row.ship_id;
               return (
-                <tr key={row.ship_id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr
+                  key={row.ship_id}
+                  onClick={() => onSelectShip?.(row.ship_id)}
+                  style={{
+                    borderBottom: '1px solid var(--border)',
+                    cursor: onSelectShip ? 'pointer' : 'default',
+                    background: isSelected ? 'rgba(72,149,239,0.12)' : 'transparent',
+                  }}
+                >
                   <td style={{ padding: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--white)' }}>
                     {row.vessel_name ?? '—'}
                   </td>

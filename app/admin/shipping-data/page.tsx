@@ -123,7 +123,7 @@ function VoyageRoute({ vessel }: { vessel: Vessel }) {
       }}
     >
       {/* FROM → TO header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'start', marginBottom: '20px' }}>
+      <div className="rsp-stack-sm" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'start', marginBottom: '20px' }}>
         {/* Departure */}
         <div>
           <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--gray)', marginBottom: '4px' }}>
@@ -518,7 +518,7 @@ export default function ShippingDataPage() {
       </div>
 
       {/* Map + vessel detail */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 3fr)', gap: '16px', marginBottom: '24px' }}>
+      <div className="rsp-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 3fr)', gap: '16px', marginBottom: '24px' }}>
         <div
           style={{
             background: 'var(--card)',
@@ -641,7 +641,18 @@ export default function ShippingDataPage() {
       </div>
 
       {/* ── Ship Inventory Table ─────────────────────────────────── */}
-      <ShipInventoryTable />
+      <ShipInventoryTable
+        selectedShipId={selected?.ship_id ?? null}
+        onSelectShip={(shipId) => {
+          const vessel = vessels.find((v) => v.ship_id === shipId);
+          if (!vessel) return;
+          // Make sure the vessel isn't hidden by the map filters, then bring the cards into view.
+          setQuery('');
+          setStatusFilter('All');
+          setSelectedMmsi(vessel.mmsi);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
       </>
       )}
     </div>

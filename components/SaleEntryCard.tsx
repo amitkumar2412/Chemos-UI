@@ -6,6 +6,7 @@ import AutocompleteInput from './AutocompleteInput';
 import CompanyAutocompleteInput from './CompanyAutocompleteInput';
 import ProductAutocompleteInput from './ProductAutocompleteInput';
 import CountryAutocompleteInput from './CountryAutocompleteInput';
+import VesselAutocompleteInput from './VesselAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import PortMultiAutocompleteInput from './PortMultiAutocompleteInput';
 import { fetchMarketStatuses, fetchPaymentTerms } from '@/lib/api';
@@ -175,7 +176,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
         purchase_type: purchaseType,
         company_from: companyFrom,
         product: productId || product,
-        vessel_name: vesselName,
+        vessel_name: vesselName.trim(),
         shipment: shipmentStart && shipmentEnd ? `${shipmentStart} to ${shipmentEnd}` : '',
         quantity: qty,
         price_fc: fc,
@@ -278,8 +279,8 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           {/* Vessel, Shipment, Load Port */}
           <div className="fg">
             <label className="fl">Vessel Name</label>
-            <input className="fi" value={vesselName} onChange={e => setVesselName(e.target.value)}
-              placeholder="Ship / vessel name" />
+            <VesselAutocompleteInput id="f-vessel" value={vesselName} onChange={setVesselName}
+              placeholder="Search vessel name…" />
           </div>
           <div className="fg">
             <label className="fl">Shipment Start</label>

@@ -283,7 +283,7 @@ function LinkQuantityModal({
             Loading available quantities…
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+          <div className="rsp-stack-sm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
             <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(66,153,225,0.08)', border: '1px solid rgba(66,153,225,0.25)', borderRadius: 8 }}>
               <div style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Purchase</div>
               <div title={purchase.companyFrom} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{purchase.companyFrom}</div>
@@ -496,7 +496,7 @@ function EditLinkQuantityModal({
             Loading available quantities…
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+          <div className="rsp-stack-sm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
             <div style={{ minWidth: 0, padding: '12px 14px', background: 'rgba(66,153,225,0.08)', border: '1px solid rgba(66,153,225,0.25)', borderRadius: 8 }}>
               <div style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Purchase</div>
               <div title={link.purchaseCompany} style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{link.purchaseCompany}</div>
@@ -1108,7 +1108,7 @@ export default function PurchaseSaleLinkPage() {
             </div>
 
             {/* ── Two-column ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+            <div className="rsp-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
               {/* Purchase column */}
               <Section title={`Purchase Orders — CONFIRMED (${purchases.length})`} accent="var(--blue)">
                 {purchases.length === 0 ? (
@@ -1382,7 +1382,7 @@ export default function PurchaseSaleLinkPage() {
 
 function LinksTable({ records, onUnlink, onEdit }: { records: LinkRecord[]; onUnlink: (linkId: string) => void; onEdit: (record: LinkRecord) => void }) {
   return (
-    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+    <div className="table-scroll" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '820px' }}>
         <thead>
           <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
@@ -1488,7 +1488,7 @@ function ActionBadge({ action }: { action: string }) {
 
 function OversaleHistoryTable({ records }: { records: NegativeLinkHistoryEntry[] }) {
   return (
-    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+    <div className="table-scroll" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
         <thead>
           <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
