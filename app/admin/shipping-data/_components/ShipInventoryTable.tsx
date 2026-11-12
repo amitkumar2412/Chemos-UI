@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { fetchShipInventory, searchShipInventory, type ShipInventoryRow } from '../inventoryApi';
+import { searchShipInventory, type OwnershipFilter, type ShipInventoryRow } from '../inventoryApi';
 import { formatUtc } from '../format';
 
 type SortKey = 'vessel_name' | 'voyage_departure_port_name' | 'voyage_arrival_port_name' | 'voyage_eta_utc' | 'vessel_type' | 'vessel_subtype' | 'vessel_updated_at';
@@ -13,10 +13,25 @@ function departureBadgeColor(label: string | null) {
   return label === 'ATD' ? { bg: 'rgba(6,214,160,0.15)', fg: '#06d6a0' } : { bg: 'rgba(72,149,239,0.15)', fg: '#4895ef' };
 }
 
-export default function ShipInventoryTable() {
-  const [rows, setRows] = useState<ShipInventoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface ShipInventoryTableProps {
+  /** Full inventory, loaded by the page (shared with the ownership filter). */
+  rows: ShipInventoryRow[];
+  loading: boolean;
+  error: string | null;
+  /** Page-level All / My / Global filter. */
+  ownership: OwnershipFilter;
+  selectedShipId?: number | null;
+  onSelectShip?: (shipId: number) => void;
+}
+
+export default function ShipInventoryTable({
+  rows,
+  loading,
+  error,
+  ownership,
+  selectedShipId = null,
+  onSelectShip,
+}: ShipInventoryTableProps) {
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -27,23 +42,6 @@ export default function ShipInventoryTable() {
   const [sortCol, setSortCol] = useState<SortKey>('vessel_name');
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [page, setPage] = useState(0);
-
-  // Initial load of the full inventory (shown when there's no active search).
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    fetchShipInventory(controller.signal)
-      .then((data) => setRows(data))
-      .catch((err) => {
-        if ((err as { name?: string })?.name === 'AbortError') return;
-        setError(err instanceof Error ? err.message : 'Failed to load ship inventory');
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, []);
 
   // Debounce the raw input before hitting the search API on every keystroke.
   useEffect(() => {
@@ -77,18 +75,22 @@ export default function ShipInventoryTable() {
 
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, ownership]);
 
   const isSearchActive = debouncedSearch.length > 0;
   const baseRows = isSearchActive ? searchResults ?? [] : rows;
 
   const filtered = useMemo(() => {
-    return [...baseRows].sort((a, b) => {
+    const byOwnership =
+      ownership === 'all'
+        ? baseRows
+        : baseRows.filter((r) => (ownership === 'my' ? r.my_ship === true : r.my_ship !== true));
+    return [...byOwnership].sort((a, b) => {
       const av = a[sortCol] ?? '';
       const bv = b[sortCol] ?? '';
       return String(av).localeCompare(String(bv)) * sortDir;
     });
-  }, [baseRows, sortCol, sortDir]);
+  }, [baseRows, ownership, sortCol, sortDir]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount - 1);
@@ -233,8 +235,17 @@ export default function ShipInventoryTable() {
           <tbody>
             {paged.map((row) => {
               const badge = departureBadgeColor(row.voyage_departure_label);
+              const isSelected = selectedShipId === row.ship_id;
               return (
-                <tr key={row.ship_id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <tr
+                  key={row.ship_id}
+                  onClick={() => onSelectShip?.(row.ship_id)}
+                  style={{
+                    borderBottom: '1px solid var(--border)',
+                    cursor: onSelectShip ? 'pointer' : 'default',
+                    background: isSelected ? 'rgba(72,149,239,0.12)' : 'transparent',
+                  }}
+                >
                   <td style={{ padding: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--white)' }}>
                     {row.vessel_name ?? '—'}
                   </td>
@@ -273,6 +284,10 @@ export default function ShipInventoryTable() {
                     ? `No ships match "${debouncedSearch}".`
                     : rows.length === 0
                     ? 'No ships returned from the inventory API.'
+                    : ownership === 'my'
+                    ? 'No ships of yours to show.'
+                    : ownership === 'global'
+                    ? 'No global ships to show.'
                     : 'No ships to show.'}
                 </td>
               </tr>

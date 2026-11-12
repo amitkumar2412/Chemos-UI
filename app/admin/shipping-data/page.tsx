@@ -4,13 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { colorForStatus, type Vessel } from './data';
 import { fetchShippingData } from './api';
+import { fetchShipInventory, type OwnershipFilter, type ShipInventoryRow } from './inventoryApi';
 import { formatUtc } from './format';
 
 const ShipMap = dynamic(() => import('./_components/ShipMap'), { ssr: false });
 const ShipInventoryTable = dynamic(() => import('./_components/ShipInventoryTable'), { ssr: false });
-const ProductIntelligence = dynamic(() => import('./_components/ProductIntelligence'), { ssr: false });
 
-type Tab = 'live' | 'product';
+const OWNERSHIP_OPTIONS: { id: OwnershipFilter; label: string }[] = [
+  { id: 'all', label: 'All Ships' },
+  { id: 'my', label: 'My Ships' },
+  { id: 'global', label: 'Global Ships' },
+];
 
 function renderBold(text: string) {
   if (!text) return null;
@@ -123,7 +127,7 @@ function VoyageRoute({ vessel }: { vessel: Vessel }) {
       }}
     >
       {/* FROM → TO header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'start', marginBottom: '20px' }}>
+      <div className="rsp-stack-sm" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'start', marginBottom: '20px' }}>
         {/* Departure */}
         <div>
           <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--gray)', marginBottom: '4px' }}>
@@ -236,11 +240,15 @@ function VoyageRoute({ vessel }: { vessel: Vessel }) {
 /* ── Main Page ───────────────────────────────────────────────────── */
 
 export default function ShippingDataPage() {
-  const [tab, setTab] = useState<Tab>('live');
+  const [ownership, setOwnership] = useState<OwnershipFilter>('all');
+  const [inventory, setInventory] = useState<ShipInventoryRow[]>([]);
+  const [invLoading, setInvLoading] = useState(true);
+  const [invError, setInvError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | Vessel['status']>('All');
   const [vessels, setVessels] = useState<Vessel[]>([]);
   const [selectedMmsi, setSelectedMmsi] = useState<string | null>(null);
+  const [trackQuery, setTrackQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -255,7 +263,7 @@ export default function ShippingDataPage() {
       setLastUpdated(new Date());
       setSelectedMmsi((prev) => {
         if (prev && data.some((v) => v.mmsi === prev)) return prev;
-        return data[0]?.mmsi ?? null;
+        return null;
       });
     } catch (err) {
       if ((err as { name?: string })?.name === 'AbortError') return;
@@ -271,9 +279,44 @@ export default function ShippingDataPage() {
     return () => controller.abort();
   }, [loadData]);
 
+  // Inventory is the source of truth for `my_ship`; the live feed has no such flag.
+  useEffect(() => {
+    const controller = new AbortController();
+    setInvLoading(true);
+    setInvError(null);
+    fetchShipInventory(controller.signal)
+      .then((rows) => setInventory(rows))
+      .catch((err) => {
+        if ((err as { name?: string })?.name === 'AbortError') return;
+        setInvError(err instanceof Error ? err.message : 'Failed to load ship inventory');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setInvLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  const myShipIds = useMemo(
+    () => new Set(inventory.filter((r) => r.my_ship === true).map((r) => r.ship_id)),
+    [inventory]
+  );
+
+  const isMine = useCallback((v: Vessel) => v.ship_id != null && myShipIds.has(v.ship_id), [myShipIds]);
+
+  const ownershipCounts = useMemo(() => {
+    // Counted from the full (all pages) inventory API, so they match the table.
+    const my = inventory.filter((r) => r.my_ship === true).length;
+    return { all: inventory.length, my, global: inventory.length - my } as Record<OwnershipFilter, number>;
+  }, [inventory]);
+
+  const scopedVessels = useMemo(() => {
+    if (ownership === 'all') return vessels;
+    return vessels.filter((v) => (ownership === 'my' ? isMine(v) : !isMine(v)));
+  }, [vessels, ownership, isMine]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return vessels.filter((v) => {
+    return scopedVessels.filter((v) => {
       const matchesQuery =
         !q ||
         v.vessel_name.toLowerCase().includes(q) ||
@@ -286,21 +329,35 @@ export default function ShippingDataPage() {
       const matchesStatus = statusFilter === 'All' || v.status === statusFilter;
       return matchesQuery && matchesStatus;
     });
-  }, [vessels, query, statusFilter]);
+  }, [scopedVessels, query, statusFilter]);
 
   const selected = useMemo(
     () => vessels.find((v) => v.mmsi === selectedMmsi) ?? null,
     [vessels, selectedMmsi]
   );
 
+  const trackResults = useMemo(() => {
+    const q = trackQuery.trim().toLowerCase();
+    const list = q
+      ? scopedVessels.filter(
+          (v) =>
+            v.vessel_name.toLowerCase().includes(q) ||
+            v.imo.includes(q) ||
+            v.mmsi.includes(q) ||
+            v.callsign.toLowerCase().includes(q)
+        )
+      : scopedVessels;
+    return list.slice(0, 50);
+  }, [scopedVessels, trackQuery]);
+
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { Underway: 0, 'At Anchor': 0, Moored: 0, 'In Port': 0 };
-    for (const v of vessels) counts[v.status] = (counts[v.status] ?? 0) + 1;
+    for (const v of scopedVessels) counts[v.status] = (counts[v.status] ?? 0) + 1;
     return counts;
-  }, [vessels]);
+  }, [scopedVessels]);
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1600px' }}>
+    <div style={{ width: '95%', margin: '0 auto', padding: '32px 0', boxSizing: 'border-box' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
         <div>
@@ -311,7 +368,7 @@ export default function ShippingDataPage() {
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', color: 'var(--gray)' }}>
-            Tracking <strong style={{ color: 'var(--white)' }}>{vessels.length}</strong> vessels
+            Tracking <strong style={{ color: 'var(--white)' }}>{scopedVessels.length}</strong> vessels
           </span>
           {lastUpdated && (
             <span style={{ fontSize: '12px', color: 'var(--gray-dim)' }}>
@@ -377,44 +434,23 @@ export default function ShippingDataPage() {
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid var(--border)' }}>
-        {([
-          { id: 'live', label: 'Live Tracking' },
-          { id: 'product', label: 'Product Intelligence' },
-        ] as const).map((t) => (
+      {/* Ownership filter: All / My / Global */}
+      <div className="own-seg" role="tablist" aria-label="Ship ownership filter" style={{ marginBottom: '20px' }}>
+        {OWNERSHIP_OPTIONS.map((o) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              padding: '10px 16px',
-              background: 'transparent',
-              border: 'none',
-              borderBottom: `2px solid ${tab === t.id ? '#4895ef' : 'transparent'}`,
-              marginBottom: '-1px',
-              color: tab === t.id ? 'var(--white)' : 'var(--gray)',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            key={o.id}
+            type="button"
+            role="tab"
+            aria-selected={ownership === o.id}
+            className={`own-seg-btn${ownership === o.id ? ' active' : ''}`}
+            onClick={() => setOwnership(o.id)}
           >
-            {t.label}
+            {o.label}
+            <span className="own-seg-count">{invLoading ? '…' : ownershipCounts[o.id]}</span>
           </button>
         ))}
       </div>
 
-      {tab === 'product' ? (
-        <ProductIntelligence
-          vessels={vessels}
-          onLocateVessel={(mmsi) => {
-            setQuery('');
-            setStatusFilter('All');
-            setSelectedMmsi(mmsi);
-            setTab('live');
-          }}
-        />
-      ) : (
-      <>
       {/* Stat strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
         {([
@@ -518,7 +554,7 @@ export default function ShippingDataPage() {
       </div>
 
       {/* Map + vessel detail */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 3fr)', gap: '16px', marginBottom: '24px' }}>
+      <div className="rsp-stack" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) clamp(300px, 24%, 380px)', gap: '16px', marginBottom: '24px' }}>
         <div
           style={{
             background: 'var(--card)',
@@ -543,6 +579,13 @@ export default function ShippingDataPage() {
           }}
         >
           {/* Header */}
+          <button
+            type="button"
+            onClick={() => setSelectedMmsi(null)}
+            style={{ background: 'none', border: 'none', color: 'var(--gray)', fontSize: '12px', cursor: 'pointer', padding: 0, marginBottom: '8px' }}
+          >
+            ← Search another ship
+          </button>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '12px' }}>
             <div style={{ minWidth: 0 }}>
               <h2 style={{ fontSize: '17px', fontWeight: 700, margin: 0, lineHeight: 1.2 }}>{selected.vessel_name}</h2>
@@ -622,28 +665,92 @@ export default function ShippingDataPage() {
         <div
           style={{
             background: 'var(--card)',
-            border: '2px dashed var(--border)',
+            border: '1px solid var(--border)',
             borderRadius: '14px',
-            padding: '48px',
+            padding: '16px',
             height: '540px',
             boxSizing: 'border-box',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
+            flexDirection: 'column',
             color: 'var(--gray)',
             fontSize: '14px',
           }}
         >
-          {loading ? 'Loading vessel data…' : 'Select a vessel to see detailed voyage information.'}
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--white)', marginBottom: '4px' }}>Track a ship</div>
+          <div style={{ fontSize: '12px', marginBottom: '12px' }}>
+            {loading ? 'Loading vessel data…' : 'Please select a ship to track.'}
+          </div>
+          <input
+            type="text"
+            placeholder="Search ship by name, IMO, MMSI…"
+            value={trackQuery}
+            onChange={(e) => setTrackQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              background: 'var(--navy-light)',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              fontSize: '13px',
+              color: 'var(--white)',
+              outline: 'none',
+              boxSizing: 'border-box',
+              marginBottom: '10px',
+            }}
+          />
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {trackResults.map((v) => (
+              <button
+                key={v.mmsi}
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  setStatusFilter('All');
+                  setSelectedMmsi(v.mmsi);
+                }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '8px 10px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  color: 'var(--white)',
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: 600 }}>{v.vessel_name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--gray)' }}>
+                  IMO {v.imo} · {v.vessel_subtype || v.vessel_type}
+                </div>
+              </button>
+            ))}
+            {!loading && trackResults.length === 0 && (
+              <div style={{ fontSize: '12px', padding: '12px 4px' }}>No ships found.</div>
+            )}
+          </div>
         </div>
       )}
       </div>
 
       {/* ── Ship Inventory Table ─────────────────────────────────── */}
-      <ShipInventoryTable />
-      </>
-      )}
+      <ShipInventoryTable
+        rows={inventory}
+        loading={invLoading}
+        error={invError}
+        ownership={ownership}
+        selectedShipId={selected?.ship_id ?? null}
+        onSelectShip={(shipId) => {
+          const vessel = vessels.find((v) => v.ship_id === shipId);
+          if (!vessel) return;
+          // Make sure the vessel isn't hidden by the map filters, then bring the cards into view.
+          setQuery('');
+          setStatusFilter('All');
+          setSelectedMmsi(vessel.mmsi);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 }

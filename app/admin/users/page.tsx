@@ -312,7 +312,7 @@ export default function UsersPage() {
           </button>
         </div>
       ) : (
-        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+        <div className="table-scroll" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
@@ -550,7 +550,8 @@ export default function UsersPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -560,13 +561,13 @@ export default function UsersPage() {
         >
           <div
             style={{
-              background: 'var(--card)',
+              background: 'var(--navy-mid)',
               borderRadius: '14px',
               border: '1px solid var(--border)',
               width: '100%',
               maxWidth: '480px',
               padding: '32px',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -758,7 +759,8 @@ export default function UsersPage() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -768,13 +770,13 @@ export default function UsersPage() {
         >
           <div
             style={{
-              background: 'var(--card)',
+              background: 'var(--navy-mid)',
               borderRadius: '14px',
               border: '1px solid var(--border)',
               width: '100%',
               maxWidth: '480px',
               padding: '32px',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
             }}
           >
             {/* Modal Header */}

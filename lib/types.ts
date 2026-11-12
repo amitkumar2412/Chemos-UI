@@ -63,6 +63,10 @@ export interface SalePunchPayload {
   company_to: string;
   company_from: string;
   product: string;
+  /** Positive ship ID (from a suggestion, or entered manually). */
+  ship_id: number;
+  /** Non-blank ship name. */
+  ship_name: string;
   vessel_name: string;
   shipment: string;
   quantity: number;
@@ -108,8 +112,17 @@ export interface PunchListResponse {
   totalPages: number;
 }
 
+/** Create-purchase responses may be flat (`{ id }`) or wrapped (`{ message, data: {...} }`). */
 export interface CreatePunchResponse {
-  id: number;
+  id?: number | string;
+  message?: string;
+  data?: {
+    id?: number | string;
+    purchaseId?: number | string;
+    purchase_id?: number | string;
+    shipId?: number;
+    vesselName?: string;
+  } | null;
 }
 
 // ── Sale Form ──────────────────────────────────────────────────────────────

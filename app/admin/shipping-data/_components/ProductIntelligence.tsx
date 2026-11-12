@@ -252,7 +252,7 @@ export default function ProductIntelligence({
           value={activeProductId}
           onChange={(e) => selectProduct(e.target.value)}
           disabled={loading || products.length === 0}
-          style={{ ...controlStyle, minWidth: '300px', cursor: 'pointer' }}
+          style={{ ...controlStyle, minWidth: 'min(300px, 100%)', maxWidth: '100%', cursor: 'pointer' }}
         >
           {products.map((p) => (
             <option key={p.product_id} value={p.product_id}>
@@ -326,7 +326,7 @@ export default function ProductIntelligence({
           </div>
 
           {/* Charts */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: '16px', marginBottom: '20px' }}>
             <div style={card}>
               <PanelTitle title="Quantity by discharge port" hint="Where this product is discharged, by total quantity" />
               <BarList
@@ -470,7 +470,7 @@ export default function ProductIntelligence({
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                style={{ ...controlStyle, minWidth: '240px', fontSize: '13px', padding: '8px 12px' }}
+                style={{ ...controlStyle, minWidth: 'min(240px, 100%)', maxWidth: '100%', fontSize: '13px', padding: '8px 12px' }}
               />
             </div>
             <div style={{ overflowX: 'auto' }}>

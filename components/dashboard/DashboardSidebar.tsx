@@ -253,16 +253,6 @@ export default function DashboardSidebar({ activeModule, onModuleChange, mobileO
             <span className="db-sb-icon-label">Main</span>
           </button>
         )}
-        {dashboardVisible && (
-          <button
-            className={`db-sb-icon-btn${activeMain === 'intelligence' ? ' active' : ''}`}
-            onClick={() => toggleMain('intelligence')}
-            title="Intelligence"
-          >
-            {ICON_INTELLIGENCE}
-            <span className="db-sb-icon-label">Intelligence</span>
-          </button>
-        )}
         {canSeePurchase && (
           <button
             className={`db-sb-icon-btn${activeMain === 'purchase' ? ' active' : ''}`}
