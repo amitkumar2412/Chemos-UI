@@ -13,7 +13,11 @@ export interface ShipInventoryRow {
   vessel_type: string | null;
   vessel_subtype: string | null;
   vessel_updated_at: string | null;
+  /** true = one of our own ships, false = global ship */
+  my_ship: boolean;
 }
+
+export type OwnershipFilter = 'all' | 'my' | 'global';
 
 export interface ShipInventoryResponse {
   total: number;

@@ -43,6 +43,9 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   const [product, setProduct] = useState(initialData?.product || '');
   const [productId, setProductId] = useState('');
   const [vesselName, setVesselName] = useState('');
+  // Set when a suggestion is picked; otherwise the user types shipIdInput manually.
+  const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
+  const [shipIdInput, setShipIdInput] = useState('');
   const [shipmentStart, setShipmentStart] = useState('');
   const [shipmentEnd, setShipmentEnd] = useState('');
   const [quantity, setQuantity] = useState(initialData?.quantity ? String(initialData.quantity) : '');
@@ -128,6 +131,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
 
   const clearForm = () => {
     setCompanyTo(''); setCompanyFrom(''); setProduct(''); setProductId(''); setVesselName('');
+    setSelectedShipId(null); setShipIdInput('');
     setShipmentStart(''); setShipmentEnd(''); setQuantity(''); setPriceFc(''); setCurrency('USD'); setOfferUsd(''); setExchangeRate('');
     setDeliveryTerm(''); setPaymentDays(''); setPort(''); setMarketPrice('');
     setMarketStatus(''); setCostPrice(''); setReplacementCost(''); setMake('');
@@ -148,8 +152,12 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     const qty = parseFloat(quantity);
     const fc = parseFloat(priceFc) || 0;
     const exRate = parseFloat(exchangeRate) || 0;
+    const shipName = vesselName.trim();
+    const shipId = selectedShipId ?? (/^\d+$/.test(shipIdInput.trim()) ? Number(shipIdInput.trim()) : NaN);
 
     const missing: string[] = [];
+    if (!shipName) missing.push('Vessel Name');
+    if (!Number.isSafeInteger(shipId) || shipId <= 0) missing.push('Ship ID');
     if (!companyTo) missing.push('Company To');
     if (!companyFrom) missing.push('Company From');
     if (!product) missing.push('Product');
@@ -176,7 +184,9 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
         purchase_type: purchaseType,
         company_from: companyFrom,
         product: productId || product,
-        vessel_name: vesselName.trim(),
+        ship_id: shipId,
+        ship_name: shipName,
+        vessel_name: shipName,
         shipment: shipmentStart && shipmentEnd ? `${shipmentStart} to ${shipmentEnd}` : '',
         quantity: qty,
         price_fc: fc,
@@ -206,7 +216,13 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
         etd: etd || undefined,
         eta: eta || undefined,
       } as any);
-      toast.success(`Order #${data.id} created — ${product} · ${qty.toLocaleString('en-IN')} MT`);
+      const orderId = data?.id ?? data?.data?.id ?? data?.data?.purchaseId ?? data?.data?.purchase_id;
+      const summary = `${product} · ${qty.toLocaleString('en-IN')} MT`;
+      toast.success(
+        orderId !== undefined && orderId !== null && orderId !== ''
+          ? `Order #${orderId} created — ${summary}`
+          : `Order created — ${summary}`
+      );
       clearForm();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Submission failed');
@@ -278,9 +294,18 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
 
           {/* Vessel, Shipment, Load Port */}
           <div className="fg">
-            <label className="fl">Vessel Name</label>
-            <VesselAutocompleteInput id="f-vessel" value={vesselName} onChange={setVesselName}
+            <label className="fl">Vessel Name <span className="req">*</span></label>
+            <VesselAutocompleteInput id="f-vessel" value={vesselName}
+              onChange={val => { setVesselName(val); setSelectedShipId(null); setShipIdInput(''); }}
+              onSelect={v => { setSelectedShipId(v.shipId); setShipIdInput(String(v.shipId)); }}
               placeholder="Search vessel name…" />
+          </div>
+          <div className="fg">
+            <label className="fl">Ship ID <span className="req">*</span></label>
+            <input className="fi" id="f-ship-id" inputMode="numeric" value={selectedShipId !== null ? String(selectedShipId) : shipIdInput}
+              readOnly={selectedShipId !== null}
+              onChange={e => setShipIdInput(e.target.value.replace(/\D/g, ''))}
+              placeholder="Auto-filled when a vessel is selected" />
           </div>
           <div className="fg">
             <label className="fl">Shipment Start</label>
