@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // /api/email/*; the API key and identity headers are added here and never shipped
 // to the client.
 
-const EMAIL_SERVICE_URL = (process.env.EMAIL_SERVICE_URL ?? 'http://localhost:8090').replace(/\/+$/, '');
+const EMAIL_SERVICE_URL = (process.env.EMAIL_SERVICE_URL ?? 'http://13.206.139.250:8091').replace(/\/+$/, '');
 const EMAIL_SERVICE_API_KEY = process.env.EMAIL_SERVICE_API_KEY ?? '';
 const CHEMOS_API = `${(process.env.BACKEND_URL ?? 'http://localhost:4000').replace(/\/+$/, '')}/api/v1`;
 
