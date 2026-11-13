@@ -4,8 +4,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/apiClient';
 
 export interface VesselOption {
-  id: string;
+  /** Backend ship_id of the selected suggestion. */
+  shipId: number;
+  /** Backend ship_name of the selected suggestion. */
   vesselName: string;
+  myShip: boolean;
 }
 
 interface VesselAutocompleteInputProps {
@@ -16,22 +19,19 @@ interface VesselAutocompleteInputProps {
   placeholder?: string;
 }
 
-const PAGE_SIZE = 10;
-
 function normaliseResults(raw: unknown): VesselOption[] {
   const obj = raw as Record<string, unknown> | null;
-  const arr = Array.isArray(raw) ? raw : (obj?.data ?? obj?.content ?? obj?.results ?? []);
+  const arr = Array.isArray(raw) ? raw : (obj?.data ?? []);
   if (!Array.isArray(arr)) return [];
-  const seen = new Set<string>();
+  const seen = new Set<number>();
   const out: VesselOption[] = [];
   for (const item of arr) {
     const r = (item ?? {}) as Record<string, unknown>;
-    const name = typeof r.vessel_name === 'string' ? r.vessel_name.trim() : '';
-    if (!name) continue;
-    const key = String(r.id ?? name);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({ id: key, vesselName: name });
+    const name = typeof r.ship_name === 'string' ? r.ship_name.trim() : '';
+    const shipId = Number(r.ship_id);
+    if (!name || !Number.isFinite(shipId) || shipId <= 0 || seen.has(shipId)) continue;
+    seen.add(shipId);
+    out.push({ shipId, vesselName: name, myShip: r.my_ship === true });
   }
   return out;
 }
@@ -56,14 +56,18 @@ export default function VesselAutocompleteInput({
   const search = useCallback(async (query: string) => {
     const q = typeof query === 'string' ? query.trim() : '';
     const reqId = ++requestIdRef.current;
+    if (!q) {
+      setSuggestions([]);
+      setLoading(false);
+      setError(false);
+      setShowList(false);
+      return;
+    }
     setLoading(true);
     setError(false);
     setShowList(true);
     try {
-      // No query → plain list endpoint; otherwise search endpoint.
-      const raw = await apiClient.get('/ships', {
-        params: q ? { q, limit: PAGE_SIZE } : { limit: PAGE_SIZE },
-      });
+      const raw = await apiClient.get('/ships/suggestions', { params: { query: q } });
       if (reqId !== requestIdRef.current) return;
       setSuggestions(normaliseResults(raw));
       setHighlight(-1);
@@ -165,7 +169,7 @@ export default function VesselAutocompleteInput({
           {!loading && error && <div className="ac-item" style={muted}>Could not load vessels</div>}
           {!loading && !error && suggestions.map((opt, i) => (
             <div
-              key={opt.id}
+              key={opt.shipId}
               className={`ac-item${i === highlight ? ' highlight' : ''}`}
               onMouseDown={() => handlePick(opt)}
             >
@@ -173,7 +177,7 @@ export default function VesselAutocompleteInput({
             </div>
           ))}
           {!loading && !error && suggestions.length === 0 && (
-            <div className="ac-item" style={muted}>No vessels found</div>
+            <div className="ac-item" style={muted}>No vessels found — enter the ship ID below to add it</div>
           )}
         </div>
       )}

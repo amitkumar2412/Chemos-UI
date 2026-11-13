@@ -186,7 +186,7 @@ export default function ShipMap({ vessels, selectedMmsi, onSelect }: ShipMapProp
     if (!map || !selectedMmsi) return;
     const vessel = vessels.find((v) => v.mmsi === selectedMmsi);
     if (!vessel) return;
-    map.flyTo([vessel.lat, vessel.lng], Math.max(map.getZoom(), 5), { duration: 0.8 });
+    map.flyTo([vessel.lat, vessel.lng], Math.max(map.getZoom(), 7), { duration: 1.2 });
     const marker = markers.get(selectedMmsi);
     if (marker) marker.openTooltip();
   }, [selectedMmsi, vessels]);
