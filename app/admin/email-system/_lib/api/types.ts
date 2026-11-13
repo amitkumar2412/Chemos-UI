@@ -70,7 +70,7 @@ export interface ReplyView {
   subject: string | null;
   bodyText: string | null;
   receivedAt: string;
-  direction?: 'REPLY';
+  direction: 'REPLY';
 }
 
 export interface ThreadItem {
