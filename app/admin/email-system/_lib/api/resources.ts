@@ -10,6 +10,7 @@ import type {
   ForkTemplateInput,
   MailboxStatus,
   ReplyView,
+  ThreadItem,
   Product,
   UpdateRecipientInput,
 } from './types';
@@ -51,6 +52,8 @@ export const campaignsApi = {
     emailApi.getPaged<CampaignSummary>('/campaigns', { query: params, signal }),
   replies: (id: number, params: { page: number; size: number }, signal?: AbortSignal) =>
     emailApi.getPaged<ReplyView>(`/campaigns/${id}/replies`, { query: params, signal }),
+  thread: (id: number, recipientId: number, signal?: AbortSignal) =>
+    emailApi.get<ThreadItem[]>(`/campaigns/${id}/recipients/${recipientId}/thread`, { signal }),
   // Grouping replies per customer needs the whole set, so page through until X-Total-Count items are loaded.
   allReplies: async (id: number, signal?: AbortSignal): Promise<ReplyView[]> => {
     const size = 500;

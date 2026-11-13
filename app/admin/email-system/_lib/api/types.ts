@@ -70,6 +70,17 @@ export interface ReplyView {
   subject: string | null;
   bodyText: string | null;
   receivedAt: string;
+  direction?: 'REPLY';
+}
+
+export interface ThreadItem {
+  direction: 'SENT' | 'REPLY';
+  replyId: number | null;
+  from: string | null;
+  subject: string | null;
+  // HTML for SENT, plain text for REPLY.
+  body: string | null;
+  at: string;
 }
 
 export interface CampaignRecipient {
