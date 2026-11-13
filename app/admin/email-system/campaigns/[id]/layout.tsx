@@ -44,6 +44,17 @@ export default function CampaignWizardLayout({ children }: { children: React.Rea
             </Link>
           );
         })}
+        <Link
+          href={`${base}/replies`}
+          aria-current={pathname === `${base}/replies` ? 'page' : undefined}
+          style={{
+            padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 600, textDecoration: 'none',
+            background: pathname === `${base}/replies` ? 'var(--blue)' : 'var(--navy-light)',
+            color: pathname === `${base}/replies` ? 'white' : 'var(--gray)',
+          }}
+        >
+          Replies
+        </Link>
       </nav>
 
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>

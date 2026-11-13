@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import Modal from '@/components/Modal';
 import { friendlyError } from '../_lib/api/client';
-import type { RecipientStatus } from '../_lib/api/types';
+import type { CampaignStatus, RecipientStatus } from '../_lib/api/types';
 import { STATUS_LABELS, renderPreview } from '../_lib/logic';
 
 export const inputStyle: CSSProperties = {
@@ -65,6 +65,24 @@ export function StatusChip({ status }: { status: RecipientStatus }) {
       style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: c.bg, color: c.fg, whiteSpace: 'nowrap' }}
     >
       {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
+const CAMPAIGN_STATUS_COLORS: Record<CampaignStatus, { bg: string; fg: string }> = {
+  DRAFT: STATUS_COLORS.PENDING,
+  SCHEDULED: { bg: 'var(--gold-dim)', fg: 'var(--gold)' },
+  SENDING: STATUS_COLORS.SENT,
+  COMPLETED: STATUS_COLORS.REPLIED,
+  CANCELLED: STATUS_COLORS.FAILED,
+};
+
+export function CampaignStatusChip({ status }: { status: CampaignStatus }) {
+  const c = CAMPAIGN_STATUS_COLORS[status] ?? CAMPAIGN_STATUS_COLORS.DRAFT;
+  const label = status.charAt(0) + status.slice(1).toLowerCase();
+  return (
+    <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: c.bg, color: c.fg, whiteSpace: 'nowrap' }}>
+      {label}
     </span>
   );
 }

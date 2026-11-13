@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { customersApi, productsApi, templatesApi } from './_lib/api/resources';
+import { campaignsApi, customersApi, productsApi, templatesApi } from './_lib/api/resources';
 import { useQuery } from './_lib/hooks';
-import { useCampaigns } from './_lib/campaigns';
 import RecentCampaigns, { NewCampaignLink } from './_components/RecentCampaigns';
 import { cardStyle } from './_components/ui';
 
 export default function EmailSystemOverviewPage() {
-  const { campaigns } = useCampaigns();
+  const campaigns = useQuery(() => campaignsApi.list({ page: 0, size: 1 }), []);
   const chemicals = useQuery(() => productsApi.list(false), []);
   const customers = useQuery(() => customersApi.list({ page: 0, size: 1 }), []);
   const templates = useQuery(() => templatesApi.masters(), []);
@@ -20,7 +19,7 @@ export default function EmailSystemOverviewPage() {
     { label: 'Chemicals', value: value(chemicals, chemicals.data?.length), color: 'var(--blue)', href: '/admin/email-system/chemicals' },
     { label: 'Customers', value: value(customers, customers.data?.total), color: 'var(--teal)', href: '/admin/email-system/customers' },
     { label: 'Email templates', value: value(templates, templates.data?.length), color: 'var(--gold)', href: '/admin/email-system/templates' },
-    { label: 'Your recent campaigns', value: campaigns.length, color: 'var(--green)', href: '/admin/email-system/campaigns' },
+    { label: 'Campaigns', value: value(campaigns, campaigns.data?.total), color: 'var(--green)', href: '/admin/email-system/campaigns' },
   ];
 
   return (
@@ -37,7 +36,7 @@ export default function EmailSystemOverviewPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Recent campaigns</h2>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          {campaigns.length > 5 && (
+          {(campaigns.data?.total ?? 0) > 5 && (
             <Link href="/admin/email-system/campaigns" style={{ fontSize: '13px', color: 'var(--blue)', textDecoration: 'none', fontWeight: 600 }}>View all →</Link>
           )}
           <NewCampaignLink small />
