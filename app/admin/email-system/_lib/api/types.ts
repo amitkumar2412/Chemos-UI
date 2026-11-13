@@ -51,6 +51,27 @@ export interface Campaign {
   templatePool?: EmailTemplate[];
 }
 
+export interface CampaignSummary {
+  id: number;
+  name: string;
+  status: CampaignStatus;
+  offerPrice: number;
+  scheduledAt: string | null;
+  createdAt: string;
+}
+
+export interface ReplyView {
+  replyId: number;
+  recipientId: number;
+  customerId: number;
+  customerName: string | null;
+  customerEmail: string;
+  fromAddress: string | null;
+  subject: string | null;
+  bodyText: string | null;
+  receivedAt: string;
+}
+
 export interface CampaignRecipient {
   id: number;
   customer: Customer;

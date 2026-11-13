@@ -2,12 +2,14 @@ import { emailApi } from './client';
 import type {
   Campaign,
   CampaignRecipient,
+  CampaignSummary,
   CreateCampaignInput,
   Customer,
   CsvImportResult,
   EmailTemplate,
   ForkTemplateInput,
   MailboxStatus,
+  ReplyView,
   Product,
   UpdateRecipientInput,
 } from './types';
@@ -45,6 +47,22 @@ export const templatesApi = {
 };
 
 export const campaignsApi = {
+  list: (params: { page: number; size: number }, signal?: AbortSignal) =>
+    emailApi.getPaged<CampaignSummary>('/campaigns', { query: params, signal }),
+  replies: (id: number, params: { page: number; size: number }, signal?: AbortSignal) =>
+    emailApi.getPaged<ReplyView>(`/campaigns/${id}/replies`, { query: params, signal }),
+  // Grouping replies per customer needs the whole set, so page through until X-Total-Count items are loaded.
+  allReplies: async (id: number, signal?: AbortSignal): Promise<ReplyView[]> => {
+    const size = 500;
+    const maxPages = 20;
+    const all: ReplyView[] = [];
+    for (let page = 0; page < maxPages; page++) {
+      const { items, total } = await emailApi.getPaged<ReplyView>(`/campaigns/${id}/replies`, { query: { page, size }, signal });
+      all.push(...items);
+      if (items.length < size || all.length >= total) break;
+    }
+    return all;
+  },
   create: (input: CreateCampaignInput) => emailApi.post<Campaign>('/campaigns', { body: input }),
   addRecipients: (id: number, customerIds: number[]) =>
     emailApi.post<CampaignRecipient[]>(`/campaigns/${id}/recipients`, { body: { customerIds } }),

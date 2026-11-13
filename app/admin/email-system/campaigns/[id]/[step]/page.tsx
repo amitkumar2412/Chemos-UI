@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import PersonalizeStep from '../../../_components/wizard/PersonalizeStep';
+import RepliesView from '../../../_components/RepliesView';
 import ProgressStep from '../../../_components/wizard/ProgressStep';
 import RecipientsStep from '../../../_components/wizard/RecipientsStep';
 import ReviewStep from '../../../_components/wizard/ReviewStep';
@@ -20,6 +21,7 @@ export default function CampaignStepPage() {
     case 'personalize': return <PersonalizeStep campaignId={id} />;
     case 'review': return <ReviewStep campaignId={id} />;
     case 'progress': return <ProgressStep campaignId={id} />;
+    case 'replies': return <RepliesView campaignId={id} />;
     default: return <EmptyState title="Not found" text="Unknown campaign step." />;
   }
 }
