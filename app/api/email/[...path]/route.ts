@@ -84,7 +84,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
     return NextResponse.json({ status, error: status === 502 ? 'Bad Gateway' : 'Unauthorized' }, { status });
   }
 
-  const target = `${EMAIL_SERVICE_URL}/api/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`;
+  const target = `${EMAIL_SERVICE_URL}/api/v1/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`;
 
   const headers = new Headers({
     'X-API-Key': EMAIL_SERVICE_API_KEY,
