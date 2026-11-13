@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { campaignsApi } from '../_lib/api/resources';
-import type { ReplyView } from '../_lib/api/types';
+import type { ReplyView, ThreadItem } from '../_lib/api/types';
 import { usePolling, useQuery } from '../_lib/hooks';
 import { formatDateTime } from '../_lib/logic';
-import { EmptyState, ErrorState, SkeletonRows, cardStyle } from './ui';
+import { EmptyState, ErrorState, HtmlPreview, SkeletonRows, cardStyle, secondaryButton } from './ui';
 
 const POLL_MS = 45_000;
 const COLLAPSE_AFTER = 600;
@@ -49,10 +49,41 @@ function ReplyItem({ reply }: { reply: ReplyView }) {
   );
 }
 
+function Thread({ campaignId, recipientId }: { campaignId: number; recipientId: number }) {
+  const { data, error, reload } = useQuery(() => campaignsApi.thread(campaignId, recipientId), [campaignId, recipientId]);
+  if (error && !data) return <ErrorState error={error} onRetry={reload} />;
+  if (!data) return <SkeletonRows rows={2} />;
+  if (data.length === 0) return <span style={{ fontSize: '13px', color: 'var(--gray)' }}>No messages yet.</span>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {data.map((m: ThreadItem, i) => {
+        const reply = m.direction === 'REPLY';
+        return (
+          <div
+            key={`${m.direction}-${m.replyId ?? i}`}
+            style={{
+              borderLeft: `3px solid ${reply ? 'var(--green)' : 'var(--blue)'}`, background: reply ? 'var(--green-dim)' : 'var(--navy-light)',
+              borderRadius: '8px', padding: '10px 14px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', fontSize: '12px', marginBottom: '6px' }}>
+              <strong style={{ color: reply ? 'var(--green)' : 'var(--blue)' }}>{reply ? `Reply${m.from ? ` from ${m.from}` : ''}` : 'Sent by us'}</strong>
+              <time dateTime={m.at} style={{ color: 'var(--gray)' }}>{formatDateTime(m.at)}</time>
+            </div>
+            {m.subject && <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>{m.subject}</div>}
+            {!m.body ? null : reply ? <ReplyBody text={m.body} /> : <HtmlPreview html={m.body} substitute={false} height={260} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function RepliesView({ campaignId }: { campaignId: number }) {
   const { data, error, reload } = useQuery(() => campaignsApi.allReplies(campaignId), [campaignId]);
   // New replies arrive from a background mailbox listener, so keep the view fresh while it is open.
   usePolling(reload, () => POLL_MS, true);
+  const [showThread, setShowThread] = useState<number | null>(null);
 
   if (error && !data) return <ErrorState error={error} onRetry={reload} />;
   if (!data) return <SkeletonRows rows={3} />;
@@ -82,7 +113,17 @@ export default function RepliesView({ campaignId }: { campaignId: number }) {
               </div>
               <span style={{ fontSize: '12px', color: 'var(--gray)' }}>{replies.length} {replies.length === 1 ? 'reply' : 'replies'}</span>
             </div>
-            {replies.map((r) => <ReplyItem key={r.replyId} reply={r} />)}
+            {showThread === customerId ? (
+              <Thread campaignId={campaignId} recipientId={replies[0].recipientId} />
+            ) : (
+              replies.map((r) => <ReplyItem key={r.replyId} reply={r} />)
+            )}
+            <button
+              onClick={() => setShowThread(showThread === customerId ? null : customerId)}
+              style={{ ...secondaryButton, padding: '6px 14px', fontSize: '12px', marginTop: '8px' }}
+            >
+              {showThread === customerId ? 'Hide conversation' : 'View conversation'}
+            </button>
           </section>
         ))}
       </div>
