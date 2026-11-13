@@ -1,8 +1,9 @@
 import { tokenStorage } from '@/lib/apiClient';
 import type { Paged } from './types';
 
-// Single configurable base; points at the ChemOS server-side proxy, never at the email service itself.
-export const EMAIL_API_BASE = process.env.NEXT_PUBLIC_EMAIL_API_BASE ?? '/api/email';
+// Single configurable base (NEXT_PUBLIC_EMAIL_API_BASE, e.g. https://host/api/v1/email). Falls back to the
+// same-origin ChemOS proxy at /api/v1/email, never to the email service itself.
+export const EMAIL_API_BASE = (process.env.NEXT_PUBLIC_EMAIL_API_BASE || '/api/v1/email').replace(/\/+$/, '');
 
 export class EmailApiError extends Error {
   constructor(
