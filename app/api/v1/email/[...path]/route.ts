@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Server-to-server proxy to the email service. The browser only ever talks to
-// /api/email/*; the API key and identity headers are added here and never shipped
+// /api/v1/email/*; the API key and identity headers are added here and never shipped
 // to the client.
 
 const EMAIL_SERVICE_URL = (process.env.EMAIL_SERVICE_URL ?? 'http://13.206.139.250:8091').replace(/\/+$/, '');
 const EMAIL_SERVICE_API_KEY = process.env.EMAIL_SERVICE_API_KEY ?? '';
-const CHEMOS_API = `${(process.env.BACKEND_URL ?? 'http://localhost:4000').replace(/\/+$/, '')}/api/v1`;
+// BACKEND_URL may be given with or without the /api/v1 suffix; normalise so it is never doubled.
+const CHEMOS_API = `${(process.env.BACKEND_URL ?? 'http://localhost:4000').replace(/\/+$/, '').replace(/\/api\/v1$/, '')}/api/v1`;
 
 const ALLOWED_RESOURCES = new Set(['mailbox', 'products', 'customers', 'templates', 'campaigns']);
 const IDENTITY_TTL_MS = 60_000;
