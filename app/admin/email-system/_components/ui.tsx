@@ -13,6 +13,7 @@ export const inputStyle: CSSProperties = {
 
 export const cardStyle: CSSProperties = {
   background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 20px',
+  boxShadow: 'var(--card-shadow, none)',
 };
 
 export const primaryButton: CSSProperties = {
