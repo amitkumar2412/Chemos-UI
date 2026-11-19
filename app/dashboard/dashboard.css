@@ -366,6 +366,10 @@
   background: linear-gradient(180deg, var(--navy) 0%, #0d1b30 100%);
 }
 
+[data-theme="light"] .db-main {
+  background: linear-gradient(180deg, #f0f4ff 0%, #e2e8f5 100%);
+}
+
 /* ─── KPI Grid ──────────────────────────────────────────────────────────── */
 .db-kpi-grid {
   display: grid;
