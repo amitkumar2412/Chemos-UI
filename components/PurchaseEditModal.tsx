@@ -50,6 +50,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
 
   const [purchaseType, setPurchaseType] = useState('');
+  const [fileNo, setFileNo] = useState('');
   const [companyTo, setCompanyTo] = useState('');
   const [companyFrom, setCompanyFrom] = useState('');
   const [product, setProduct] = useState('');
@@ -105,6 +106,7 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
       .then(data => {
         setOrder(data);
         setPurchaseType(data.purchaseType || '');
+        setFileNo(data.fileNo || '');
         setCompanyTo(data.companyTo || '');
         setCompanyFrom(data.companyFrom || '');
         setProduct(getProductName(data.product));
@@ -178,6 +180,8 @@ export default function PurchaseEditModal({ purchaseId, feedOptions, onClose, on
     setSubmitting(true);
     try {
       await updatePurchase(order.id, {
+        // Hidden in the UI; pass the existing value through so an edit doesn't blank it.
+        file_no: fileNo.trim() || undefined,
         purchaseType,
         companyTo,
         companyFrom,

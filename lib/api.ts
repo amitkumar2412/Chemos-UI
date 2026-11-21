@@ -83,6 +83,18 @@ export async function fetchAllSales(page = 0, size = 10, status?: string): Promi
   return apiClient.get<SaleListResponse>('/sales/allSales', { params });
 }
 
+/** GET /sales/search?q=&page=&size= — backend matches product, company and file no. */
+export async function searchSales(q: string, page = 0, size = 10): Promise<SaleListResponse> {
+  const data = await apiClient.get<any>('/sales/search', { params: { q, page, size } });
+  if (Array.isArray(data)) {
+    return {
+      content: data, totalElements: data.length, totalPages: 1, number: 0, size: data.length,
+      first: true, last: true, numberOfElements: data.length, empty: data.length === 0,
+    };
+  }
+  return 'content' in data ? data : data.data;
+}
+
 /** Pages through /sales/allSales until the last page, returning every record. */
 export async function fetchAllSalesComplete(status?: string): Promise<SaleEntry[]> {
   const all: SaleEntry[] = [];
@@ -240,6 +252,7 @@ export function getStatusId(status: StatusValue | undefined): string {
 
 export interface PurchaseOrder {
   id: string;
+  fileNo?: string | null;
   companyTo: string;
   purchaseType: string;
   companyFrom: string;
@@ -328,6 +341,18 @@ export async function fetchPurchasesPage(
   if (params?.product) query.product = params.product;
 
   const data = await apiClient.get<PurchasePageResult>('/purchase/allPurchase', { params: query });
+  return unwrapPurchasePage(data);
+}
+
+/** GET /purchase/search?q=&page=&size= — backend matches product, company and file no. */
+export async function searchPurchases(
+  q: string,
+  page = 0,
+  size = 10
+): Promise<PurchaseListResponse> {
+  const data = await apiClient.get<PurchasePageResult>('/purchase/search', {
+    params: { q, page, size },
+  });
   return unwrapPurchasePage(data);
 }
 

@@ -60,6 +60,7 @@ export interface PunchEntry {
 export interface SalePunchPayload {
 
    purchase_type: string;
+  file_no?: string;
   company_to: string;
   company_from: string;
   product: string;
@@ -201,6 +202,7 @@ export interface CreateSaleResponse {
 // ── Purchase Edit Form ──────────────────────────────────────────────────────
 
 export interface PurchaseFormPayload {
+  file_no?: string;
   purchaseType?: string;
   companyTo?: string;
   companyFrom?: string;
