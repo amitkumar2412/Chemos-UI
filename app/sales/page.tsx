@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import SearchBox from '@/components/SearchBox';
 import Modal from '@/components/Modal';
 import SaleForm from '@/components/SaleForm';
 import SaleDetailModal from '@/components/SaleDetailModal';
 import SaleEditModal from '@/components/SaleEditModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchAllSales, createSale, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
+import { fetchFeedOptions, fetchAllSales, searchSales, createSale, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
 import type { StatusValue } from '@/lib/api';
 import type { SaleEntry, FeedOptions, SaleFormPayload } from '@/lib/types';
 import { usePermissions } from '@/lib/permissions/usePermissions';
@@ -44,34 +45,50 @@ export default function SalesPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  const loadSales = useCallback(async (page: number) => {
+  const [query, setQuery] = useState('');
+  const requestId = useRef(0);
+
+  const loadSales = useCallback(async (page: number, q: string) => {
+    const id = ++requestId.current;
     setLoading(true);
     try {
-      const data = await fetchAllSales(page, PAGE_SIZE);
+      const data = q
+        ? await searchSales(q, page, PAGE_SIZE)
+        : await fetchAllSales(page, PAGE_SIZE);
+      if (id !== requestId.current) return; // a newer request superseded this one
       setEntries(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch (error) {
+      if (id !== requestId.current) return;
       console.error('Failed to load sales:', error);
+      setEntries([]);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchFeedOptions().then(setFeedOptions).catch(() => {});
-    loadSales(0);
+  }, []);
+
+  const handleSearch = useCallback((q: string) => {
+    setQuery(q);
+    setCurrentPage(0);
+    loadSales(0, q);
   }, [loadSales]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    loadSales(page);
+    loadSales(page, query);
   };
 
   const handleSubmitSale = async (payload: SaleFormPayload) => {
     const data = await createSale(payload);
     setIsCreateModalOpen(false);
-    await loadSales(currentPage);
+    await loadSales(currentPage, query);
     return data;
   };
 
@@ -120,6 +137,7 @@ export default function SalesPage() {
 
       {/* Content Area */}
       <div className="page-content">
+        <SearchBox onSearch={handleSearch} placeholder="Search by product, company…" />
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>
             Loading sales orders...
@@ -136,12 +154,12 @@ export default function SalesPage() {
           >
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
             <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-              No sales orders yet
+              {query ? 'No matching sales orders' : 'No sales orders yet'}
             </h3>
-            <p style={{ color: 'var(--gray)', marginBottom: '24px' }}>
-              Create your first sales order to get started
+            <p style={{ color: 'var(--gray)', marginBottom: query ? 0 : '24px' }}>
+              {query ? `Nothing found for “${query}”` : 'Create your first sales order to get started'}
             </p>
-            <button
+            {!query && <button
               onClick={() => setIsCreateModalOpen(true)}
               style={{
                 padding: '10px 20px',
@@ -155,7 +173,7 @@ export default function SalesPage() {
               }}
             >
               Create Order
-            </button>
+            </button>}
           </div>
         ) : (
           <>
@@ -286,7 +304,7 @@ export default function SalesPage() {
         saleId={can('sales', 'canEdit') ? editingId : null}
         feedOptions={feedOptions}
         onClose={() => setEditingId(null)}
-        onSaved={() => loadSales(currentPage)}
+        onSaved={() => loadSales(currentPage, query)}
       />
 
       {/* Create Modal */}

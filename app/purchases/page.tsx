@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import SearchBox from '@/components/SearchBox';
 import Modal from '@/components/Modal';
 import SaleEntryCard from '@/components/SaleEntryCard';
 import PurchaseDetailModal from '@/components/PurchaseDetailModal';
 import PurchaseEditModal from '@/components/PurchaseEditModal';
 import ActionMenu from '@/components/ActionMenu';
-import { fetchFeedOptions, fetchPurchasesPage, createPunch, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
+import { fetchFeedOptions, fetchPurchasesPage, searchPurchases, createPunch, getProductName, getPortName, getStatusName, getStatusId } from '@/lib/api';
 import type { PurchaseOrder, StatusValue } from '@/lib/api';
 import type { FeedOptions, SalePunchPayload } from '@/lib/types';
 import { usePermissions } from '@/lib/permissions/usePermissions';
@@ -36,34 +37,50 @@ export default function PurchasesPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  const loadPurchases = useCallback(async (page: number) => {
+  const [query, setQuery] = useState('');
+  const requestId = useRef(0);
+
+  const loadPurchases = useCallback(async (page: number, q: string) => {
+    const id = ++requestId.current;
     setLoading(true);
     try {
-      const data = await fetchPurchasesPage(page, PAGE_SIZE);
+      const data = q
+        ? await searchPurchases(q, page, PAGE_SIZE)
+        : await fetchPurchasesPage(page, PAGE_SIZE);
+      if (id !== requestId.current) return; // a newer request superseded this one
       setEntries(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch (error) {
+      if (id !== requestId.current) return;
       console.error('Failed to load purchases:', error);
+      setEntries([]);
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchFeedOptions().then(setFeedOptions).catch(() => {});
-    loadPurchases(0);
+  }, []);
+
+  const handleSearch = useCallback((q: string) => {
+    setQuery(q);
+    setCurrentPage(0);
+    loadPurchases(0, q);
   }, [loadPurchases]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    loadPurchases(page);
+    loadPurchases(page, query);
   };
 
   const handleSubmitPunch = async (payload: SalePunchPayload) => {
     const data = await createPunch(payload);
     setIsCreateModalOpen(false);
-    await loadPurchases(currentPage);
+    await loadPurchases(currentPage, query);
     return data;
   };
 
@@ -112,6 +129,7 @@ export default function PurchasesPage() {
 
       {/* Content Area */}
       <div className="page-content">
+        <SearchBox onSearch={handleSearch} placeholder="Search by product, company…" />
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--gray)' }}>
             Loading purchase orders...
@@ -128,12 +146,12 @@ export default function PurchasesPage() {
           >
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
             <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-              No purchase orders yet
+              {query ? 'No matching purchase orders' : 'No purchase orders yet'}
             </h3>
-            <p style={{ color: 'var(--gray)', marginBottom: '24px' }}>
-              Create your first purchase order to get started
+            <p style={{ color: 'var(--gray)', marginBottom: query ? 0 : '24px' }}>
+              {query ? `Nothing found for “${query}”` : 'Create your first purchase order to get started'}
             </p>
-            <button
+            {!query && <button
               onClick={() => setIsCreateModalOpen(true)}
               style={{
                 padding: '10px 20px',
@@ -147,7 +165,7 @@ export default function PurchasesPage() {
               }}
             >
               Create Order
-            </button>
+            </button>}
           </div>
         ) : (
           <>
@@ -156,7 +174,7 @@ export default function PurchasesPage() {
               <thead>
                 <tr style={{ background: 'var(--navy-light)', borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>PO ID</th>
-                  <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Company From</th>
+                  <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>File No</th>                  <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Company From</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Product</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Shipment</th>
                   <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: 'var(--gray)' }}>Quantity</th>
@@ -171,6 +189,7 @@ export default function PurchasesPage() {
                 {entries && entries.map((entry) => (
                   <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{entry.id}</td>
+                    <td style={{ padding: '16px', fontSize: '14px' }}>{entry.fileNo || '—'}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>{entry.companyFrom}</td>
                     <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>{getProductName(entry.product)}</td>
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--gray)' }}>{entry.shipment}</td>
@@ -259,7 +278,7 @@ export default function PurchasesPage() {
         purchaseId={can('purchases', 'canEdit') ? editingId : null}
         feedOptions={feedOptions}
         onClose={() => setEditingId(null)}
-        onSaved={() => loadPurchases(currentPage)}
+        onSaved={() => loadPurchases(currentPage, query)}
       />
 
       {/* Create Modal */}

@@ -76,6 +76,7 @@ export default function PurchaseDetailModal({ purchaseId, onClose }: Props) {
         <div>
           <Section title="Order Info">
             <Field label="PO ID" value={order.id} />
+            <Field label="File No" value={order.fileNo} />
             <Field label="Company To" value={order.companyTo} />
             <Field label="Company From" value={order.companyFrom} />
             <Field label="Purchase Type" value={order.purchaseType} />

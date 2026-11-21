@@ -39,6 +39,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     'Sidhgun Technologies',
   ];
   const [purchaseType, setPurchaseType] = useState(initialData?.purchase_type || '');
+  const [fileNo, setFileNo] = useState(initialData?.file_no || '');
   const [companyFrom, setCompanyFrom] = useState(initialData?.company_from || '');
   const [product, setProduct] = useState(initialData?.product || '');
   const [productId, setProductId] = useState('');
@@ -137,6 +138,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     setMarketStatus(''); setCostPrice(''); setReplacementCost(''); setMake('');
     setExpense(''); setCustomDuty(''); setSws(''); setOtherExpense('');
     setPurchaseType('');
+    setFileNo('');
     setPackaging(''); setOrigin(''); setOriginId('');
     setDischargePorts([]);
     setPriceType('Fixed Price');
@@ -156,6 +158,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     const shipId = selectedShipId ?? (/^\d+$/.test(shipIdInput.trim()) ? Number(shipIdInput.trim()) : NaN);
 
     const missing: string[] = [];
+    if (!fileNo.trim()) missing.push('File No');
     if (!shipName) missing.push('Vessel Name');
     if (!Number.isSafeInteger(shipId) || shipId <= 0) missing.push('Ship ID');
     if (!companyTo) missing.push('Company To');
@@ -182,6 +185,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
       const data = await onSubmit({
         company_to: companyTo,
         purchase_type: purchaseType,
+        file_no: fileNo.trim(),
         company_from: companyFrom,
         product: productId || product,
         ship_id: shipId,
@@ -253,6 +257,11 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           <div className="fg">
             <label className="fl">Date</label>
             <input className="fi" type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} />
+          </div>
+          <div className="fg">
+            <label className="fl">File No <span className="req">*</span></label>
+            <input className="fi" id="f-file-no" value={fileNo} onChange={e => setFileNo(e.target.value)}
+              placeholder="e.g. FN-2026-001" />
           </div>
         </div>
 
