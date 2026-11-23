@@ -5,6 +5,7 @@ import { useParams, usePathname } from 'next/navigation';
 import { useCampaigns } from '../../_lib/campaigns';
 import { formatPrice } from '../../_lib/logic';
 import { cardStyle } from '../../_components/ui';
+import { SelectedRecipientsProvider, useSelectedRecipients } from '../../_lib/selectedRecipients';
 
 export const WIZARD_STEPS = [
   { key: 'recipients', label: 'Recipients' },
@@ -15,6 +16,16 @@ export const WIZARD_STEPS = [
 ] as const;
 
 export default function CampaignWizardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SelectedRecipientsProvider>
+      <WizardShell>{children}</WizardShell>
+    </SelectedRecipientsProvider>
+  );
+}
+
+function WizardShell({ children }: { children: React.ReactNode }) {
+  const { names } = useSelectedRecipients();
+  const selectedNames = Object.values(names);
   const params = useParams<{ id: string }>();
   const pathname = usePathname();
   const id = Number(params.id);
@@ -71,6 +82,14 @@ export default function CampaignWizardLayout({ children }: { children: React.Rea
             <p style={{ margin: 0, color: 'var(--gray)', lineHeight: 1.5 }}>
               Campaign #{params.id}. Its name, chemical and price are not available because it was not created in this browser.
             </p>
+          )}
+          {selectedNames.length > 0 && (
+            <div style={{ marginTop: '12px' }}>
+              <div style={{ color: 'var(--gray)' }}>Selected recipients ({selectedNames.length})</div>
+              <ul style={{ margin: '6px 0 0', paddingLeft: '18px', fontWeight: 600, maxHeight: '240px', overflowY: 'auto' }}>
+                {selectedNames.map((n, i) => <li key={i}>{n}</li>)}
+              </ul>
+            </div>
           )}
           <p style={{ margin: '12px 0 0', color: 'var(--gray)', fontSize: '12px' }}>Details are read-only after creation.</p>
         </aside>

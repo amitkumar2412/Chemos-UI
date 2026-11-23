@@ -141,6 +141,14 @@ export default function ReviewStep({ campaignId }: { campaignId: number }) {
         onCancel={() => setConfirm(false)}
       >
         This will email <strong>{pending.length}</strong> customer{pending.length === 1 ? '' : 's'} and cannot be undone.
+        <ul style={{ margin: '10px 0 0', paddingLeft: '18px', fontWeight: 600, maxHeight: '200px', overflowY: 'auto' }}>
+          {pending.map((r) => (
+            <li key={r.id}>
+              {r.customer.contactName || r.customer.email}
+              {r.customer.companyName && <span style={{ fontWeight: 400, color: 'var(--gray)' }}> · {r.customer.companyName}</span>}
+            </li>
+          ))}
+        </ul>
       </ConfirmDialog>
     </div>
   );
