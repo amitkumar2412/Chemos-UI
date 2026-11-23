@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSelectedRecipients } from '../../_lib/selectedRecipients';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { friendlyError } from '../../_lib/api/client';
@@ -16,11 +17,27 @@ export default function RecipientsStep({ campaignId }: { campaignId: number }) {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const { setNames } = useSelectedRecipients();
+  const knownNames = useRef<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [added, setAdded] = useState<number | null>(null);
 
   const customers = useQuery(() => customersApi.list({ activeOnly: true, page, size: PAGE_SIZE }), [page]);
-  const existing = useQuery(() => campaignsApi.recipients(campaignId, { page: 0, size: 1 }), [campaignId, added]);
+  const existing = useQuery(() => campaignsApi.allRecipients(campaignId), [campaignId, added]);
+
+  (customers.data?.items ?? []).forEach((c) => {
+    knownNames.current[c.id] = c.contactName || c.companyName || c.email;
+  });
+  useEffect(() => {
+    const out: Record<number, string> = {};
+    (existing.data ?? []).forEach((r) => {
+      out[r.customer.id] = r.customer.contactName || r.customer.companyName || r.customer.email;
+    });
+    selected.forEach((id) => { out[id] = knownNames.current[id] ?? `Customer #${id}`; });
+    setNames(out);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, existing.data]);
+  useEffect(() => () => setNames({}), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const q = search.trim().toLowerCase();
   const rows = (customers.data?.items ?? []).filter(
@@ -59,7 +76,7 @@ export default function RecipientsStep({ campaignId }: { campaignId: number }) {
   };
 
   const next = () => router.push(`/admin/email-system/campaigns/${campaignId}/templates`);
-  const total = existing.data?.total ?? 0;
+  const total = existing.data?.length ?? 0;
 
   return (
     <div>
