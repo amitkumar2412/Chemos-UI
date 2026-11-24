@@ -9,7 +9,7 @@ import CountryAutocompleteInput from './CountryAutocompleteInput';
 import VesselAutocompleteInput from './VesselAutocompleteInput';
 import PortAutocompleteInput from './PortAutocompleteInput';
 import PortMultiAutocompleteInput from './PortMultiAutocompleteInput';
-import { fetchMarketStatuses, fetchPaymentTerms } from '@/lib/api';
+import { fetchMarketStatuses, fetchPaymentTerms, purchaseFileNoExists } from '@/lib/api';
 import type {
   FeedOptions,
   SalePunchPayload,
@@ -40,6 +40,18 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
   ];
   const [purchaseType, setPurchaseType] = useState(initialData?.purchase_type || '');
   const [fileNo, setFileNo] = useState(initialData?.file_no || '');
+  const [fileNoError, setFileNoError] = useState<string | null>(null);
+  const DUP_MSG = 'This File No already exists. Please use a different one.';
+  const checkFileNo = async (): Promise<boolean> => {
+    if (!fileNo.trim()) return false;
+    try {
+      const dup = await purchaseFileNoExists(fileNo);
+      setFileNoError(dup ? DUP_MSG : null);
+      return dup;
+    } catch {
+      return false; // can't verify (network error) — don't block the user
+    }
+  };
   const [companyFrom, setCompanyFrom] = useState(initialData?.company_from || '');
   const [product, setProduct] = useState(initialData?.product || '');
   const [productId, setProductId] = useState('');
@@ -138,7 +150,7 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     setMarketStatus(''); setCostPrice(''); setReplacementCost(''); setMake('');
     setExpense(''); setCustomDuty(''); setSws(''); setOtherExpense('');
     setPurchaseType('');
-    setFileNo('');
+    setFileNo(''); setFileNoError(null);
     setPackaging(''); setOrigin(''); setOriginId('');
     setDischargePorts([]);
     setPriceType('Fixed Price');
@@ -182,6 +194,10 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      if (await checkFileNo()) {
+        toast.error(DUP_MSG);
+        return;
+      }
       const data = await onSubmit({
         company_to: companyTo,
         purchase_type: purchaseType,
@@ -260,8 +276,13 @@ export default function SaleEntryCard({ feedOptions, onSubmit, initialData }: Sa
           </div>
           <div className="fg">
             <label className="fl">File No <span className="req">*</span></label>
-            <input className="fi" id="f-file-no" value={fileNo} onChange={e => setFileNo(e.target.value)}
+            <input className="fi" id="f-file-no" value={fileNo}
+              onChange={e => { setFileNo(e.target.value); setFileNoError(null); }}
+              onBlur={() => void checkFileNo()}
+              aria-invalid={!!fileNoError}
+              style={fileNoError ? { borderColor: 'var(--red, #dc2626)' } : undefined}
               placeholder="e.g. FN-2026-001" />
+            {fileNoError && <div style={{ color: 'var(--red, #dc2626)', fontSize: '12px', marginTop: '4px' }}>{fileNoError}</div>}
           </div>
         </div>
 
