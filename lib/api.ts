@@ -385,6 +385,14 @@ export async function fetchAllPurchases(params?: {
   return all;
 }
 
+// Frontend-only duplicate check: compares against every purchase the API returns (case/space-insensitive).
+export async function purchaseFileNoExists(fileNo: string): Promise<boolean> {
+  const target = fileNo.trim().toLowerCase();
+  if (!target) return false;
+  const all = await fetchAllPurchases();
+  return all.some((p) => (p.fileNo ?? '').trim().toLowerCase() === target);
+}
+
 export async function fetchPurchaseById(id: string): Promise<PurchaseOrder> {
   return apiClient.get<PurchaseOrder>(`/purchase/${id}`);
 }
