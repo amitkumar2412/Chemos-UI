@@ -52,7 +52,6 @@ export default function CustomersPage() {
           </label>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button style={secondaryButton} onClick={() => setImportOpen(true)}>Import CSV</button>
           <button style={primaryButton} onClick={() => setAddOpen(true)}>Add customer</button>
         </div>
       </div>
@@ -64,28 +63,26 @@ export default function CustomersPage() {
       ) : data && data.total === 0 ? (
         <EmptyState
           title="No customers yet"
-          text="Add a customer or import a CSV to start building recipient lists."
-          action={<button style={primaryButton} onClick={() => setImportOpen(true)}>Import CSV</button>}
+          text="Add a customer to start building recipient lists."
+          action={<button style={primaryButton} onClick={() => setAddOpen(true)}>Add customer</button>}
         />
       ) : (
         <>
           <div style={{ overflowX: 'auto', opacity: loading ? 0.6 : 1 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>{['Company', 'Contact', 'Email', 'Phone', 'Active'].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr>
+                <tr>{['Company', 'Contact', 'Active'].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {rows.map((c) => (
                   <tr key={c.id}>
                     <td style={{ ...tdStyle, fontWeight: 600 }}>{c.companyName}</td>
                     <td style={tdStyle}>{c.contactName || '—'}</td>
-                    <td style={tdStyle}>{c.email}</td>
-                    <td style={tdStyle}>{c.phone || '—'}</td>
                     <td style={tdStyle}>{c.active ? 'Yes' : 'No'}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
-                  <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: 'var(--gray)' }}>No customers on this page match your search.</td></tr>
+                  <tr><td colSpan={3} style={{ ...tdStyle, textAlign: 'center', color: 'var(--gray)' }}>No customers on this page match your search.</td></tr>
                 )}
               </tbody>
             </table>
