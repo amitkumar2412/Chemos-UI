@@ -115,6 +115,19 @@ export default function ReviewStep({ campaignId }: { campaignId: number }) {
         {row('Pending (will be emailed)', pending.length)}
         {row('Templates in pool', templateCount ?? 'Not set in this browser')}
         {row('Personalized recipients', personalized)}
+        {rows.length > 0 && (
+          <div style={{ padding: '10px 0 0', fontSize: '14px' }}>
+            <div style={{ color: 'var(--gray)', marginBottom: '6px' }}>Recipient names</div>
+            <ul style={{ margin: 0, paddingLeft: '18px', fontWeight: 600, maxHeight: '240px', overflowY: 'auto' }}>
+              {rows.map((r) => (
+                <li key={r.id}>
+                  {r.customer.contactName || r.customer.email}
+                  {r.customer.companyName && <span style={{ fontWeight: 400, color: 'var(--gray)' }}> · {r.customer.companyName}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {templateCount === undefined && (

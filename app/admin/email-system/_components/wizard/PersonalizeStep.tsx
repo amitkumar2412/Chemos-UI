@@ -180,7 +180,7 @@ function RecipientEditor({
   };
 
   return (
-    <Modal isOpen onClose={onClose} title={`Personalize — ${row.customer.companyName}`} size="large">
+    <Modal isOpen onClose={onClose} title={`Personalize — ${row.customer.contactName ? `${row.customer.contactName} · ` : ''}${row.customer.companyName}`} size="large">
       <Field label="Template" hint="Pick a template to edit its subject and body for this customer. Leave unchanged to keep the automatic rotation.">
         <select style={inputStyle} value={draft.templateId ?? ''} onChange={(e) => void pickTemplate(e.target.value)}>
           <option value="">{row.assignedTemplate ? '—' : 'Rotated automatically'}</option>
